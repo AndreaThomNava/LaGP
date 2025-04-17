@@ -1,18 +1,26 @@
 simulation:
   seed: 42
+  grid_lims: [0, 10]
   sample_sizes: [100, 200, 300]  # Different sample sizes for datasets
   dimensions: [1, 2, 3]  # 1D, 2D, or 3D datasets
   likelihoods: 
     - gaussian
     - t
     - chi
+  pars : {
+    "gaussian": {"scale": 0.5},
+    "ald": {"q": 0.8, "scale": 0.1},
+    "t": {"df": 3, "scale": 1},
+    "chi": {"df": 2, "scale": 1}
+  }
   noise_levels: [0.1, 0.2, 0.3]  # Noise levels for adding to data
+  replicates: 10
 
 gp_parameters:
   kernel:
     type: matern
     nu: 1.5
-    range: 0.5
+    lengthscale: 0.5
     signal_variance: 2.0
   # You can add more GP parameters as needed
 

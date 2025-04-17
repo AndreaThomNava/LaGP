@@ -1,0 +1,22 @@
+simulation:
+  seed: 42
+  sample_sizes: [100, 200, 300]  # Different sample sizes for datasets
+  dimensions: [1, 2, 3]  # 1D, 2D, or 3D datasets
+  likelihoods: 
+    - gaussian
+    - t
+    - chi
+  noise_levels: [0.1, 0.2, 0.3]  # Noise levels for adding to data
+
+gp_parameters:
+  kernel:
+    type: matern
+    nu: 1.5
+    range: 0.5
+    signal_variance: 2.0
+  # You can add more GP parameters as needed
+
+output:
+  data_directory: './data/'  # Directory to save generated datasets
+  log_directory: './logs/'   # Directory to save logs
+

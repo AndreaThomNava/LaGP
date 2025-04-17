@@ -1,5 +1,8 @@
 import numpy as np
 import pandas as pd
+import gpytorch as gpy
+import torch
+from scipy.stats import norm, chi2, t
 
 
 def pdf_asym_laplace(y: np.ndarray, b: np.ndarray, q: float, scale: float, log=True) -> np.ndarray:
@@ -35,19 +38,20 @@ def pdf_asym_laplace(y: np.ndarray, b: np.ndarray, q: float, scale: float, log=T
     
     return ret
 
-def quantile_func_asym_laplace(x: float, q: float, scale: float) -> np.ndarray:
+def quantile_func_asym_laplace(x, q: float, scale: float) -> np.ndarray:
     """
     Quantile function for the asymmetric laplace likelihood.
 
     Input:
-        - x: (float) values from 0 to 1, ie the desired quantile.
+        - x: (float or np.ndarray) values from 0 to 1, ie the desired quantile.
         - q: (float) quantile/asymmetry parameter of the asymmetric laplace distribution. 
         - scale: (float) Scale parameter (> 0).
     
     Output:
         - rvs: (np.ndarray) quantiles of the asymmetric laplace distribution.
     """
-    rvs = np.zeros(len(x))
+    x = np.asarray(x, dtype=np.float64)
+    rvs = np.zeros_like(x)
     ind = (x <= q) 
     rvs[ind] = np.log(x[ind]/q) * scale / (1-q) 
     ind = ind == False
@@ -56,7 +60,7 @@ def quantile_func_asym_laplace(x: float, q: float, scale: float) -> np.ndarray:
     return rvs
 
 
-def generate_input_grid():
+def generate_input_grid(d: float, sample_size: float, lims: list) -> np.ndarray:
     """
     Function to generate the input of the latent GP.
 
@@ -67,11 +71,14 @@ def generate_input_grid():
     Output:
         - grid: (np.ndarray) (nxd) grid
     """
+    lower_lim = lims[0]
+    upper_lim = lims[1]
+    grid = np.random.uniform(lower_lim, upper_lim, size=(sample_size, d))
 
-    return "in progress"
+    return grid
 
 
-def simulate_latentGP():
+def simulate_latentGP(X: np.ndarray, kernel: gpy.kernels.Kernel, n_samples: int) -> np.ndarray:
     """
     Function to simulate the latent Gaussian Process f.
 
@@ -84,15 +91,171 @@ def simulate_latentGP():
         - f: (np.ndarray) (n x m_samples) GP samples. 
     """
 
+   
+    X_torch = torch.tensor(X, dtype=torch.float)
+    # Evaluate the kernel
+    covar = kernel(X_torch)
+    mean = torch.zeros(X.shape[0])  # Zero mean GP
 
-    return "in progress"
+    mvn = gpy.distributions.MultivariateNormal(mean, covar)
+    f = mvn.sample(sample_shape=torch.Size([n_samples]))  # (n_samples x N)
 
-def simulate_response():
+
+    return f.numpy().T 
+
+
+
+def simulate_response(f: np.ndarray, noise: str, pars: dict) -> np.ndarray:
     """
     Simulate the noise and add it to the latent GP.
+
+    Input:
+        - f: (np.ndarray) latent GP.
+        - noise: (str) noise model.
+        - pars: (dict) dictionary containing the simulation parameters.
+    
+    Output:
+        - y: (np.ndarray) reponse = f (latent GP) + error (from noise model)
     
     """
+    n = len(f)
+
+    if noise == "gaussian":
+        sigma = pars["gaussian"]["scale"]
+        normv = norm()
+        error = np.random.normal(0,sigma,n)
+
+    elif noise == "ald":
+        q = pars["ald"]["q"]
+        scale = pars["ald"]["q"]
+        error = quantile_func_asym_laplace(x = np.random.uniform(0,1, n), q=q, scale=scale)
+
+    elif noise == "t":
+        sigma = pars["t"]["scale"]
+        df = pars["t"]["df"]
+        error = np.random.standard_t(df = df, size = n) * sigma
+
+    elif noise == "chi":
+        sigma = pars["chi"]["scale"]
+        df = pars["chi"]["df"]
+        error = np.random.chisquare(df = df, size = n) * sigma
+       
+    y = f + error
+
+    return y
+
+
+def obtain_quantile(f: np.ndarray, noise: str, pars: dict, target_quantile: float) -> np.ndarray:
+    
+    """
+    Recover true quantile.
+
+    Input:
+        - f: (np.ndarray) latent GP.
+        - noise: (str) noise model.
+        - pars: (dict) dictionary containing the simulation parameters.
+        - target_quantile: (float) the quantile level of interest.
+    
+    Output:
+        - true latent quantile: (np.ndarray)
+    
+    """
+    n = len(f)
+
+    if noise == "gaussian":
+        sigma = pars["gaussian"]["scale"]
+        normv = norm()
+        delta = normv.ppf(target_quantile) * sigma
+
+    elif noise == "ald":
+        q = pars["ald"]["q"]
+        scale = pars["ald"]["q"]
+        delta = quantile_func_asym_laplace(np.array(target_quantile), q, scale)
+
+    elif noise == "t":
+        sigma = pars["t"]["scale"]
+        df = pars["t"]["df"]
+        tv = t(df=df)
+        delta = tv.ppf(target_quantile) * sigma
+
+    elif noise == "chi":
+        sigma = pars["chi"]["scale"]
+        df = pars["chi"]["df"]
+        chi = chi2(df = df)
+        delta = chi.ppf(target_quantile) * sigma
+
+
+    quantile = f + delta
+
+    return quantile
 
 
 
-    return "in progress"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#### NOT IN USE #####
+
+
+def simulate_latentGP_old(X: np.ndarray, kernel: gpy.kernels.Kernel, n_samples: int) -> np.ndarray:
+    """
+    Function to simulate the latent Gaussian Process f.
+
+    Input:
+        - X: (np.ndarray) (nxd) input grid.
+        - kernel:
+        - n_samples: (float) number of deired GP samples. 
+
+    Output:
+        - f: (np.ndarray) (n x m_samples) GP samples. 
+    """
+
+    class ExactGPModel(gpy.models.ExactGP):
+        def __init__(self, train_x, input_kernel):
+            dummy_y = torch.zeros(train_x.shape[0])
+            likelihood = gpy.likelihoods.GaussianLikelihood()
+            super().__init__(train_x, dummy_y, likelihood)
+            self.mean_module = gpy.means.ConstantMean()
+            self.covar_module = input_kernel
+
+        def forward(self, x):
+            mean_x = self.mean_module(x)
+            covar_x = self.covar_module(x)
+            return gpy.distributions.MultivariateNormal(mean_x, covar_x)
+ 
+    # Convert X to torch tensor
+    X_torch = torch.tensor(X, dtype=torch.float)
+    model = ExactGPModel(X_torch, kernel)
+
+    # Switch to Evaluation Mode
+    model.eval()
+    with torch.no_grad():
+        mvn = model(X_torch)
+        f = mvn.sample(sample_shape=torch.Size([n_samples]))
+
+    # Evaluate the kernel
+    covar = kernel(X_torch)
+    mean = torch.zeros(X.shape[0])  # Zero mean GP
+
+    mvn = gpy.distributions.MultivariateNormal(mean, covar)
+    f = mvn.sample(sample_shape=torch.Size([n_samples]))  # (n_samples x N)
+
+
+    return f.numpy().T, mvn
+
+

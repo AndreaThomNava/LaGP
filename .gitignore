@@ -1,0 +1,4 @@
+# ignore all __pychace__ directories, no matter where they are
+
+
+__pycache__/

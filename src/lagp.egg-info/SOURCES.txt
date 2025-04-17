@@ -1,8 +1,0 @@
-README.md
-setup.py
-src/lagp/__init__.py
-src/lagp.egg-info/PKG-INFO
-src/lagp.egg-info/SOURCES.txt
-src/lagp.egg-info/dependency_links.txt
-src/lagp.egg-info/requires.txt
-src/lagp.egg-info/top_level.txt

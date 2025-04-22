@@ -1,8 +1,9 @@
+import os
+
 import gpytorch as gpy
 import numpy as np
 import pandas as pd
 import torch
-import os
 from scipy.stats import chi2, norm, t
 
 
@@ -218,7 +219,9 @@ def train_test_split(X: np.ndarray, y: np.ndarray, train_split: float) -> np.nda
 
     return X_train, y_train, X_test, y_test
 
+
 ##### LOAD DATA ######
+
 
 def load_data(likelihood, sample_size, input_dim, replicate, train_split):
     """
@@ -226,39 +229,26 @@ def load_data(likelihood, sample_size, input_dim, replicate, train_split):
     Assumes the function is called from the root directory, so that paths work as expected.
 
     Input:
-        
+
 
     Output:
-       
+
     """
     folder_name = f"{sample_size}_{input_dim}"
     file_name = f"data_replicate_{replicate}.npz"
-    file_path = os.path.join("data", "simulated_data", folder_name, likelihood, file_name)
+    file_path = os.path.join(
+        "data", "simulated_data", folder_name, likelihood, file_name
+    )
     data = np.load(file_path)
     X = data["X"]
     y = data["y"]
     f = data["f"]
-    
-    X_train, y_train, X_test, y_test = train_test_split(X=X, y=y, train_split=train_split)
 
+    X_train, y_train, X_test, y_test = train_test_split(
+        X=X, y=y, train_split=train_split
+    )
 
     return f, X_train, y_train, X_test, y_test
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #### NOT IN USE #####

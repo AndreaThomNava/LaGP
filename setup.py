@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(
     name="lagp",  # Name of your package
@@ -15,4 +15,3 @@ setup(
     ],
     python_requires=">=3.6",  # Adjust to your Python version
 )
-

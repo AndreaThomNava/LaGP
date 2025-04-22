@@ -3,7 +3,9 @@ import gpytorch as gpy
 import numpy as np
 import torch
 from gpytorch.distributions import Distribution
-from lagp.utils.gpytorch_utils import AsymmetricLaplaceLikelihood, GPRegressionModel
+
+from lagp.utils.gpytorch_utils import (AsymmetricLaplaceLikelihood,
+                                       GPRegressionModel)
 
 
 def model_gpboost(
@@ -119,6 +121,6 @@ def model_gpytorch(
     likelihood.eval()
     with torch.no_grad():
         pred = model(test_X_tensor)
-        #predictions = pred.mean  # Mode or median of asymmetric Laplace
+        # predictions = pred.mean  # Mode or median of asymmetric Laplace
 
     return pred

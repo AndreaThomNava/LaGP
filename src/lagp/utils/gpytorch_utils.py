@@ -1,5 +1,5 @@
-import torch
 import gpytorch as gpy
+import torch
 from gpytorch.distributions import Distribution
 
 
@@ -21,7 +21,7 @@ class AsymmetricLaplaceOutput(Distribution):
     @property
     def mean(self):
         return self.function_samples
-    
+
 
 ### CUSTOM LIKELIHOOD
 # ---- Custom Likelihood ----
@@ -43,29 +43,32 @@ class AsymmetricLaplaceLikelihood(gpy.likelihoods.Likelihood):
         log_const = torch.log(tau * (1 - tau) / scale)
         rho = torch.where(residuals >= 0, tau * residuals, (tau - 1) * residuals)
         return log_const - rho / scale
-    
+
+
 ## Define Variational GP Model
 class GPRegressionModel(gpy.models.ApproximateGP):
     def __init__(self, train_x):
         # Use full Cholesky variational distribution (full rank, no inducing point approximation)
-        variational_distribution = gpy.variational.CholeskyVariationalDistribution(1000 if train_x.size(0) > 1000 else train_x.size(0))
-        
+        variational_distribution = gpy.variational.CholeskyVariationalDistribution(
+            1000 if train_x.size(0) > 1000 else train_x.size(0)
+        )
+
         # Ensure the inducing points are set as parameters
-        num_features = train_x.size(1) if len(train_x.size()) > 1 else 1 
+        num_features = train_x.size(1) if len(train_x.size()) > 1 else 1
         inducing_points = torch.nn.Parameter(torch.randn(1000, num_features))
-        
+
         variational_strategy = gpy.variational.VariationalStrategy(
             self,
-            inducing_points = inducing_points if train_x.size(0) > 1000 else train_x,  # make it [N, D]
+            inducing_points=(
+                inducing_points if train_x.size(0) > 1000 else train_x
+            ),  # make it [N, D]
             variational_distribution=variational_distribution,
-            learn_inducing_locations= True if train_x.size(0) > 1000 else False
+            learn_inducing_locations=True if train_x.size(0) > 1000 else False,
         )
         super().__init__(variational_strategy)
-        
+
         self.mean_module = gpy.means.ZeroMean()
-        self.covar_module = gpy.kernels.ScaleKernel(
-            gpy.kernels.RBFKernel()
-        )
+        self.covar_module = gpy.kernels.ScaleKernel(gpy.kernels.RBFKernel())
 
     def forward(self, x):
         mean = self.mean_module(x)

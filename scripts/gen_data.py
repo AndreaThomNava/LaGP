@@ -7,8 +7,11 @@ import numpy as np
 import torch
 import yaml
 
-from lagp.utils.generate_data import (generate_input_grid, simulate_latentGP,
-                                      simulate_response)
+from lagp.utils.generate_data import (
+    generate_input_grid,
+    simulate_latentGP,
+    simulate_response,
+)
 
 
 def gen_data(name_config_file: str):
@@ -16,11 +19,11 @@ def gen_data(name_config_file: str):
     SCRIPT_DIR = Path(__file__).resolve().parent
 
     # Go up 3 levels: scripts → lagp → src → project_root
-    PROJECT_ROOT = SCRIPT_DIR.parents[2]
+    PROJECT_ROOT = SCRIPT_DIR #.parents[2]
 
     # Now you can access configs/ and data/ from the root
-    CONFIGS_DIR = PROJECT_ROOT / "configs"
-    DATA_DIR = PROJECT_ROOT / "data"
+    CONFIGS_DIR = "configs"
+    DATA_DIR = "data"
 
     # Load the configuration file
     with open(os.path.join(CONFIGS_DIR, name_config_file), "r") as f:
@@ -57,6 +60,7 @@ def gen_data(name_config_file: str):
             kernel.outputscale = signal_variance
 
             f = simulate_latentGP(X, kernel, n_samples=1)
+            f = f.reshape(sample_size)
 
             # Loop over different likelihoods
             for likelihood in sim_config["likelihoods"]:

@@ -223,7 +223,7 @@ def train_test_split(X: np.ndarray, y: np.ndarray, train_split: float) -> np.nda
 ##### LOAD DATA ######
 
 
-def load_data(likelihood, sample_size, input_dim, replicate, train_split):
+def load_data(likelihood, sample_size, input_dim, replicate, train_split, file_path = None):
     """
     Load data from a .npz file containing X, y, and optionally f.
     Assumes the function is called from the root directory, so that paths work as expected.
@@ -236,9 +236,11 @@ def load_data(likelihood, sample_size, input_dim, replicate, train_split):
     """
     folder_name = f"{sample_size}_{input_dim}"
     file_name = f"data_replicate_{replicate}.npz"
-    file_path = os.path.join(
-        "data", "simulated_data", folder_name, likelihood, file_name
-    )
+    if file_path is None:
+        file_path = os.path.join(
+            "data", "simulated_data", folder_name, likelihood, file_name
+        )
+    # print(f"path: {file_path}")
     data = np.load(file_path)
     X = data["X"]
     y = data["y"]

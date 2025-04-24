@@ -97,7 +97,7 @@ def fit_and_evaluate_replicate(
             y=test_true_latent_quantile,
             pred_low=low_pred,
             pred_up=up_pred,
-            quantile=target_quantile,
+            alpha=alpha,
         )
 
         # compute coverage and width
@@ -193,7 +193,7 @@ if __name__ == "__main__":
     }
 
     # Construct the output file path (e.g., "results.pkl")
-    output_file = os.path.join(OUTPUT_DIR, "simulation_results.pkl")
+    output_file = os.path.join(OUTPUT_DIR, "simulation_results_python.pkl")
 
     # Save the combined dictionary using pickle
     with open(output_file, "wb") as f:

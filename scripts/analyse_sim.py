@@ -45,7 +45,7 @@ if __name__ == "__main__":
                         default = "simulation_results.pkl",
                         help="Name of the results.pkl file")
     parser.add_argument("--configs", type = str,
-                        default = "config_run_simulation.yaml",
+                        default = "config_results_simulation.yaml",
                         help="Name of the configs file")
     
     args = parser.parse_args()

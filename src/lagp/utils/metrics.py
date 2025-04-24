@@ -26,7 +26,7 @@ def quantile_score(y: np.ndarray, preds: np.ndarray, quantile: float) -> float:
     return qs
 
 
-def interval_score(y, pred_low, pred_up, quantile):
+def interval_score(y, pred_low, pred_up, alpha):
     """
     Compute the interval score.
 
@@ -34,15 +34,15 @@ def interval_score(y, pred_low, pred_up, quantile):
         - y: (np.ndarray) observed responses.
         - pred_low: (np.ndarray) predicted lower quantiles.
         - pred_up: (np.ndarray) predicted upper quantiles.
-        - quantile: (float) target quantile.
+        - alpha: (float) confidence level of prediction interval.
 
     Output:
         - mis: (float) mean interval score.
     """
 
     dispersion = (pred_up - pred_low).mean()
-    over_prediction = 2 * ((y - pred_up)[(y - pred_up) >= 0]).mean() / quantile
-    under_prediction = 2 * ((pred_low - y)[(pred_low - y) >= 0]).mean() / quantile
+    over_prediction = 2 * ((y - pred_up)[(y - pred_up) >= 0]).mean() / alpha
+    under_prediction = 2 * ((pred_low - y)[(pred_low - y) >= 0]).mean() / alpha
     mis = np.nansum([dispersion, over_prediction, under_prediction])
 
     return mis

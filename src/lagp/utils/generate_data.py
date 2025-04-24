@@ -177,7 +177,7 @@ def obtain_quantile(
 
     elif noise == "ald":
         q = pars["ald"]["q"]
-        scale = pars["ald"]["q"]
+        scale = pars["ald"]["scale"]
         delta = quantile_func_asym_laplace(np.array(target_quantile), q, scale)
 
     elif noise == "t":

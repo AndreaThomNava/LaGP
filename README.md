@@ -3,11 +3,11 @@
 
 ## SIMULATIONS
 
-- Generate data: Check the "config_data_generation.yaml" file, then run from command line (from LaGP directory) "python scripts/gen_data.py". Te resulting data will be saved into the folder "data/simulation".
+- Generate data: Check the "config_data_generation.yaml" file, then run from command line (from LaGP directory) "python scripts/gen_data.py --config config_data_generation.yaml". The resulting data will be saved into the folder "data/simulation".
 
-- Run (python) simulation
+- Run (python) simulation: Check the "config_run_simulation.yaml" file, then run from command line (from LaGP directory) "python scripts/run_sim.py --config config_run_generation.yaml". The results will be saved into the folder "results/simulation" as "simulation_results_python.pkl".
 
-- Run (R) simulation
+- Run (R) simulation: Execute the R script "model.R". The results will be save into the folder "results/simulation" as "simulation_results_R.pkl".
 
 - Merge simulation results
 

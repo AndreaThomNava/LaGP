@@ -57,7 +57,7 @@ def fit_and_evaluate_replicate(
     for model_name in models:
         # Fit the model and make predictions
         if model_name == "gpboost":
-            pred = model_gpboost(
+            pred, elapsed_time = model_gpboost(
                 quantile=target_quantile,
                 train_X=train_X,
                 train_y=train_y,
@@ -74,7 +74,7 @@ def fit_and_evaluate_replicate(
             up_pred = latent_pred + stddev_pred * t
 
         elif model_name == "gpytorch":
-            pred = model_gpytorch(
+            pred, elapsed_time = model_gpytorch(
                 quantile=target_quantile,
                 train_X=train_X,
                 train_y=train_y,
@@ -116,6 +116,7 @@ def fit_and_evaluate_replicate(
             "interval_loss": interval_loss,
             "coverage": coverage,
             "width": width,
+            "time": elapsed_time
         }
 
     return model_results
@@ -171,7 +172,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config",
         type=str,
-        default="configs/config_run_simulation.yaml",
+        default="config_run_simulation.yaml",
         help="Path to the YAML config file",
     )
     args = parser.parse_args()

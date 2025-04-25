@@ -1,0 +1,183 @@
+import argparse
+import concurrent.futures
+import os
+import pickle
+
+import numpy as np
+import yaml
+from scipy.stats import norm
+
+from lagp.models.model import (  # Assuming you have these model functions
+    model_gpboost, model_gpytorch)
+from lagp.utils.generate_data import  load_real_data, save_cv_splits, load_cv_splits, load_X_y
+from lagp.utils.metrics import quantile_score
+
+
+def fit_and_evaluate_replicate(X, y, fold,
+    configs, replicate, models, target_quantile=0.5
+):
+    """
+    Fit the models on a single replicate and compute the evaluation metrics.
+
+    Input:
+        - config: dictionary with config information (likelihood, sample_size, input_dim)
+        - replicate: replicate index
+        - models: list of model names (e.g., ['gpboost', 'gpytorch'])
+
+    Output:
+        - metrics: dictionary with model names as keys and metrics as values
+    """
+
+    train_idx = fold["train_idx"]
+    test_idx = fold["test_idx"]
+    X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
+    y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
+
+    approx = configs["approximation"]
+    delta_logl = configs["delta_logl"]
+    alpha = configs["alpha"]
+    train_split = configs["train_split"]
+    n_epochs = configs["n_epochs"]
+    lr = configs["lr"]
+    threshold_approx = configs["threshold_approximation"]
+    inducing_points = configs["inducing_points"]
+
+    
+   
+    model_results = {}
+    for model_name in models:
+        # Fit the model and make predictions
+        if model_name == "gpboost":
+            pred, elapsed_time = model_gpboost(
+                quantile=target_quantile,
+                train_X=X_train,
+                train_y=y_test,
+                test_X=X_test,
+                test_y=y_train,
+                approx=approx,
+                delta_logl=delta_logl,
+                n_vecchia= threshold_approx,
+            )
+
+            latent_pred = pred["mu"]
+           
+
+        elif model_name == "gpytorch":
+            pred, elapsed_time = model_gpytorch(
+                quantile=target_quantile,
+                train_X=X_train,
+                train_y=y_train,
+                test_X=X_test,
+                test_y=y_test,
+                epochs=n_epochs,
+                lr = lr,
+                inducing_threshold=threshold_approx,
+                inducing_points=inducing_points
+            )
+
+            latent_pred = pred.mean.numpy()
+
+
+        # Compute quantile score
+        qs_loss = quantile_score(y = y_test, preds=latent_pred, quantile=target_quantile)
+
+       
+        # store results
+        model_results[model_name] = {
+            "quantile_loss": qs_loss,
+            "time": elapsed_time
+        }
+
+    return model_results
+
+
+def fit_models_on_all_datasets_parallel(configs, models):
+    
+    results = {}
+
+    # load from config
+    DIR =  "data/real_data_splits"
+    # Loop over configurations
+    for df_name in configs["df_names"]:
+        X, y = load_X_y(dataset_name=df_name, dir = DIR )
+        folds = load_cv_splits(dataset_name=df_name, dir = DIR)
+        n_splits = len(folds)
+        # Prepare the configuration dictionary
+    
+        # Store results for this configuration
+        config_key = f"{df_name}"
+        results[config_key] = {}
+
+        # Use ProcessPoolExecutor to parallelize across replicates
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            future_to_replicate = {
+                executor.submit(
+                    fit_and_evaluate_replicate,
+                    X, y, folds[replicate-1],
+                    configs,
+                    replicate,
+                    models,
+                ): replicate
+                for replicate  in range(1, n_splits+1)
+            }
+
+            for future in concurrent.futures.as_completed(future_to_replicate):
+                replicate = future_to_replicate[future]
+                try:
+                    replicate_results = future.result()
+                    print(f"results: {replicate_results}")
+                    # Store the results for this replicate
+                    results[config_key][replicate] = replicate_results
+                except Exception as e:
+                    print(f"Error with replicate {replicate}: {e}")
+
+    return results
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run simulation study with models.")
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="config_run_simulation.yaml",
+        help="Path to the YAML config file",
+    )
+    args = parser.parse_args()
+    config_path = os.path.join("configs", args.config)
+    with open(config_path, "r") as f:
+        configs = yaml.safe_load(f)
+
+    models = configs["models"]
+    num_replicates = configs["simulation"]["replicates"]
+
+    # later read from configs
+    df_names = ["bike"]
+    n_splits = 5
+    # create splits for all datasets
+    for dataset_name in df_names:
+        save_cv_splits(dataset_name, n_splits=n_splits, output_dir="data/real_data_splits", seed=42)
+
+    # fit models
+    results = fit_models_on_all_datasets_parallel(
+        configs, models
+    )
+
+    # Save the results
+    # Ensure the results directory exists
+    OUTPUT_DIR = "results/realdata"
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    # Combine the results and config into one dictionary
+    all_results = {
+        "config": configs,
+        "results": results,
+    }
+
+    # Construct the output file path (e.g., "results.pkl")
+    output_file = os.path.join(OUTPUT_DIR, "realdata_results_python.pkl")
+
+    # Save the combined dictionary using pickle
+    with open(output_file, "wb") as f:
+        pickle.dump(all_results, f)
+
+    print(f"Results and config saved to {output_file}")

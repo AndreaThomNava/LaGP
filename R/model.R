@@ -73,7 +73,7 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
       interval_loss = interval_loss,
       coverage = coverage_and_width_results[1],
       width = coverage_and_width_results[2],
-      fit_time = fit_time
+      time = fit_time
     )
   }
   

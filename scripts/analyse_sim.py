@@ -20,10 +20,11 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH):
     metrics = [
         ("quantile_loss_mean", "quantile_loss_std", "Quantile Score"),  # 3rd element is the name/label
         ("interval_loss_mean", "interval_loss_std", "Interval Score"),
-        ("coverage_mean", "coverage_std", "Coverage")
+        ("coverage_mean", "coverage_std", "Coverage"),
+        ("time_mean", "time_std", "Time")
     ]
     # Define metrics and optimality
-    metric_criteria = {"Quantile Score": "min", "Interval Score": "min", "Coverage": "check_coverage"}
+    metric_criteria = {"Quantile Score": "min", "Interval Score": "min", "Coverage": "check_coverage", "Time": "min"}
 
 
     df = make_flattened_df(results = res)

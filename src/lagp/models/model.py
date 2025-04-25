@@ -2,6 +2,7 @@ import gpboost as gpb
 import gpytorch as gpy
 import numpy as np
 import torch
+import time
 from gpytorch.distributions import Distribution
 
 from lagp.utils.gpytorch_utils import (AsymmetricLaplaceLikelihood,
@@ -16,7 +17,7 @@ def model_gpboost(
     test_y: np.ndarray,
     approx: str,
     delta_logl: float,
-    n_vecchia: int = False,
+    n_vecchia: int = 1000,
 ) -> dict:
     """
     Fit the GPBoost model and predict on the test set.
@@ -50,7 +51,10 @@ def model_gpboost(
         "trace": False,
     }
     # fit
+    start_time = time.time()
     gpq.fit(X=np.ones(N), y=train_y, params=params)
+    end_time = time.time()
+    elapsed_time = end_time - start_time
     # predict
     pred = gpq.predict(
         X_pred=np.ones(len(test_X)),
@@ -59,7 +63,7 @@ def model_gpboost(
         predict_var=True,
     )
 
-    return pred
+    return pred, elapsed_time
 
 
 def model_gpytorch(
@@ -114,6 +118,7 @@ def model_gpytorch(
     mll = gpy.mlls.VariationalELBO(likelihood, model, num_data=train_y_tensor.size(0))
 
     num_epochs = epochs
+    start_time = time.time()
     for epoch in range(num_epochs):
         optimizer.zero_grad()
         output = model(train_X_tensor)
@@ -122,6 +127,8 @@ def model_gpytorch(
         if epoch % 50 == 0:
             print(f"Epoch {epoch}: Loss = {loss.item():.4f}")
         optimizer.step()
+    end_time = time.time()
+    elapsed_time = end_time - start_time
 
     # ---- Evaluation ----
     model.eval()
@@ -130,4 +137,4 @@ def model_gpytorch(
         pred = model(test_X_tensor)
         # predictions = pred.mean  # Mode or median of asymmetric Laplace
 
-    return pred
+    return pred, elapsed_time

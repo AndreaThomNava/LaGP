@@ -61,7 +61,9 @@ def group_flattened_df(flat_df: pd.DataFrame) -> pd.DataFrame:
         coverage_mean=('coverage', 'mean'),
         coverage_std=('coverage', 'std'),
         width_mean=('width', 'mean'),
-        width_std=('width', 'std')
+        width_std=('width', 'std'),
+        time_mean=("time", "mean" ),
+        time_std = ("time", "std")
     ).reset_index()
 
     return grouped_df
@@ -95,12 +97,13 @@ def make_latex_table(config, summary_df, metrics, metric_criteria):
     col_format = "|l|l|l" + "|Y" * (n_metrics * n_models) + "|"
 
     # Multi-column headers for metrics
-    metric_headers = [fr"\multicolumn{{{n_models}}}{{c|}}{{\textbf{{{label}}}}}" for _, _, label in metrics]
+    metric_headers = [fr"\multicolumn{{{n_models}}}{{c|}}{{\textbf{{\scriptsize {label}}}}}" for _, _, label in metrics]
 
     # Lower headers with the actual method names (one header per method)
     model_headers = []
     for _ in range(n_metrics):
-        model_headers.extend([fr"\textbf{{{model}}}" for model in models])
+        model_headers.extend([fr"\multicolumn{{1}}{{c}}{{\textbf{{\tiny {"gpb" if model == "gpboost" else model}}}}}" for model in models])
+
 
     # Lower headers for fixed columns (likelihood, sample size, dim)
     lower_headers = [r"\textbf{Likelihood}", r"\textbf{N}", r"\textbf{d}"]
@@ -147,9 +150,9 @@ def make_latex_table(config, summary_df, metrics, metric_criteria):
                     mean = sub[mean_col].values[0]
                     std = sub[std_col].values[0]
                     if np.isclose(mean, best_metrics[label]):
-                        row.append(f"\\textbf{{{mean:.3f} ({std:.3f})}}")
+                        row.append(f"\\textbf{{\\scriptsize {mean:.3f} ({std:.2f})}}")
                     else:
-                        row.append(f"{mean:.3f} ({std:.3f})")
+                        row.append(f"\\scriptsize {mean:.3f} ({std:.2f})")
                 else:
                     row.append("–")
         rows.append(" & ".join(row) + r" \\")

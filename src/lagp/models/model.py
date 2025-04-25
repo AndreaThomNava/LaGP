@@ -16,7 +16,7 @@ def model_gpboost(
     test_y: np.ndarray,
     approx: str,
     delta_logl: float,
-    vecchia: bool = False,
+    n_vecchia: int = False,
 ) -> dict:
     """
     Fit the GPBoost model and predict on the test set.
@@ -32,6 +32,7 @@ def model_gpboost(
     """
 
     N = len(train_X)
+    vecchia = N > n_vecchia
     gpq = gpb.GPModel(
         gp_coords=train_X,
         cov_function="matern",
@@ -69,6 +70,8 @@ def model_gpytorch(
     test_y: np.ndarray,
     epochs: int,
     lr: float,
+    inducing_threshold: int,
+    inducing_points: int,
 ) -> gpy.distributions.MultivariateNormal:
     """
     Fit the GPyTorch model and predict on the test set.
@@ -78,7 +81,11 @@ def model_gpytorch(
         - train_y: Target values for training data
         - test_X: Feature matrix for test data
         - test_y: Target values for test data
-        -
+        - epochs
+        - lr
+        - inducing_threshold
+        - inducing_points
+
     Output:
         - predictions: quantile predictions on test data
     """
@@ -90,7 +97,7 @@ def model_gpytorch(
     test_y_tensor = torch.tensor(test_y, dtype=torch.float32)
 
     likelihood = AsymmetricLaplaceLikelihood(quantile=quantile)
-    model = GPRegressionModel(train_X_tensor)  # Instantiate the GPyTorch model
+    model = GPRegressionModel(train_X_tensor, inducing_threshold, inducing_points)  # Instantiate the GPyTorch model
 
     # ---- Training ----
     model.train()

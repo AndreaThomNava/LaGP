@@ -43,19 +43,20 @@ class AsymmetricLaplaceLikelihood(gpy.likelihoods.Likelihood):
     
 
 class GPRegressionModel(gpy.models.ApproximateGP):
-    def __init__(self, train_x):
+    def __init__(self, train_x, inducing_threshold: int, num_inducing: int = 500):
         # Use full Cholesky variational distribution (full rank, no inducing point approximation)
-        variational_distribution = gpy.variational.CholeskyVariationalDistribution(1000 if train_x.size(0) > 1000 else train_x.size(0))
+        variational_distribution = gpy.variational.CholeskyVariationalDistribution(num_inducing if train_x.size(0) > inducing_threshold
+                                                                                else train_x.size(0))
         
         # Ensure the inducing points are set as parameters
         num_features = train_x.size(1) if len(train_x.size()) > 1 else 1 
-        inducing_points = torch.nn.Parameter(torch.randn(1000, num_features))
+        inducing_points = torch.nn.Parameter(torch.randn(num_inducing, num_features))
         
         variational_strategy = gpy.variational.VariationalStrategy(
             self,
-            inducing_points = inducing_points if train_x.size(0) > 1000 else train_x,  # make it [N, D]
+            inducing_points = inducing_points if train_x.size(0) > inducing_threshold else train_x,  # make it [N, D]
             variational_distribution=variational_distribution,
-            learn_inducing_locations= True if train_x.size(0) > 1000 else False
+            learn_inducing_locations= True if train_x.size(0) > inducing_threshold else False
         )
         super().__init__(variational_strategy)
         

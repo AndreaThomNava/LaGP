@@ -38,6 +38,8 @@ def fit_and_evaluate_replicate(
     train_split = configs["train_split"]
     n_epochs = configs["n_epochs"]
     lr = configs["lr"]
+    threshold_approx = configs["threshold_approximation"]
+    inducing_points = configs["inducing_points"]
 
     # Load the dataset for this replicate
     f, train_X, train_y, test_X, test_y = load_data(
@@ -63,6 +65,7 @@ def fit_and_evaluate_replicate(
                 test_y=test_y,
                 approx=approx,
                 delta_logl=delta_logl,
+                n_vecchia= threshold_approx,
             )
 
             latent_pred = pred["mu"]
@@ -79,6 +82,8 @@ def fit_and_evaluate_replicate(
                 test_y=test_y,
                 epochs=n_epochs,
                 lr = lr,
+                inducing_threshold=threshold_approx,
+                inducing_points=inducing_points
             )
 
             latent_pred = pred.mean.numpy()

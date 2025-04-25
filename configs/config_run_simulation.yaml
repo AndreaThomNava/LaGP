@@ -32,6 +32,8 @@ output:
 
 # specific for the simulation run
 approximation: "asymmetric_laplace_constant_curvature_fisher_mode_finding"
+threshold_approximation: 1000
+inducing_points:  500
 
 delta_logl: 10
 

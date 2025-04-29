@@ -15,7 +15,7 @@ from lagp.utils.metrics import (coverage_and_width, interval_score,
 
 
 def fit_and_evaluate_replicate(
-    configs, replicate_config, replicate, models, target_quantile=0.5
+    configs, replicate_config, replicate, models
 ):
     """
     Fit the models on a single replicate and compute the evaluation metrics.
@@ -40,6 +40,7 @@ def fit_and_evaluate_replicate(
     lr = configs["lr"]
     threshold_approx = configs["threshold_approximation"]
     inducing_points = configs["inducing_points"]
+    target_quantile = configs["target_quantile"]
 
     # Load the dataset for this replicate
     f, train_X, train_y, test_X, test_y = load_data(

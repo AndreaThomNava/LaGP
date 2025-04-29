@@ -54,6 +54,65 @@ load_data <- function(likelihood, sample_size, input_dim, replicate, train_split
 }
 
 
+
+load_X_y <- function(dataset_name, dir) {
+  path <- file.path(dir, paste0(dataset_name, ".csv"))
+  
+  if (!file.exists(path)) {
+    stop(sprintf("Dataset '%s' not found at %s", dataset_name, path))
+  }
+  
+  df <- read.csv(path)
+  
+  if (dataset_name == "bike") {
+    # Predict 'cnt' from other features
+    y <- df$cnt
+    X <- df[, !(names(df) %in% c("cnt", "casual", "registered", "dteday"))]
+    
+  } else if (dataset_name == "house") {
+    y <- df$median_house_value
+    X <- df[, !(names(df) %in% "median_house_value")]
+    
+  } else if (dataset_name == "power") {
+    y <- df$Global_active_power
+    X <- df[, !(names(df) %in% "Global_active_power")]
+    
+  } else if (dataset_name == "protein") {
+    if ("target" %in% names(df)) {
+      y <- df$target
+    } else {
+      y <- df[[ncol(df)]]
+    }
+    X <- df[, !(names(df) %in% names(y))]
+    
+  } else if (dataset_name == "elevators") {
+    if ("failure" %in% names(df)) {
+      y <- df$failure
+    } else {
+      y <- df[[ncol(df)]]
+    }
+    X <- df[, !(names(df) %in% names(y))]
+    
+  } else {
+    stop(sprintf("Unknown dataset name: %s", dataset_name))
+  }
+  
+  return(list(X = X, y = y))
+}
+
+load_cv_splits <- function(dataset_name, dir = "data/real_data_splits", n_splits = 5) {
+  path <- file.path(dir, paste0(dataset_name, "_cv", n_splits, "_splits.json"))
+  
+  if (!file.exists(path)) {
+    stop(sprintf("Split file for dataset '%s' not found at %s", dataset_name, path))
+  }
+  
+  splits <- jsonlite::fromJSON(path)
+  
+  return(splits)
+}
+
+
 # Recover true quantile
 obtain_quantile <- function(f, noise, pars, target_quantile) {
   
@@ -89,7 +148,7 @@ obtain_quantile <- function(f, noise, pars, target_quantile) {
 
 model_qgam <- function(train_X, train_y, test_X, target_quantile = 0.5, smooth_term = 20) {
   # Function to fit the QGAM model and predict on the test set
-  
+
   # Dynamically create the training data frame (with y as the response variable)
   train_data <- data.frame(y = train_y)
   
@@ -103,7 +162,7 @@ model_qgam <- function(train_X, train_y, test_X, target_quantile = 0.5, smooth_t
     paste0("s(X", i, ", k = smooth_term, bs = 'ad')")
   })
   formula <- as.formula(paste("y ~", paste(formula_parts, collapse = " + ")))
-  
+  # print(paste0("formula qgam: ", formula))
   # Fit the QGAM model
   fit_time <- system.time({
     fit <- qgam(formula, data = train_data, qu = target_quantile)

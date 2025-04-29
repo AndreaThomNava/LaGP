@@ -255,6 +255,9 @@ def load_data(likelihood, sample_size, input_dim, replicate, train_split, file_p
 
     return f, X_train, y_train, X_test, y_test
 
+
+### FOR REAL DATASETS ###
+
 def load_X_y(dataset_name, dir):
     path = os.path.join(dir, f"{dataset_name}.csv")
     if not os.path.exists(path):

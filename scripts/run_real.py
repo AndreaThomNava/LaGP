@@ -14,7 +14,7 @@ from lagp.utils.metrics import quantile_score
 
 
 def fit_and_evaluate_replicate(X, y, fold,
-    configs, replicate, models, target_quantile=0.5
+    configs, models
 ):
     """
     Fit the models on a single replicate and compute the evaluation metrics.
@@ -30,18 +30,16 @@ def fit_and_evaluate_replicate(X, y, fold,
 
     train_idx = fold["train_idx"]
     test_idx = fold["test_idx"]
-    X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
+    X_train, X_test = X.iloc[train_idx,:], X.iloc[test_idx,:]
     y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
 
     approx = configs["approximation"]
     delta_logl = configs["delta_logl"]
-    alpha = configs["alpha"]
-    train_split = configs["train_split"]
     n_epochs = configs["n_epochs"]
     lr = configs["lr"]
     threshold_approx = configs["threshold_approximation"]
     inducing_points = configs["inducing_points"]
-
+    target_quantile = configs["target_quantile"]
     
    
     model_results = {}
@@ -51,9 +49,9 @@ def fit_and_evaluate_replicate(X, y, fold,
             pred, elapsed_time = model_gpboost(
                 quantile=target_quantile,
                 train_X=X_train,
-                train_y=y_test,
+                train_y=y_train,
                 test_X=X_test,
-                test_y=y_train,
+                test_y=y_test,
                 approx=approx,
                 delta_logl=delta_logl,
                 n_vecchia= threshold_approx,
@@ -94,15 +92,13 @@ def fit_and_evaluate_replicate(X, y, fold,
 def fit_models_on_all_datasets_parallel(configs, models):
     
     results = {}
-
+    n_splits = configs["n_splits"]
     # load from config
-    DIR =  "data/real_data_splits"
-    # Loop over configurations
-    for df_name in configs["df_names"]:
+    DIR =  "data/real_data"
+    # Loop over datasets
+    for df_name in configs["datasets"]:
         X, y = load_X_y(dataset_name=df_name, dir = DIR )
-        folds = load_cv_splits(dataset_name=df_name, dir = DIR)
-        n_splits = len(folds)
-        # Prepare the configuration dictionary
+        folds = load_cv_splits(dataset_name=df_name, dir = DIR, n_splits = n_splits)
     
         # Store results for this configuration
         config_key = f"{df_name}"
@@ -115,10 +111,9 @@ def fit_models_on_all_datasets_parallel(configs, models):
                     fit_and_evaluate_replicate,
                     X, y, folds[replicate-1],
                     configs,
-                    replicate,
                     models,
                 ): replicate
-                for replicate  in range(1, n_splits+1)
+                for replicate  in range(1, n_splits+1) #could pass replicate also here so that have a counter/progress bar
             }
 
             for future in concurrent.futures.as_completed(future_to_replicate):
@@ -139,7 +134,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config",
         type=str,
-        default="config_run_simulation.yaml",
+        default="config_run_real.yaml",
         help="Path to the YAML config file",
     )
     args = parser.parse_args()
@@ -148,15 +143,12 @@ if __name__ == "__main__":
         configs = yaml.safe_load(f)
 
     models = configs["models"]
-    num_replicates = configs["simulation"]["replicates"]
-
-    # later read from configs
-    df_names = ["bike"]
-    n_splits = 5
+    df_names = configs["datasets"]
+    n_splits = configs["n_splits"]
     # create splits for all datasets
     for dataset_name in df_names:
-        save_cv_splits(dataset_name, n_splits=n_splits, output_dir="data/real_data_splits", seed=42)
-
+        save_cv_splits(dataset_name, n_splits=n_splits, dir="data/real_data", seed=42)
+        
     # fit models
     results = fit_models_on_all_datasets_parallel(
         configs, models

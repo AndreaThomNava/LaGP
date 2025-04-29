@@ -1,0 +1,33 @@
+# make sure this matches the data generation
+
+gp_parameters:
+  kernel:
+    type: matern
+    nu: 1.5
+    lengthscale: 0.5
+    signal_variance: 2.0
+ 
+
+# specific for the simulation run
+## TARGET QUANTILE
+target_quantile: 0.8
+
+approximation: "asymmetric_laplace_constant_curvature_fisher_mode_finding"
+threshold_approximation: 1000
+inducing_points:  500
+
+delta_logl: 10
+
+# level for prediction intervals --> build a alphax100% prediction interval
+alpha: 0.9
+
+n_splits: 5
+
+
+datasets: ["bike"]
+models: ["gpboost", "gpytorch"]
+
+# for GPytorch
+n_epochs : 100
+
+lr: 0.01

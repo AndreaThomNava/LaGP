@@ -7,7 +7,7 @@
 
 - Run (python) simulation: Check the "config_run_simulation.yaml" file, then run from command line (from LaGP directory) "python scripts/run_sim.py --config config_run_generation.yaml". The results will be saved into the folder "results/simulation" as "simulation_results_python.pkl".
 
-- Run (R) simulation: Execute the R script "model.R". The results will be save into the folder "results/simulation" as "simulation_results_R.pkl".
+- Run (R) simulation: Execute the R script "sim.R". The results will be save into the folder "results/simulation" as "simulation_results_R.pkl".
 
 - Merge simulation results: Run from command line (from LaGP directory) "python scripts/merge.py". The results will be saved into the folder "results/simulation" as "simulation_results.pkl".
 
@@ -16,3 +16,8 @@
 
 
 ## REAL-WORLD DATA
+ - Run (python) simulation: Check the "config_run_real.yaml" file, then run from command line (from LaGP directory) "python scripts/run_real.py --config config_run_real.yaml". The results will be saved into the folder "results/realdata" as "realdata_results_python.pkl".
+
+- Run (R) simulation: Execute the R script "real.R". The results will be save into the folder "results/realdata" as "realdata_restuls_R.pkl".
+
+- To do: implement new merge and analyse script.

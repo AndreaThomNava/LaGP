@@ -9,7 +9,7 @@ from scipy.stats import norm
 
 from lagp.models.model import (  # Assuming you have these model functions
     model_gpboost, model_gpytorch)
-from lagp.utils.generate_data import  load_real_data, save_cv_splits, load_cv_splits, load_X_y
+from lagp.utils.generate_data import  load_X_y_preprocessed, save_cv_splits, load_cv_splits, load_X_y, save_cv_splits_preprocessed
 from lagp.utils.metrics import quantile_score
 
 
@@ -97,9 +97,12 @@ def fit_models_on_all_datasets_parallel(configs, models):
     DIR =  "data/real_data"
     # Loop over datasets
     for df_name in configs["datasets"]:
-        X, y = load_X_y(dataset_name=df_name, dir = DIR )
+        X, y = load_X_y_preprocessed(dataset_name=df_name, dir = DIR)
         folds = load_cv_splits(dataset_name=df_name, dir = DIR, n_splits = n_splits)
-    
+        print(X.shape)
+        print(y.shape)
+        print(X)
+        print(y)
         # Store results for this configuration
         config_key = f"{df_name}"
         results[config_key] = {}
@@ -109,11 +112,11 @@ def fit_models_on_all_datasets_parallel(configs, models):
             future_to_replicate = {
                 executor.submit(
                     fit_and_evaluate_replicate,
-                    X, y, folds[replicate-1],
+                    X, y, folds[replicate],
                     configs,
                     models,
                 ): replicate
-                for replicate  in range(1, n_splits+1) #could pass replicate also here so that have a counter/progress bar
+                for replicate  in range(1) #n_splits#
             }
 
             for future in concurrent.futures.as_completed(future_to_replicate):
@@ -147,7 +150,7 @@ if __name__ == "__main__":
     n_splits = configs["n_splits"]
     # create splits for all datasets
     for dataset_name in df_names:
-        save_cv_splits(dataset_name, n_splits=n_splits, dir="data/real_data", seed=42)
+        save_cv_splits_preprocessed(dataset_name, n_splits=n_splits, dir="data/real_data", seed=42)
         
     # fit models
     results = fit_models_on_all_datasets_parallel(

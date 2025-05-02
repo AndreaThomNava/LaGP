@@ -5,7 +5,7 @@ library(yaml)
 source("R/utils.R")
 
 fit_and_evaluate_replicate <- function(X, y, fold, configs, models) {
-  print(paste0("Fold number: ", fold))
+ 
   train_idx <- unlist(fold$train_idx)
   test_idx <- unlist(fold$test_idx)
   

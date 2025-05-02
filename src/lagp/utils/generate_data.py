@@ -269,20 +269,42 @@ def load_X_y(dataset_name, dir):
         # Example: predict count from weather and time features
         y = df["cnt"]
         X = df.drop(columns=["cnt", "casual", "registered", "dteday"])
+    
     elif dataset_name == "house":
         y = df["median_house_value"]
         X = df.drop(columns=["median_house_value"])
+    
     elif dataset_name == "power":
         y = df["Global_active_power"]
         X = df.drop(columns=["Global_active_power"])
+    
     elif dataset_name == "protein":
         y = df["target"] if "target" in df else df.iloc[:, -1]
         X = df.drop(columns=[y.name])
+    
     elif dataset_name == "elevators":
         y = df["failure"] if "failure" in df else df.iloc[:, -1]
         X = df.drop(columns=[y.name])
     else:
         raise ValueError(f"Unknown dataset name: {dataset_name}")
+
+    return X, y
+
+def load_X_y_preprocessed(dataset_name, dir):
+    path = os.path.join(dir, f"{dataset_name}.txt")
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Dataset '{dataset_name}' not found at {path}")
+
+    df = pd.read_csv(path, sep=" ")
+
+    # Features & Response
+    X = df.iloc[:, 1:]
+    y = df.iloc[:, 0]
+
+    #X = X.values  # Selecting multiple features
+    #y = y.values  # Selecting the target variable
+
+    
 
     return X, y
 
@@ -292,6 +314,27 @@ def save_cv_splits(dataset_name, n_splits=5, dir="data/real_data", seed=42):
     os.makedirs(dir, exist_ok=True)
 
     X, y = load_X_y(dataset_name=dataset_name, dir = dir)
+
+    splits = []
+    for fold_idx, (train_idx, test_idx) in enumerate(kf.split(X, y)):
+        splits.append({
+            "fold": fold_idx,
+            "train_idx": train_idx.tolist(),
+            "test_idx": test_idx.tolist(),
+        })
+
+    out_path = os.path.join(dir, f"{dataset_name}_cv{n_splits}_splits.json")
+    with open(out_path, "w") as f:
+        json.dump(splits, f)
+    
+    print(f"Saved {n_splits}-fold CV splits for '{dataset_name}' to {out_path}")
+
+
+def save_cv_splits_preprocessed(dataset_name, n_splits=5, dir="data/real_data", seed=42):
+    kf = KFold(n_splits=n_splits, shuffle=True, random_state=seed)
+    os.makedirs(dir, exist_ok=True)
+
+    X, y = load_X_y_preprocessed(dataset_name=dataset_name, dir = dir)
 
     splits = []
     for fold_idx, (train_idx, test_idx) in enumerate(kf.split(X, y)):

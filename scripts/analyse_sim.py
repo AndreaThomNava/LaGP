@@ -46,12 +46,13 @@ if __name__ == "__main__":
                         default = "simulation_results.pkl",
                         help="Name of the results.pkl file")
     parser.add_argument("--configs", type = str,
-                        default = "config_results_simulation.yaml",
+                        default = "config_run_simulation.yaml",
                         help="Name of the configs file")
     
     args = parser.parse_args()
     print(args)
     RESULT_PATH = os.path.join("results/simulation", args.results_name)
+    print(RESULT_PATH)
     CONFIGS_PATH = os.path.join("configs", args.configs)
    
     latex_table = run_analysis(RESULT_PATH, CONFIGS_PATH)

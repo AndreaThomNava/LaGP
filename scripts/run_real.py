@@ -2,7 +2,7 @@ import argparse
 import concurrent.futures
 import os
 import pickle
-
+import re
 import numpy as np
 import yaml
 from scipy.stats import norm
@@ -40,12 +40,15 @@ def fit_and_evaluate_replicate(X, y, fold,
     threshold_approx = configs["threshold_approximation"]
     inducing_points = configs["inducing_points"]
     target_quantile = configs["target_quantile"]
+    gpb_approxs = configs["gpb_approxs"]
     
    
     model_results = {}
     for model_name in models:
         # Fit the model and make predictions
-        if model_name == "gpboost":
+         # Matches models starting with 'gpboost'
+        if re.match(r"^gpboost", model_name):
+            approx = gpb_approxs[model_name]
             pred, elapsed_time = model_gpboost(
                 quantile=target_quantile,
                 train_X=X_train,
@@ -99,10 +102,6 @@ def fit_models_on_all_datasets_parallel(configs, models):
     for df_name in configs["datasets"]:
         X, y = load_X_y_preprocessed(dataset_name=df_name, dir = DIR)
         folds = load_cv_splits(dataset_name=df_name, dir = DIR, n_splits = n_splits)
-        print(X.shape)
-        print(y.shape)
-        print(X)
-        print(y)
         # Store results for this configuration
         config_key = f"{df_name}"
         results[config_key] = {}
@@ -116,7 +115,7 @@ def fit_models_on_all_datasets_parallel(configs, models):
                     configs,
                     models,
                 ): replicate
-                for replicate  in range(1) #n_splits#
+                for replicate  in range(n_splits) #n_splits#
             }
 
             for future in concurrent.futures.as_completed(future_to_replicate):

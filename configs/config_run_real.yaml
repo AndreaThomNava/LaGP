@@ -21,11 +21,14 @@ delta_logl: 10
 # level for prediction intervals --> build a alphax100% prediction interval
 alpha: 0.9
 
-n_splits: 5
+n_splits: 2
 
 
-datasets: ["bike", "power", "houses", "elevators", "protein"]
-models: ["gpboost", "gpytorch"]
+datasets: ["bike"] #, "power", "houses", "elevators", "protein"]
+models: ["gpboost_cc"] #, "gpboost_lls", "gpytorch"]
+gpb_approxs: {"gpboost_lls": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
+            "gpboost_cc": "asymmetric_laplace_constant_curvature_fisher_mode_finding"}
+
 
 # for GPytorch
 n_epochs : 100

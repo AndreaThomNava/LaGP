@@ -2,7 +2,7 @@ import argparse
 import concurrent.futures
 import os
 import pickle
-
+import re
 import numpy as np
 import yaml
 from scipy.stats import norm
@@ -41,6 +41,7 @@ def fit_and_evaluate_replicate(
     threshold_approx = configs["threshold_approximation"]
     inducing_points = configs["inducing_points"]
     target_quantile = configs["target_quantile"]
+    gpb_approxs = configs["gpb_approxs"]
 
     # Load the dataset for this replicate
     f, train_X, train_y, test_X, test_y = load_data(
@@ -57,7 +58,12 @@ def fit_and_evaluate_replicate(
     model_results = {}
     for model_name in models:
         # Fit the model and make predictions
-        if model_name == "gpboost":
+
+        
+        # Matches models starting with 'gpboost'
+        if re.match(r"^gpboost", model_name):
+            approx = gpb_approxs[model_name]
+           
             pred, elapsed_time = model_gpboost(
                 quantile=target_quantile,
                 train_X=train_X,

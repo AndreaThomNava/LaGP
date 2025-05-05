@@ -30,9 +30,6 @@ fit_and_evaluate_replicate <- function(X, y, fold, configs, models) {
       print("Fitting qgam")
       pred <- model_qgam(X_train, y_train, X_test, target_quantile)
       latent_pred <- pred$predictions
-      stddev_pred <- sqrt(pred$se)
-      low_pred <- latent_pred - stddev_pred * t
-      up_pred <- latent_pred + stddev_pred * t
       fit_time <- pred$fit_time
     } 
     
@@ -112,3 +109,16 @@ output_file <- file.path(OUTPUT_DIR, "real_data_results_R.rds")
 saveRDS(all_results, output_file)
 
 cat("Results and config saved to", output_file, "\n")
+
+
+
+
+
+
+
+
+
+
+
+
+

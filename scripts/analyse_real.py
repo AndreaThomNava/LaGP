@@ -1,4 +1,4 @@
-from lagp.utils.analyse_results import make_flattened_df_real, make_latex_table_real, group_flattened_df, make_plots, group_flattened_df_real
+from lagp.utils.analyse_results import make_flattened_df_real, make_latex_table_real, make_plots_real, group_flattened_df_real
 import argparse
 import os
 import pickle
@@ -31,8 +31,8 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH):
     latex_table = make_latex_table_real(config=configs, summary_df=summary_df, metrics = metrics, metric_criteria= metric_criteria)
 
     # make and save plots
-    metrics_for_plotting = df.columns[5:]
-    #make_plots(df = df, metrics = metrics_for_plotting)
+    metrics_for_plotting = df.columns[3:]
+    make_plots_real(df = df, metrics = metrics_for_plotting)
    
     return latex_table
 
@@ -41,7 +41,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--results_name", type = str,
-                        default = "realdata_results.pkl",
+                        default = "realdata_results_python.pkl",
                         help="Name of the results.pkl file")
     parser.add_argument("--configs", type = str,
                         default = "config_run_real.yaml",

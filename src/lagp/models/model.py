@@ -1,6 +1,7 @@
 import gpboost as gpb
 import gpytorch as gpy
 import numpy as np
+import pandas as pd
 import torch
 import time
 from gpytorch.distributions import Distribution
@@ -93,6 +94,17 @@ def model_gpytorch(
     Output:
         - predictions: quantile predictions on test data
     """
+
+
+    if isinstance(train_X, pd.DataFrame):
+        train_X = train_X.values
+    if isinstance(train_y, (pd.Series, pd.DataFrame)):
+        train_y = train_y.values.ravel()  # Ensure 1D array if needed
+
+    if isinstance(test_X, pd.DataFrame):
+        test_X = test_X.values
+    if isinstance(test_y, (pd.Series, pd.DataFrame)):
+        test_y = test_y.values.ravel()
 
     # Assuming train_X, train_y, test_X, test_y are numpy arrays
     train_X_tensor = torch.tensor(train_X, dtype=torch.float32)

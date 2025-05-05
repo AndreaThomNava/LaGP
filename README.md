@@ -11,7 +11,7 @@
 
 - Merge simulation results: Run from command line (from LaGP directory) "python scripts/merge.py". The results will be saved into the folder "results/simulation" as "simulation_results.pkl".
 
-- Analyse results: Check the "config_results_simulation.yaml" file, then run from command line (from LaGP directory) "python scripts/analyse_sim.py". The results will be saved into the folder "results/simulation". In particular the latex table will be save there under "table_results.tex", while the plots will be saved inside the "images" folder.
+- Analyse results: Check the "config_run_simulation.yaml" file, then run from command line (from LaGP directory) "python scripts/analyse_sim.py". The results will be saved into the folder "results/simulation". In particular the latex table will be save there under "table_results.tex", while the plots will be saved inside the "images" folder.
 
 
 

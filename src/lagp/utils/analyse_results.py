@@ -239,7 +239,9 @@ def make_latex_table_real(config, summary_df, metrics, metric_criteria):
     
     """
     
-    models = config["models"]
+
+    models = config["all_models"] # also eventually Qgam
+    name_dict = config["name_dict"]
 
     # Optional font size
     fontsize = r"\small"  # you can change to \footnotesize, \small, etc.
@@ -248,7 +250,7 @@ def make_latex_table_real(config, summary_df, metrics, metric_criteria):
     n_models = len(models)
     n_metrics = len(metrics)
     col_format = "lll|" + "c" * (n_metrics * n_models)
-    col_format = "|l|l|l" + "|Y" * (n_metrics * n_models) + "|"
+    col_format = "|l" + "|Y" * (n_metrics * n_models) + "|"
 
     # Multi-column headers for metrics
     metric_headers = [fr"\multicolumn{{{n_models}}}{{c|}}{{\textbf{{\scriptsize {label}}}}}" for _, _, label in metrics]
@@ -256,7 +258,7 @@ def make_latex_table_real(config, summary_df, metrics, metric_criteria):
     # Lower headers with the actual method names (one header per method)
     model_headers = []
     for _ in range(n_metrics):
-        model_headers.extend([fr"\multicolumn{{1}}{{c}}{{\textbf{{\tiny {"gpb" if model == "gpboost" else model}}}}}" for model in models])
+        model_headers.extend([fr"\multicolumn{{1}}{{c}}{{\textbf{{\tiny {name_dict[model]}}}}}" for model in models])
 
 
     # Lower headers for fixed columns (likelihood, sample size, dim)
@@ -364,3 +366,37 @@ def make_plots(df, metrics):
 
 
     
+def make_plots_real(df, metrics):
+    """
+    Make plots about results.
+
+    - for each dataset, show effect of sample size on the metrics (quantile loss & time)
+    """
+
+    # Example for plotting with sample_size on x-axis and color by method
+    # sns.set(style="whitegrid")  
+
+    OUTPUT_DIR = Path("results/realdata/images")
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    
+    for metric in metrics:
+        plt.figure(figsize=(10, 6))
+        sns.boxplot(data=df, x="dataset", y=f"{metric}", hue="model", palette="Set2")
+        # Add titles and labels
+        plt.title(f"{metric} by Dataset.", fontsize=16, c = "black")
+        plt.xlabel("Dataset", fontsize=12)
+        plt.ylabel(f"{metric.replace("_", " ").title()}", fontsize=12)
+        plt.legend(title="Model", title_fontsize="13", fontsize="11", labelcolor = "black")
+        plt.tight_layout()
+        # Save plots
+        filename = f"{metric}_{metric}"
+        for ext in ["png", "pdf"]:
+            plt.savefig(OUTPUT_DIR / f"{filename}.{ext}", bbox_inches="tight", dpi=300)
+
+        plt.close()
+            
+
+
+
+

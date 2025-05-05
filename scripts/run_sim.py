@@ -9,7 +9,7 @@ from scipy.stats import norm
 
 from lagp.models.model import (  # Assuming you have these model functions
     model_gpboost, model_gpytorch)
-from lagp.utils.generate_data import load_data, obtain_quantile
+from lagp.utils.generate_data import load_data, obtain_quantile, load_scale_gp
 from lagp.utils.metrics import (coverage_and_width, interval_score,
                                 quantile_score)
 
@@ -29,6 +29,7 @@ def fit_and_evaluate_replicate(
         - metrics: dictionary with model names as keys and metrics as values
     """
     likelihood = replicate_config["likelihood"]
+    is_heteroscedastic = re.search("heteroscedastic", likelihood) is not None
     sample_size = replicate_config["sample_size"]
     input_dim = replicate_config["input_dim"]
 
@@ -48,8 +49,16 @@ def fit_and_evaluate_replicate(
         likelihood, sample_size, input_dim, replicate, train_split
     )
     # obtain true latent quantile
+
+    # if heteroscedastic likelihood, load also second GP!
+    if is_heteroscedastic:
+        g = load_scale_gp(likelihood, sample_size, input_dim, replicate, file_path=None)
+        noise = likelihood.split("_")[0]
+    else:
+        noise = likelihood
+
     true_latent_quantile = obtain_quantile(
-        f=f, noise=likelihood, pars=configs["simulation"]["pars"], target_quantile=target_quantile
+        f=f, noise=noise, pars=configs["simulation"]["pars"], target_quantile=target_quantile, g = g if is_heteroscedastic else None
     )
     # needed for prediction intervals
     normv = norm()

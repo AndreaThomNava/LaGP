@@ -1,7 +1,7 @@
 import argparse
 import os
 from pathlib import Path
-
+import re
 import gpytorch as gpy
 import numpy as np
 import torch
@@ -62,9 +62,22 @@ def gen_data(name_config_file: str):
             f = simulate_latentGP(X, kernel, n_samples=1)
             f = f.reshape(sample_size)
 
+            # generate heteroscedastic GP
+            g = simulate_latentGP(X, kernel, n_samples=1)
+            g = g.reshape(sample_size)
+            g = np.exp(g) # ensure positivity
+
             # Loop over different likelihoods
             for likelihood in sim_config["likelihoods"]:
                 print(f"Generating data for likelihood: {likelihood}")
+
+                # Check if this is a heteroscedastic model
+                is_heteroscedastic = re.search("heteroscedastic", likelihood) is not None
+                if is_heteroscedastic:
+                    noise = likelihood.split("_")[0]
+                else:
+                    noise = likelihood
+
 
                 # Output directory for the specific likelihood
                 likelihood_dir = os.path.join(
@@ -76,14 +89,18 @@ def gen_data(name_config_file: str):
                 for replicate in range(sim_config["replicates"]):
                     print(f"  Replicate {replicate + 1}/{sim_config['replicates']}")
 
-                    # Simulate the response for this likelihood
-                    y = simulate_response(f, noise=likelihood, pars=sim_config["pars"])
+                    # Simulate the response for this likelihood. If heteroscedastic then pass also g !
+                    y = simulate_response(f, noise=noise, pars=sim_config["pars"], g=g if is_heteroscedastic else None)
 
                     # Save the data
                     output_file = os.path.join(
                         likelihood_dir, f"data_replicate_{replicate + 1}.npz"
                     )
-                    np.savez(output_file, X=X, f=f, y=y)
+                    if is_heteroscedastic:
+                        np.savez(output_file, X=X, f=f, g=g, y=y)
+                    else:
+                        np.savez(output_file, X=X, f=f, y=y)
+
                     print(f"  Data saved to {output_file}")
 
 

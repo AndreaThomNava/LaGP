@@ -113,7 +113,7 @@ def simulate_latentGP(
     return f.numpy().T
 
 
-def simulate_response(f: np.ndarray, noise: str, pars: dict) -> np.ndarray:
+def simulate_response(f: np.ndarray, noise: str, pars: dict, g: np.ndarray = None) -> np.ndarray:
     """
     Simulate the noise and add it to the latent GP.
 
@@ -128,36 +128,38 @@ def simulate_response(f: np.ndarray, noise: str, pars: dict) -> np.ndarray:
     """
     n = len(f)
 
+    if g is not None:
+        assert len(g) == n, "Scale function g must be same length as f."
+
     if noise == "gaussian":
-        sigma = pars["gaussian"]["scale"]
-        # normv = norm()
-        error = np.random.normal(0, sigma, n)
+        scale = g if g is not None else pars["gaussian"]["scale"]
+        error = np.random.normal(0, 1, n) * scale
 
     elif noise == "ald":
         q = pars["ald"]["q"]
-        scale = pars["ald"]["q"]
-        error = quantile_func_asym_laplace(
-            x=np.random.uniform(0, 1, n), q=q, scale=scale
-        )
+        scale = g if g is not None else pars["ald"]["scale"]
+        u = np.random.uniform(0, 1, n)
+        error = quantile_func_asym_laplace(x=u, q=q, scale=1.0) * scale
 
     elif noise == "t":
-        sigma = pars["t"]["scale"]
         df = pars["t"]["df"]
-        error = np.random.standard_t(df=df, size=n) * sigma
+        scale = g if g is not None else pars["t"]["scale"]
+        error = np.random.standard_t(df=df, size=n) * scale
 
     elif noise == "chi":
-        sigma = pars["chi"]["scale"]
         df = pars["chi"]["df"]
-        error = np.random.chisquare(df=df, size=n) * sigma
+        scale = g if g is not None else pars["chi"]["scale"]
+        error = np.random.chisquare(df=df, size=n) * scale
 
-    y = f + error
+    else:
+        raise ValueError(f"Unsupported noise model: {noise}")
 
-    return y
+    return f + error
+
 
 
 def obtain_quantile(
-    f: np.ndarray, noise: str, pars: dict, target_quantile: float
-) -> np.ndarray:
+    f: np.ndarray, noise: str, pars: dict, target_quantile: float, g: np.ndarray = None) -> np.ndarray:
     """
     Recover true quantile.
 
@@ -166,38 +168,42 @@ def obtain_quantile(
         - noise: (str) noise model.
         - pars: (dict) dictionary containing the simulation parameters.
         - target_quantile: (float) the quantile level of interest.
+        - g: (np.ndarray) GP that determines the scale of the noise.
 
     Output:
         - true latent quantile: (np.ndarray)
 
     """
+
     n = len(f)
+    if g is not None:
+        assert len(g) == n, "g must have the same length as f."
 
     if noise == "gaussian":
-        sigma = pars["gaussian"]["scale"]
-        normv = norm()
-        delta = normv.ppf(target_quantile) * sigma
+        scale = g if g is not None else pars["gaussian"]["scale"]
+        delta = norm.ppf(target_quantile) * scale
 
     elif noise == "ald":
         q = pars["ald"]["q"]
-        scale = pars["ald"]["scale"]
-        delta = quantile_func_asym_laplace(np.array(target_quantile), q, scale)
+        scale = g if g is not None else pars["ald"]["scale"]
+        # Quantile function of ALD with scale=1, then multiply
+        delta = quantile_func_asym_laplace(np.array(target_quantile), q, 1) * scale
 
     elif noise == "t":
-        sigma = pars["t"]["scale"]
         df = pars["t"]["df"]
-        tv = t(df=df)
-        delta = tv.ppf(target_quantile) * sigma
+        scale = g if g is not None else pars["t"]["scale"]
+        delta = t(df=df).ppf(target_quantile) * scale
 
     elif noise == "chi":
-        sigma = pars["chi"]["scale"]
         df = pars["chi"]["df"]
-        chi = chi2(df=df)
-        delta = chi.ppf(target_quantile) * sigma
+        scale = g if g is not None else pars["chi"]["scale"]
+        delta = chi2(df=df).ppf(target_quantile) * scale
 
-    quantile = f + delta
+    else:
+        raise ValueError(f"Unsupported noise model: {noise}")
 
-    return quantile
+    return f + delta
+    
 
 
 def train_test_split(X: np.ndarray, y: np.ndarray, train_split: float) -> np.ndarray:
@@ -255,6 +261,32 @@ def load_data(likelihood, sample_size, input_dim, replicate, train_split, file_p
 
     return f, X_train, y_train, X_test, y_test
 
+
+
+def load_scale_gp(likelihood, sample_size, input_dim, replicate, file_path=None):
+    """
+    Load the scale GP (g) from a .npz file. Assumes g exists in the file for heteroscedastic models.
+
+    Input:
+        - likelihood (str): Name of the likelihood.
+        - sample_size (int): Number of samples.
+        - input_dim (int): Input dimensionality.
+        - replicate (int): Replicate index (starting from 1).
+        - file_path (str, optional): Override the default path.
+
+    Output:
+        - g (np.ndarray): Scale GP.
+    """
+    folder_name = f"{sample_size}_{input_dim}"
+    file_name = f"data_replicate_{replicate}.npz"
+    if file_path is None:
+        file_path = os.path.join("data", "simulated_data", folder_name, likelihood, file_name)
+
+    data = np.load(file_path)
+    if "g" not in data:
+        raise ValueError(f"No scale GP 'g' found in file: {file_path}")
+
+    return data["g"]
 
 ### FOR REAL DATASETS ###
 

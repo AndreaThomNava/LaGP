@@ -8,6 +8,7 @@ simulation:
    # - t
    # - chi
     - ald
+    - ald_heteroscedastic # testing heteroscedasticity
   pars : {
     "gaussian": {"scale": 0.5},
     "ald": {"q": 0.8, "scale": 0.1},

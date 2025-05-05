@@ -2,8 +2,8 @@
 simulation:
   seed: 42
   grid_lims: [0, 10]
-  sample_sizes: [100, 500, 1000] #, 300]  # Different sample sizes for datasets
-  dimensions: [1, 2] #, 3]  # 1D, 2D, or 3D datasets
+  sample_sizes: [1000] #, 300]  # Different sample sizes for datasets
+  dimensions: [3] #, 3]  # 1D, 2D, or 3D datasets
   likelihoods: 
     - gaussian
    # - t
@@ -18,6 +18,7 @@ simulation:
   ## useless can be removed ? --> noise_levels: [0.1, 0.2, 0.3]  # Noise levels for adding to data
   replicates: 5 # 10
 
+# for simulation !
 gp_parameters:
   kernel:
     type: matern
@@ -32,7 +33,7 @@ output:
 
 # specific for the simulation run
 approximation: "asymmetric_laplace_constant_curvature_fisher_mode_finding"
-threshold_approximation: 1000
+threshold_approximation: 1001
 inducing_points:  500
 
 ## TARGET QUANTILE ##
@@ -45,17 +46,19 @@ alpha: 0.9
 
 train_split: 0.75
 
-models: ["gpboost_lls", "gpboost_cc", "gpytorch"]
+models: ["gpboost_cc", "gpboost_cc_var_corr", "gpytorch"]
 gpb_approxs: {"gpboost_lls": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
-            "gpboost_cc": "asymmetric_laplace_constant_curvature_fisher_mode_finding"}
+            "gpboost_cc": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
+            "gpboost_cc_var_corr": "asymmetric_laplace_constant_curvature_fisher_mode_finding_var_cor_pred"}
 
 
 # for GPytorch
-n_epochs : 100
+n_epochs : 200
 
 lr: 0.01
 
 # for later
-all_models:  ["gpboost_lls", "gpboost_cc", "gpytorch", "qgam"]
-name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpytorch": "VI", "qgam":"GAM"}
+all_models: ["gpboost_cc", "gpboost_cc_var_corr", "gpytorch"] # ["gpboost_lls", "gpboost_cc", "gpytorch", "qgam"]
+name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpytorch": "VI", "qgam":"GAM",
+            "gpboost_cc_var_corr": "CC corr"}
 likelihood_dict : {"gaussian":"N", "ald": "ALD", "t":"t", "chi":"chi"}

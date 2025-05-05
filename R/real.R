@@ -39,7 +39,7 @@ fit_and_evaluate_replicate <- function(X, y, fold, configs, models) {
     
     model_results[[model_name]] <- list(
       quantile_loss = qs_loss,
-      time = elapsed_time
+      time = fit_time
     )
   }
   

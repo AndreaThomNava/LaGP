@@ -24,9 +24,9 @@ def make_flattened_df(results: pd.DataFrame) -> pd.DataFrame:
     df = pd.DataFrame([
         {
             "model": model,
-            "likelihood": cfg.split("_")[0],
-            "sample_size": int(cfg.split("_")[1]),
-            "dim": int(cfg.split("_")[2]),
+            "likelihood": "_".join(cfg.split("_")[:-2]), # could have an extra split for heteroscedastic
+            "sample_size": int(cfg.split("_")[-2]),
+            "dim": int(cfg.split("_")[-1]),
             "replicate": replicate,
             **metrics,
         }
@@ -121,6 +121,38 @@ def group_flattened_df(flat_df: pd.DataFrame) -> pd.DataFrame:
     return grouped_df
 
 
+def df_mse_hyper(flat_df, configs):
+   
+    models_with_hyperparams = configs["models_with_hyperparams"]
+    lengthscale = configs["gp_parameters"]["kernel"]["lengthscale"]
+    signal_variance = configs["gp_parameters"]["kernel"]["signal_variance"]
+    # noise_variance = configs["gp_parameters"]["kernel"]["legthscale"]
+    
+    # keep only if model has estimated the hyper-parameters
+    filtered_df = flat_df[flat_df['model'].isin(models_with_hyperparams)]
+    
+     # Group by likelihood, sample_size, dim, and model_method
+    grouped = filtered_df.groupby(['likelihood', 'sample_size', 'dim', 'model'])
+
+
+    def make_mse_function(true_param: np.ndarray):
+        def mse(estimates: list[np.ndarray]) -> float:
+            est_array = np.stack(estimates)
+            return np.mean((est_array - true_param) ** 2)
+        return mse
+    
+    mse_lengthscale = make_mse_function(lengthscale)
+    mse_signal = make_mse_function(signal_variance)
+    
+    grouped_df = grouped.agg(
+       mse_lengthscale =  ("lengthscale", mse_lengthscale),
+       mse_signal_variance = ("signal_variance", mse_signal)
+    ).reset_index()
+
+    return grouped_df
+
+
+
 def make_latex_table(config, summary_df, metrics, metric_criteria):
     """
     Make a latex table out of the summarized results.
@@ -137,7 +169,7 @@ def make_latex_table(config, summary_df, metrics, metric_criteria):
     """
     
     alpha = config["alpha"]
-    models = config["all_models"]
+    models = config["all_models"] # eventually qgam
     name_dict = config["name_dict"]
     noise_dict = config["likelihood_dict"]
 
@@ -320,6 +352,90 @@ def make_latex_table_real(config, summary_df, metrics, metric_criteria):
     latex_table = header + "\n".join(rows) + footer
      
     return latex_table
+
+
+def make_latex_table_hyperparams(config, summary_df):
+    """
+    Make a LaTeX table for MSE of estimated GP hyperparameters (lengthscale, signal variance).
+
+    Input:
+        - config: (dict)
+        - summary_df: (pd.DataFrame) output from df_mse_hyper()
+    
+    Output:
+        - latex_table: (str)
+    """
+    
+    models = config["models_with_hyperparams"]
+    name_dict = config["name_dict"]
+    noise_dict = config["likelihood_dict"]
+
+    # Metrics to include
+    metrics = [
+        ("mse_lengthscale", None, "Lengthscale MSE"),
+        ("mse_signal_variance", None, "Signal Variance MSE"),
+    ]
+    metric_criteria = {label: "min" for _, _, label in metrics}
+
+    fontsize = r"\small"
+    n_models = len(models)
+    n_metrics = len(metrics)
+    col_format = "|l|l|l" + "|Y" * (n_metrics * n_models) + "|"
+
+    metric_headers = [fr"\multicolumn{{{n_models}}}{{c|}}{{\textbf{{\scriptsize {label}}}}}" for _, _, label in metrics]
+    model_headers = []
+    for _ in range(n_metrics):
+        model_headers.extend([fr"\multicolumn{{1}}{{c}}{{\textbf{{\tiny {name_dict[model]}}}}}" for model in models])
+
+    lower_headers = [r"\scriptsize \textbf{Noise}", r"\scriptsize \textbf{N}", r"\scriptsize \textbf{d}"] + model_headers
+
+    header = fr"""
+    \begin{{table}}[ht]
+    \centering
+    {fontsize}
+    \begin{{tabularx}}{{1\textwidth}}{{{col_format}}}
+    \toprule
+    \multicolumn{{3}}{{c|}}{{}} & {' & '.join(metric_headers)} \\
+    { ' & '.join(lower_headers) } \\
+    \midrule
+    """
+
+    rows = []
+    for _, group in summary_df.groupby(['likelihood', 'sample_size', 'dim']):
+        row = [
+            fr"\scriptsize {noise_dict[group['likelihood'].iloc[0]]}",
+            fr"\scriptsize {group['sample_size'].iloc[0]}",
+            fr"\scriptsize {group['dim'].iloc[0]}"
+        ]
+
+        best_metrics = {}
+        for mean_col, _, label in metrics:
+            col_vals = group[mean_col]
+            best_metrics[label] = np.min(col_vals)
+
+        for mean_col, _, label in metrics:
+            for model in models:
+                sub = group[group['model'] == model]
+                if not sub.empty:
+                    mean = sub[mean_col].values[0]
+                    if np.isclose(mean, best_metrics[label]):
+                        row.append(rf"\textbf{{\scriptsize {mean:.4f}}}")
+                    else:
+                        row.append(rf"\scriptsize {mean:.4f}")
+                else:
+                    row.append("–")
+        rows.append(" & ".join(row) + r" \\")
+
+    footer = r"""
+    \bottomrule
+    \end{tabularx}
+    \caption{MSE of estimated hyperparameters across models and settings. Bold indicates best (lowest) MSE.}
+    \end{table}
+    """
+
+    latex_table = header + "\n".join(rows) + footer
+    return latex_table
+
 
 
 

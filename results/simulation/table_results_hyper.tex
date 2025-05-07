@@ -1,0 +1,17 @@
+
+    \begin{table}[ht]
+    \centering
+    \small
+    \begin{tabularx}{1\textwidth}{|l|l|l|Y|Y|Y|Y|Y|Y|}
+    \toprule
+    \multicolumn{3}{c|}{} & \multicolumn{3}{c|}{\textbf{\scriptsize Lengthscale MSE}} & \multicolumn{3}{c|}{\textbf{\scriptsize Signal Variance MSE}} \\
+    \scriptsize \textbf{Noise} & \scriptsize \textbf{N} & \scriptsize \textbf{d} & \multicolumn{1}{c}{\textbf{\tiny CC}} & \multicolumn{1}{c}{\textbf{\tiny CC corr}} & \multicolumn{1}{c}{\textbf{\tiny VI}} & \multicolumn{1}{c}{\textbf{\tiny CC}} & \multicolumn{1}{c}{\textbf{\tiny CC corr}} & \multicolumn{1}{c}{\textbf{\tiny VI}} \\
+    \midrule
+    \scriptsize ALD & \scriptsize 100 & \scriptsize 3 & \textbf{\scriptsize 0.2799} & \textbf{\scriptsize 0.2799} & \scriptsize 1.8111 & \textbf{\scriptsize 0.5788} & \textbf{\scriptsize 0.5788} & \scriptsize 1.1433 \\
+\scriptsize HetALD & \scriptsize 100 & \scriptsize 3 & \scriptsize 2.4841 & \scriptsize 2.4841 & \textbf{\scriptsize 1.4981} & \scriptsize 2.5535 & \scriptsize 2.5535 & \textbf{\scriptsize 2.1768} \\
+\scriptsize N & \scriptsize 100 & \scriptsize 3 & \textbf{\scriptsize 0.2122} & \textbf{\scriptsize 0.2122} & \scriptsize 2.4712 & \textbf{\scriptsize 0.5305} & \textbf{\scriptsize 0.5305} & \scriptsize 0.7559 \\
+    \bottomrule
+    \end{tabularx}
+    \caption{MSE of estimated hyperparameters across models and settings. Bold indicates best (lowest) MSE.}
+    \end{table}
+    

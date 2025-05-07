@@ -53,6 +53,27 @@ load_data <- function(likelihood, sample_size, input_dim, replicate, train_split
   list(f = f, X_train = X_train, y_train = y_train, X_test = X_test, y_test = y_test)
 }
 
+# Load the scale GP (g) from a .npz file
+load_scale_gp <- function(likelihood, sample_size, input_dim, replicate, file_path = NULL) {
+  folder_name <- paste0(sample_size, "_", input_dim)
+  file_name <- paste0("data_replicate_", replicate, ".npz")
+  
+  if (is.null(file_path)) {
+    file_path <- file.path("data", "simulated_data", folder_name, likelihood, file_name)
+  }
+  
+  np <- reticulate::import("numpy")
+  data <- np$load(file_path)
+  
+  if (!"g" %in% names(data)) {
+    stop(paste("No scale GP 'g' found in file:", file_path))
+  }
+  
+  g <- data[["g"]]
+  return(g)
+}
+
+
 
 
 load_X_y <- function(dataset_name, dir) {
@@ -114,33 +135,39 @@ load_cv_splits <- function(dataset_name, dir = "data/real_data_splits", n_splits
 
 
 # Recover true quantile
-obtain_quantile <- function(f, noise, pars, target_quantile) {
-  
+obtain_quantile <- function(f, noise, pars, target_quantile, g = NULL) {
   n <- length(f)
-  
-  if (noise == "gaussian") {
-    sigma <- pars$gaussian$scale
-    delta <- qnorm(target_quantile) * sigma
-  
-  } else if (noise == "ald") {
-    q <- pars$ald$q
-    scale <- pars$ald$scale  
-    delta <- quantile_func_asym_laplace(target_quantile, q, scale)
-    
-  } else if (noise == "t") {
-    sigma <- pars$t$scale
-    df <- pars$t$df
-    delta <- qt(target_quantile, df = df) * sigma
-    
-  } else if (noise == "chi") {
-    sigma <- pars$chi$scale
-    df <- pars$chi$df
-    delta <- qchisq(target_quantile, df = df) * sigma
+  if (!is.null(g)) {
+    stopifnot(length(g) == n)
   }
   
-  quantile <- f + delta
-  return(quantile)
+  if (noise == "gaussian") {
+    scale <- if (!is.null(g)) g else pars[["gaussian"]][["scale"]]
+    delta <- qnorm(target_quantile) * scale
+    
+  } else if (noise == "ald") {
+    q <- pars[["ald"]][["q"]]
+    scale <- if (!is.null(g)) g else pars[["ald"]][["scale"]]
+    delta <- quantile_func_asym_laplace(target_quantile, q, 1) * scale
+    
+  } else if (noise == "t") {
+    df <- pars[["t"]][["df"]]
+    scale <- if (!is.null(g)) g else pars[["t"]][["scale"]]
+    delta <- qt(target_quantile, df = df) * scale
+    
+  } else if (noise == "chi") {
+    df <- pars[["chi"]][["df"]]
+    scale <- if (!is.null(g)) g else pars[["chi"]][["scale"]]
+    delta <- qchisq(target_quantile, df = df) * scale
+    
+  } else {
+    stop(paste("Unsupported noise model:", noise))
+  }
+  
+  return(f + delta)
 }
+
+
 
 ### ----------------- MODEL FITTING --------------------- ###
 

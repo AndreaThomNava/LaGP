@@ -49,7 +49,7 @@ def fit_and_evaluate_replicate(X, y, fold,
          # Matches models starting with 'gpboost'
         if re.match(r"^gpboost", model_name):
             approx = gpb_approxs[model_name]
-            pred, elapsed_time = model_gpboost(
+            pred, elapsed_time, hyper_params = model_gpboost(
                 quantile=target_quantile,
                 train_X=X_train,
                 train_y=y_train,
@@ -64,7 +64,7 @@ def fit_and_evaluate_replicate(X, y, fold,
            
 
         elif model_name == "gpytorch":
-            pred, elapsed_time = model_gpytorch(
+            pred, elapsed_time, hyper_params = model_gpytorch(
                 quantile=target_quantile,
                 train_X=X_train,
                 train_y=y_train,
@@ -86,7 +86,8 @@ def fit_and_evaluate_replicate(X, y, fold,
         # store results
         model_results[model_name] = {
             "quantile_loss": qs_loss,
-            "time": elapsed_time
+            "time": elapsed_time,
+            "hyper_params": hyper_params
         }
 
     return model_results

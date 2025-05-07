@@ -19,7 +19,8 @@ def merge_results(pickle_results_1, pickle_results_2):
                 else:
                     for model_name, metrics in model_data.items():
                         if model_name not in merged_results["results"][config_key][replicate]:
-                            merged_results["results"][config_key][replicate][model_name] = metrics
+                            existing = merged_results["results"][config_key][replicate].get(model_name, {})
+                            merged_results["results"][config_key][replicate][model_name] = {**existing, **metrics}
                         else:
                             # Handle if same model already exists (merge or overwrite)
                             merged_results["results"][config_key][replicate][model_name].update(metrics)

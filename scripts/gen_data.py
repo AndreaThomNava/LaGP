@@ -59,13 +59,19 @@ def gen_data(name_config_file: str):
             kernel = gpy.kernels.ScaleKernel(base_kernel)
             kernel.outputscale = signal_variance
 
-            f = simulate_latentGP(X, kernel, n_samples=1)
-            f = f.reshape(sample_size)
 
-            # generate heteroscedastic GP
-            g = simulate_latentGP(X, kernel, n_samples=1)
-            g = g.reshape(sample_size)
-            g = np.exp(g) # ensure positivity
+            # generate num_replicates indipendent samples
+            Fs = []
+            Gs = []
+            for _ in range(sim_config["replicates"]):
+                f = simulate_latentGP(X, kernel, n_samples=1)
+                f = f.reshape(sample_size)
+                Fs.append(f)
+                # generate heteroscedastic GP
+                g = simulate_latentGP(X, kernel, n_samples=1)
+                g = g.reshape(sample_size)
+                g = np.exp(g) # ensure positivity
+                Gs.append(g)
 
             # Loop over different likelihoods
             for likelihood in sim_config["likelihoods"]:
@@ -88,7 +94,8 @@ def gen_data(name_config_file: str):
                 # Simulate B replicates for each likelihood type
                 for replicate in range(sim_config["replicates"]):
                     print(f"  Replicate {replicate + 1}/{sim_config['replicates']}")
-
+                    f = Fs[replicate]
+                    g = Gs[replicate]
                     # Simulate the response for this likelihood. If heteroscedastic then pass also g !
                     y = simulate_response(f, noise=noise, pars=sim_config["pars"], g=g if is_heteroscedastic else None)
 

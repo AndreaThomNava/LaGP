@@ -9,6 +9,8 @@ library(reticulate)
 fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, models, target_quantile = 0.5) {
   
   likelihood <- replicate_config$likelihood
+  is_heteroscedastic <- grepl("heteroscedastic", likelihood)
+  
   sample_size <- replicate_config$sample_size
   input_dim <- replicate_config$input_dim
   print(paste("Likelihood: ", likelihood))
@@ -32,8 +34,24 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
   test_X <- data$X_test
   test_y <- data$y_test
   
-  # Obtain true latent quantile
-  true_latent_quantile <- obtain_quantile(f = f, noise = likelihood, pars = configs$simulation$pars, target_quantile = target_quantile)
+  if (is_heteroscedastic) {
+    # Load the scale GP (g) if heteroscedastic
+    g <- load_scale_gp(likelihood, sample_size, input_dim, replicate, file_path = NULL)
+    
+    # Get the noise model from the likelihood
+    noise <- strsplit(likelihood, "_")[[1]][1]
+  } else {
+    noise <- likelihood
+  }
+  
+  # Obtain the true latent quantile
+  true_latent_quantile <- obtain_quantile(
+    f = f, 
+    noise = noise, 
+    pars = configs$simulation$pars, 
+    target_quantile = target_quantile, 
+    g = if (is_heteroscedastic) g else NULL
+  )
   
   # Needed for prediction intervals
   t <- qnorm(1 - (1 - alpha) / 2)

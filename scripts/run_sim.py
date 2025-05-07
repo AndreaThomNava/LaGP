@@ -73,7 +73,7 @@ def fit_and_evaluate_replicate(
         if re.match(r"^gpboost", model_name):
             approx = gpb_approxs[model_name]
            
-            pred, elapsed_time = model_gpboost(
+            pred, elapsed_time, hyper_params = model_gpboost(
                 quantile=target_quantile,
                 train_X=train_X,
                 train_y=train_y,
@@ -90,7 +90,7 @@ def fit_and_evaluate_replicate(
             up_pred = latent_pred + stddev_pred * t
 
         elif model_name == "gpytorch":
-            pred, elapsed_time = model_gpytorch(
+            pred, elapsed_time, hyper_params = model_gpytorch(
                 quantile=target_quantile,
                 train_X=train_X,
                 train_y=train_y,
@@ -132,7 +132,10 @@ def fit_and_evaluate_replicate(
             "interval_loss": interval_loss,
             "coverage": coverage,
             "width": width,
-            "time": elapsed_time
+            "time": elapsed_time,
+            "lengthscale": hyper_params["lengthscale"],
+            "signal_variance": hyper_params["signal_variance"],
+            "noise_variance": hyper_params["noise_variance"]
         }
 
     return model_results

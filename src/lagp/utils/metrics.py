@@ -68,3 +68,30 @@ def coverage_and_width(
     width = (pred_up - pred_low).mean()
 
     return coverage, width
+
+
+import numpy as np
+
+def compute_bias_mse(true_param: np.ndarray, estimates: np.ndarray):
+    """
+    Compute bias and MSE of estimated parameters.
+    
+    Parameters
+    ----------
+    true_param : np.ndarray of shape (d,)
+        The true values of the parameters.
+    estimates : np.ndarray of shape (n_rep, d)
+        Estimated parameters over multiple replicates.
+    
+    Returns
+    -------
+    dict
+        Dictionary with 'bias' and 'mse', each of shape (d,)
+    """
+    assert estimates.ndim == 2, "estimates should be (n_rep, d)"
+    assert true_param.shape[0] == estimates.shape[1], "Dimension mismatch"
+
+    bias = np.mean(estimates, axis=0) - true_param
+    mse = np.mean((estimates - true_param) ** 2, axis=0)
+    
+    return {"bias": bias, "mse": mse}

@@ -32,7 +32,7 @@ def fit_and_evaluate_replicate(
     is_heteroscedastic = re.search("heteroscedastic", likelihood) is not None
     sample_size = replicate_config["sample_size"]
     input_dim = replicate_config["input_dim"]
-
+    
     approx = configs["approximation"]
     delta_logl = configs["delta_logl"]
     alpha = configs["alpha"]
@@ -67,7 +67,7 @@ def fit_and_evaluate_replicate(
     model_results = {}
     for model_name in models:
         # Fit the model and make predictions
-
+        print(f"fitting {model_name}")
         
         # Matches models starting with 'gpboost'
         if re.match(r"^gpboost", model_name):
@@ -159,9 +159,9 @@ def fit_models_on_all_datasets_parallel(configs, models, num_replicates=10):
                 # Store results for this configuration
                 config_key = f"{likelihood}_{sample_size}_{input_dim}"
                 results[config_key] = {}
-
+                print(config_key)
                 # Use ProcessPoolExecutor to parallelize across replicates
-                with concurrent.futures.ProcessPoolExecutor() as executor:
+                with concurrent.futures.ProcessPoolExecutor(max_workers = num_replicates) as executor:
                     future_to_replicate = {
                         executor.submit(
                             fit_and_evaluate_replicate,

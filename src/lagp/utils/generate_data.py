@@ -392,7 +392,47 @@ def load_cv_splits(dataset_name, dir="data/real_data_splits", n_splits=5):
 
 
 
+##### FOR COHERENT SIGNAL TO NOISE RATIO DATA GENERATION #########
 
+def compute_dict_pars(signal_variance, snr, quantile):
+    """
+    Assumes GP signal variance to be signal_variance. Hence target variance is signal_variance/snr.
+    If snr = 10 and signal_variance = 1, then target variance = 0.1.
+    """
+    target_variance = signal_variance/snr
+    # guassian
+    scale_gaussian = np.sqrt(target_variance)
+
+    # ald
+    scale_ald = np.sqrt(target_variance * (quantile**2 * (1-quantile)**2/(1-2*quantile + 2*quantile**2)))
+
+    # student t with 3 dfs
+    scale_t = np.sqrt(0.5 * target_variance)
+
+    # chi ?
+
+    pars = {
+    "gaussian": {"scale": scale_gaussian}, 
+    "ald": {"q": quantile, "scale": scale_ald}, 
+    "t": {"df": 3, "scale": scale_t},
+    "chi": {"df": 2, "scale": 0.1}
+    }
+
+    return pars
+
+
+def compute_u_scale_gp(signal_variance, pars):
+    """
+    Extract scale and compute mu, given also signal_variance to get correct mean for scale gp.
+    """
+    # loop over likelihoods
+    def get_mu(scale):
+        mu = np.log(scale)-signal_variance/2
+        return mu
+    
+    mu_scale_gp = {l: get_mu(dic["scale"]) for l, dic in pars.items()}
+
+    return mu_scale_gp
 
 
 

@@ -11,6 +11,8 @@ from lagp.utils.generate_data import (
     generate_input_grid,
     simulate_latentGP,
     simulate_response,
+    compute_dict_pars,
+    compute_u_scale_gp,
 )
 
 
@@ -31,6 +33,18 @@ def gen_data(name_config_file: str):
 
     sim_config = config["simulation"]
     gp_config = config["gp_parameters"]
+    signal_variance = gp_config["kernel"]["signal_variance"]
+
+    snr = sim_config["snr"]
+    fixed_snr = sim_config["fixed_snr"]
+
+    if fixed_snr:
+        pars = compute_dict_pars(signal_variance=signal_variance,
+                                 snr = snr,
+                                 quantile=sim_config["pars"]["ald"]["q"])
+        mu_dict = compute_u_scale_gp(signal_variance=signal_variance, pars = pars)
+    else:
+        pars = config["simulation"]["pars"]
 
     # Set the seed for reproducibility
     np.random.seed(sim_config["seed"])
@@ -52,7 +66,11 @@ def gen_data(name_config_file: str):
 
             # Generate the latent function (same for all likelihoods)
             nu = gp_config["kernel"]["nu"]
-            lengthscale = gp_config["kernel"]["lengthscale"]
+
+            #### EXPERIMENTAL ##
+            lengthscale = gp_config["kernel"]["lengthscale"] 
+            ##############################
+
             signal_variance = gp_config["kernel"]["signal_variance"]
             base_kernel = gpy.kernels.MaternKernel(nu=nu)
             base_kernel.lengthscale = lengthscale
@@ -70,7 +88,6 @@ def gen_data(name_config_file: str):
                 # generate heteroscedastic GP
                 g = simulate_latentGP(X, kernel, n_samples=1)
                 g = g.reshape(sample_size)
-                g = np.exp(g) # ensure positivity
                 Gs.append(g)
 
             # Loop over different likelihoods
@@ -96,8 +113,13 @@ def gen_data(name_config_file: str):
                     print(f"  Replicate {replicate + 1}/{sim_config['replicates']}")
                     f = Fs[replicate]
                     g = Gs[replicate]
+                    if fixed_snr:
+                        mu = mu_dict[noise]
+                        g = g + mu
+
+                    g = np.exp(g) # ensure positivity
                     # Simulate the response for this likelihood. If heteroscedastic then pass also g !
-                    y = simulate_response(f, noise=noise, pars=sim_config["pars"], g=g if is_heteroscedastic else None)
+                    y = simulate_response(f, noise=noise, pars=pars, g=g if is_heteroscedastic else None)
 
                     # Save the data
                     output_file = os.path.join(
@@ -119,7 +141,9 @@ def main():
 
     # Step 2: Define arguments
     parser.add_argument(
-        "--config", type=str, required=True, help="Path to the YAML configuration file."
+        "--config", type=str, 
+         default = "config_data_generation.yaml" ,
+           help="Path to the YAML configuration file."
     )
 
     # Step 3: Parse arguments

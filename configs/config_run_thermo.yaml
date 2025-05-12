@@ -29,7 +29,7 @@ min_decrease: 10  # Minimum decrease threshold for model fitting
 
 # GPBoost settings (if applicable)
 gpboost:
-  min_dec: 0.01  # Minimum decrease for GPBoost optimization
+  min_dec: 10  # Minimum decrease for GPBoost optimization
   laplace_approximations:
     - "asymmetric_laplace"
     - "asymmetric_laplace_constant_curvature_fisher_mode_finding"

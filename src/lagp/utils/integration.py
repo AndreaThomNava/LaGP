@@ -277,7 +277,7 @@ def run_thermo_ais(config):
                   "asymmetric_laplace_constant_curvature_fisher_mode_finding",
                   "asymmetric_laplace_lls_laplace_fisher_mode_finding"] 
     names = ["Fisher", "CC", "LLS"]
-    min_dec = config["min_decrease"]
+    min_dec = config["gpboost"]["min_decrease"]
     gp_results = {f"{name}": [] for name in names}
     for approx, name in zip(laplace_approxs, names):
         # Step 4: Fit GPBoost model with specified Laplace apddddion

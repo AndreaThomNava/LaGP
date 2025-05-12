@@ -70,3 +70,26 @@ class GPRegressionModel(gpy.models.ApproximateGP):
         mean = self.mean_module(x)
         cov = self.covar_module(x)
         return gpy.distributions.MultivariateNormal(mean, cov)
+    
+
+
+    ########## EXPERIMENT FOR DKL-GP ##########
+class AsymmetricLaplaceLikelihood_DKLGP(gpy.likelihoods.Likelihood):
+    def __init__(self, quantile=0.5):
+        super().__init__()
+        assert 0 < quantile < 1, "Quantile must be in (0,1)"
+        self.quantile = quantile
+        self.noise = torch.nn.Parameter(torch.tensor(1.0))
+
+    def forward(self, function_samples, **kwargs):
+        return AsymmetricLaplaceOutput(function_samples, self.quantile, self.noise)
+
+    def log_prob(self, observations, function_samples):
+        # This may now be unused, but fine to keep
+        residuals = observations - function_samples
+        scale = torch.abs(self.noise) + 1e-6
+        tau = self.quantile
+        log_const = torch.log(tau * (1 - tau) / scale)
+        rho = torch.where(residuals >= 0, tau * residuals, (tau - 1) * residuals)
+        return log_const - rho / scale
+    

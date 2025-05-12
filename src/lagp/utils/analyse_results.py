@@ -104,18 +104,21 @@ def group_flattened_df(flat_df: pd.DataFrame) -> pd.DataFrame:
     # Group by likelihood, sample_size, dim, and model_method
     grouped = flat_df.groupby(['likelihood', 'sample_size', 'dim', 'model'])
 
+    def sem(x):
+        return x.std() / np.sqrt(len(x))
+
     # Assuming 'coverage' and 'width' are columns in your DataFrame
     grouped_df = grouped.agg(
         quantile_loss_mean=('quantile_loss', 'mean'),
-        quantile_loss_std=('quantile_loss', 'std'),
+        quantile_loss_std=('quantile_loss', sem),
         interval_loss_mean=('interval_loss', 'mean'),
-        interval_loss_std=('interval_loss', 'std'),
+        interval_loss_std=('interval_loss', sem),
         coverage_mean=('coverage', 'mean'),
-        coverage_std=('coverage', 'std'),
+        coverage_std=('coverage', sem),
         width_mean=('width', 'mean'),
-        width_std=('width', 'std'),
+        width_std=('width', sem),
         time_mean=("time", "mean" ),
-        time_std = ("time", "std")
+        time_std = ("time", sem)
     ).reset_index()
 
     return grouped_df
@@ -220,13 +223,15 @@ def make_latex_table(config, summary_df, metrics, metric_criteria):
         best_metrics = {}
         for mean_col, std_col, label in metrics:
             if metric_criteria[label] == "min":
-                best_value = np.min(group[mean_col])
+                idx = np.argmin(group[mean_col])
             elif metric_criteria[label] == "check_coverage":
-                closest_idx = np.argmin(np.abs(group[mean_col] - alpha))
-                best_value = group[mean_col].iloc[closest_idx]
+                idx = np.argmin(np.abs(group[mean_col] - alpha))
             else:
-                best_value = np.max(group[mean_col])
-            best_metrics[label] = best_value
+                idx = np.argmax(group[mean_col])
+
+            best_value = group[mean_col].iloc[idx]
+            best_std = group[std_col].iloc[idx]
+            best_metrics[label] = (best_value, best_std)
 
         # For every metric, loop through methods and add results
         for mean_col, std_col, label in metrics:
@@ -235,7 +240,9 @@ def make_latex_table(config, summary_df, metrics, metric_criteria):
                 if not sub.empty:
                     mean = sub[mean_col].values[0]
                     std = sub[std_col].values[0]
-                    if mean == best_metrics[label]:
+
+                    best_value, best_std = best_metrics[label]
+                    if abs(mean - best_value) <= 2 * best_std:
                         row.append(rf"\textbf{{\scriptsize {mean:.2f} \n \tiny ({std:.2f})}}")
                     else:
                         row.append(rf"\scriptsize {mean:.2f} \n \tiny ({std:.2f})")

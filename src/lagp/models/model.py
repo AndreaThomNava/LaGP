@@ -109,7 +109,7 @@ def model_gpytorch(
         - predictions: quantile predictions on test data
     """
 
-
+    torch.set_num_threads(2) # same as gpboost
     if isinstance(train_X, pd.DataFrame):
         train_X = train_X.values
     if isinstance(train_y, (pd.Series, pd.DataFrame)):

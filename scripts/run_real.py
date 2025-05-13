@@ -147,9 +147,7 @@ if __name__ == "__main__":
     models = configs["models"]
     df_names = configs["datasets"]
     n_splits = configs["n_splits"]
-    # create splits for all datasets
-    for dataset_name in df_names:
-        save_cv_splits_preprocessed(dataset_name, n_splits=n_splits, dir="data/real_data", seed=42)
+
         
     # fit models
     results = fit_models_on_all_datasets_parallel(

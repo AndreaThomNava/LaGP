@@ -45,7 +45,7 @@ def model_gpboost(
         likelihood=approx,
         likelihood_additional_param=quantile,
         cover_tree_radius=delta_logl,
-        num_parallel_threads=16,
+        num_parallel_threads=2,
     )
     params = {
         "estimate_aux_pars": True,

@@ -41,7 +41,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--results_name", type = str,
-                        default = "realdata_results_python.pkl",
+                        default = "realdata_results.pkl",
                         help="Name of the results.pkl file")
     parser.add_argument("--configs", type = str,
                         default = "config_run_real.yaml",

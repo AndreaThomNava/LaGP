@@ -19,7 +19,6 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
   print(paste("Dim: ", input_dim))
   print(paste("Replicate", replicate))
   
-  approx <- configs$approximation
   delta_logl <- configs$delta_logl
   alpha <- configs$alpha
   train_split <- configs$train_split

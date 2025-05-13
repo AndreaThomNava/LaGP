@@ -1,6 +1,7 @@
 #!/usr/bin/env Rscript
 library(parallel)
 library(reticulate)
+use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
 library(yaml)
 source("R/utils.R")
 
@@ -14,8 +15,7 @@ fit_and_evaluate_replicate <- function(X, y, fold, configs, models) {
   y_train <- y[train_idx]
   y_test  <- y[test_idx]
   
-  
-  approx <- configs$approximation
+
   delta_logl <- configs$delta_logl
   n_epochs <- configs$n_epochs
   lr <- configs$lr
@@ -71,7 +71,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models) {
     replicate_results <- mclapply(seq_len(n_splits), function(replicate) {
       fold <- folds[replicate, ]
       fit_and_evaluate_replicate(X, y, fold, configs, models)
-    }, mc.cores = 1)  # Set to detectCores() if you want parallelism
+    }, mc.cores = n_splits)  # Set to detectCores() if you want parallelism
     
     for (replicate in seq_len(n_splits)) {
       results[[config_key]][[replicate]] <- replicate_results[[replicate]]

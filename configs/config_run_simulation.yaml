@@ -35,7 +35,6 @@ output:
   log_directory: './logs/'   # Directory to save logs
 
 # specific for the simulation run
-approximation: "asymmetric_laplace_constant_curvature_fisher_mode_finding"
 threshold_approximation: 1001
 inducing_points:  500
 
@@ -49,7 +48,7 @@ alpha: 0.9
 
 train_split: 0.75
 
-models: ["gpboost_cc", "gpboost_cc_var_corr", "gpytorch", "qgam"]
+models: ["gpboost_cc", "gpboost_cc_var_corr", "gpytorch"] #, "qgam"]
 # hyper-params --> useful for producing later results
 models_with_hyperparams: ["gpboost_cc", "gpboost_cc_var_corr", "gpytorch"]
 
@@ -68,7 +67,7 @@ name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpytorch": "VI", "qgam":
             "gpboost_cc_var_corr": "CC corr"}
 likelihood_dict : {"gaussian":"N", "ald": "ALD", "t":"t", "chi":"chi", "ald_heteroscedastic": HetALD}
 
-# what I want to plot
+# what I want to plot/make latex tables for
 all_models: ["gpboost_cc", "gpboost_cc_var_corr", "gpytorch"] # ["gpboost_lls", "gpboost_cc", "gpytorch", "qgam"]
 
 

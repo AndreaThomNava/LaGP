@@ -65,10 +65,6 @@ load_scale_gp <- function(likelihood, sample_size, input_dim, replicate, file_pa
   np <- reticulate::import("numpy")
   data <- np$load(file_path)
   
-  if (!"g" %in% names(data)) {
-    stop(paste("No scale GP 'g' found in file:", file_path))
-  }
-  
   g <- data[["g"]]
   return(g)
 }

@@ -44,6 +44,7 @@ def fit_and_evaluate_replicate(X, y, fold,
    
     model_results = {}
     for model_name in models:
+        print(f"model: {model_name}")
         # Fit the model and make predictions
          # Matches models starting with 'gpboost'
         if re.match(r"^gpboost", model_name):
@@ -100,6 +101,7 @@ def fit_models_on_all_datasets_parallel(configs, models):
     DIR =  "data/real_data"
     # Loop over datasets
     for df_name in configs["datasets"]:
+        print(f"Dataset: {df_name}")
         X, y = load_X_y_preprocessed(dataset_name=df_name, dir = DIR)
         folds = load_cv_splits(dataset_name=df_name, dir = DIR, n_splits = n_splits)
         # Store results for this configuration

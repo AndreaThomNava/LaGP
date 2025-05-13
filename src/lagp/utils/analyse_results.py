@@ -485,7 +485,53 @@ def make_plots(df, metrics):
 
                 plt.close()
                 
+def make_plots_hypers(df, configs, metrics):
+    """
+    Make plots about results.
 
+    - for each likelihood and dimension combination, show effect of sample size on the metrics (quantile loss, interval score & coverage)
+    """
+
+    # Example for plotting with sample_size on x-axis and color by method
+    # sns.set(style="whitegrid")  
+
+    OUTPUT_DIR = Path("results/simulation/images")
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    models_with_hyperparams = configs["models_with_hyperparams"]
+    signal_variance = configs["gp_parameters"]["kernel"]["signal_variance"]
+    lengthscale = configs["gp_parameters"]["kernel"]["lengthscale"]
+    true_pars = {"signal_variance": signal_variance,
+                 "lengthscale": lengthscale}
+    # keep only if model has estimated the hyper-parameters
+    df = df[df['model'].isin(models_with_hyperparams)]
+   
+    dims = df["dim"].unique()
+    likelihoods = df["likelihood"].unique()
+
+    for likelihood in likelihoods:
+        for dim in dims:
+
+            df_filtered = df[df["dim"] == dim]
+            df_filtered = df[df["likelihood"] == likelihood]
+            # Assuming 'model_method' is the column representing different methods
+            
+            for metric in metrics:
+                plt.figure(figsize=(10, 6))
+                sns.boxplot(data=df_filtered, x="sample_size", y=metric, hue="model", palette="Set2")
+                # Add titles and labels
+                plt.title(f"{metric} by Sample Size. Likelihood: {likelihood}. Dim: {dim}", fontsize=16, c = "black")
+                plt.axhline(y=true_pars[metric], color="red", linestyle="--", linewidth=1, label = f"True {metric}")
+                plt.xlabel("Sample Size", fontsize=12)
+                plt.ylabel(f"{metric.replace("_", " ").title()}", fontsize=12)
+                plt.legend(title="Model", title_fontsize="13", fontsize="11", labelcolor = "black")
+                plt.tight_layout()
+                # Save plots
+                filename = f"{metric}_{likelihood}_{dim}"
+                for ext in ["png", "pdf"]:
+                    plt.savefig(OUTPUT_DIR / f"{filename}.{ext}", bbox_inches="tight", dpi=300)
+
+                plt.close()
+                
 
 
     

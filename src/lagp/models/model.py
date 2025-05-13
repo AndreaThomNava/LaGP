@@ -68,8 +68,8 @@ def model_gpboost(
 
     # extract hyper-parames
     cov_pars = gpq.get_cov_pars()
-    length_scale = cov_pars["GP_range"]
-    output_variance = cov_pars["GP_var"]
+    length_scale = cov_pars["GP_range"].iloc[0]
+    output_variance = cov_pars["GP_var"].iloc[0]
     noise_variance = gpq.get_aux_pars()["scale"]
 
     hyper_params = {"lengthscale": length_scale,
@@ -164,9 +164,9 @@ def model_gpytorch(
         # predictions = pred.mean  # Mode or median of asymmetric Laplace
 
     # Access the estimated hyperparameters: detach grads and make numpy
-    lengthscale = model.covar_module.base_kernel.lengthscale.detach().numpy()
-    output_variance = model.covar_module.outputscale.detach().numpy()
-    noise_variance = likelihood.scale.detach().numpy()
+    lengthscale = np.float64(model.covar_module.base_kernel.lengthscale.detach().numpy().item())
+    output_variance = np.float64(model.covar_module.outputscale.detach().numpy().item())
+    noise_variance = np.float64(likelihood.scale.detach().numpy().item())
 
     hyper_params = {"lengthscale": lengthscale,
                     "signal_variance":output_variance,

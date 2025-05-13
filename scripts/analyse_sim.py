@@ -1,4 +1,6 @@
-from lagp.utils.analyse_results import make_flattened_df, make_latex_table, group_flattened_df, make_plots, df_mse_hyper, make_latex_table_hyperparams
+from lagp.utils.analyse_results import (
+    make_flattened_df, make_latex_table, group_flattened_df, make_plots, df_mse_hyper,
+      make_latex_table_hyperparams, make_plots_hypers)
 import argparse
 import os
 import pickle
@@ -40,6 +42,7 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH):
     
     metrics_for_plotting = ["quantile_loss", "interval_loss", "coverage", "width", "time"] # df.columns[5:]
     make_plots(df = df, metrics = metrics_for_plotting)
+    make_plots_hypers(df = df, configs=configs, metrics=["signal_variance", "lengthscale"])
    
     return latex_table, hyper_latex_table
 

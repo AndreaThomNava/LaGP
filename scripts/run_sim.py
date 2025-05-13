@@ -161,6 +161,7 @@ def fit_models_on_all_datasets_parallel(configs, models, num_replicates=10):
                 results[config_key] = {}
                 print(config_key)
                 # Use ProcessPoolExecutor to parallelize across replicates
+                print(os.cpu_count())
                 with concurrent.futures.ProcessPoolExecutor(max_workers = num_replicates) as executor:
                     future_to_replicate = {
                         executor.submit(

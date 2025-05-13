@@ -4,6 +4,7 @@ source("R/utils.R")
 library(yaml)
 library(parallel)
 library(reticulate)
+use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
 
 # Function to fit and evaluate models for a single replicate
 fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, models, target_quantile = 0.5) {

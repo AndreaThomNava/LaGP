@@ -33,7 +33,6 @@ def fit_and_evaluate_replicate(X, y, fold,
     X_train, X_test = X.iloc[train_idx,:], X.iloc[test_idx,:]
     y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
 
-    approx = configs["approximation"]
     delta_logl = configs["delta_logl"]
     n_epochs = configs["n_epochs"]
     lr = configs["lr"]
@@ -108,7 +107,7 @@ def fit_models_on_all_datasets_parallel(configs, models):
         results[config_key] = {}
 
         # Use ProcessPoolExecutor to parallelize across replicates
-        with concurrent.futures.ProcessPoolExecutor() as executor:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=n_splits) as executor:
             future_to_replicate = {
                 executor.submit(
                     fit_and_evaluate_replicate,

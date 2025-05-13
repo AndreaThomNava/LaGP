@@ -48,6 +48,7 @@ alpha: 0.9
 
 train_split: 0.75
 
+# for python
 models: ["gpboost_cc", "gpboost_cc_var_corr", "gpytorch"] #, "qgam"]
 # hyper-params --> useful for producing later results
 models_with_hyperparams: ["gpboost_cc", "gpboost_cc_var_corr", "gpytorch"]
@@ -68,7 +69,7 @@ name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpytorch": "VI", "qgam":
 likelihood_dict : {"gaussian":"N", "ald": "ALD", "t":"t", "chi":"chi", "ald_heteroscedastic": HetALD}
 
 # what I want to plot/make latex tables for
-all_models: ["gpboost_cc", "gpboost_cc_var_corr", "gpytorch"] # ["gpboost_lls", "gpboost_cc", "gpytorch", "qgam"]
+all_models: ["gpboost_cc", "gpboost_cc_var_corr", "gpytorch", "qgam"] # ["gpboost_lls", "gpboost_cc", "gpytorch", "qgam"]
 
 
 

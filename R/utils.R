@@ -117,6 +117,22 @@ load_X_y <- function(dataset_name, dir) {
   return(list(X = X, y = y))
 }
 
+load_X_y_preprocessed <- function(dataset_name, dir) {
+  path <- file.path(dir, paste0(dataset_name, ".txt"))
+  if (!file.exists(path)) {
+    stop(sprintf("Dataset '%s' not found at %s", dataset_name, path))
+  }
+  
+  df <- read.table(path, sep = " ", header = TRUE)
+  
+  # Features & Response
+  y <- df[[1]]
+  X <- df[, -1]
+  
+  return(list(X = X, y = y))
+}
+
+
 load_cv_splits <- function(dataset_name, dir = "data/real_data_splits", n_splits = 5) {
   path <- file.path(dir, paste0(dataset_name, "_cv", n_splits, "_splits.json"))
   

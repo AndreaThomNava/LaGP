@@ -54,7 +54,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models) {
   DIR <- "data/real_data"
   
   for (df_name in configs$datasets) {
-    data <- load_X_y(dataset_name = df_name, dir = DIR)
+    data <- load_X_y_preprocessed(dataset_name = df_name, dir = DIR)
     X <- data$X
     y <- data$y
     

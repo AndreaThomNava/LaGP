@@ -33,7 +33,6 @@ def fit_and_evaluate_replicate(
     sample_size = replicate_config["sample_size"]
     input_dim = replicate_config["input_dim"]
     
-    approx = configs["approximation"]
     delta_logl = configs["delta_logl"]
     alpha = configs["alpha"]
     train_split = configs["train_split"]

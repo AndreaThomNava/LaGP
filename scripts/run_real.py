@@ -87,7 +87,9 @@ def fit_and_evaluate_replicate(X, y, fold,
         model_results[model_name] = {
             "quantile_loss": qs_loss,
             "time": elapsed_time,
-            "hyper_params": hyper_params
+            "lengthscale": hyper_params["lengthscale"],
+            "signal_variance": hyper_params["signal_variance"],
+            "noise_variance": hyper_params["noise_variance"]
         }
 
     return model_results

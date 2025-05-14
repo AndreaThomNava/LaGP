@@ -71,7 +71,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models) {
     replicate_results <- mclapply(seq_len(n_splits), function(replicate) {
       fold <- folds[replicate, ]
       fit_and_evaluate_replicate(X, y, fold, configs, models)
-    }, mc.cores = n_splits)  # Set to detectCores() if you want parallelism
+    }, mc.cores = 1)  # Set to detectCores() if you want parallelism
     
     for (replicate in seq_len(n_splits)) {
       results[[config_key]][[replicate]] <- replicate_results[[replicate]]

@@ -466,7 +466,7 @@ def make_plots(df, metrics):
         for dim in dims:
 
             df_filtered = df[df["dim"] == dim]
-            df_filtered = df[df["likelihood"] == likelihood]
+            df_filtered = df_filtered[df_filtered["likelihood"] == likelihood]
             # Assuming 'model_method' is the column representing different methods
             
             for metric in metrics:
@@ -512,7 +512,7 @@ def make_plots_hypers(df, configs, metrics):
         for dim in dims:
 
             df_filtered = df[df["dim"] == dim]
-            df_filtered = df[df["likelihood"] == likelihood]
+            df_filtered = df_filtered[df_filtered["likelihood"] == likelihood]
             # Assuming 'model_method' is the column representing different methods
             
             for metric in metrics:

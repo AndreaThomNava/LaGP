@@ -446,7 +446,7 @@ def make_latex_table_hyperparams(config, summary_df):
 
 
 
-def make_plots(df, metrics):
+def make_plots(df, metrics, configs):
     """
     Make plots about results.
 
@@ -462,6 +462,8 @@ def make_plots(df, metrics):
     dims = df["dim"].unique()
     likelihoods = df["likelihood"].unique()
 
+    alpha = configs["alpha"]
+
     for likelihood in likelihoods:
         for dim in dims:
 
@@ -472,6 +474,11 @@ def make_plots(df, metrics):
             for metric in metrics:
                 plt.figure(figsize=(10, 6))
                 sns.boxplot(data=df_filtered, x="sample_size", y=f"{metric}", hue="model", palette="Set2")
+                if metric == "coverage":
+                    plt.axhline(y=alpha, color="red", linestyle="--", linewidth=1, label = f"Nominal Coverage: {alpha}")
+                elif metric == "time":
+                      plt.yscale("log")
+                
                 # Add titles and labels
                 plt.title(f"{metric} by Sample Size. Likelihood: {likelihood}. Dim: {dim}", fontsize=16, c = "black")
                 plt.xlabel("Sample Size", fontsize=12)

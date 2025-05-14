@@ -22,7 +22,7 @@ n_splits: 2
 
 
 datasets: ["bike"] # , "power"] #, "power", "houses", "elevators", "protein"]
-models: ["gpytorch"] #, "gpboost_lls", "gpytorch"], gpboost_cc
+models: ["gpboost_cc", "gpytorch"] #, "gpboost_lls", "gpytorch"], gpboost_cc
 gpb_approxs: {"gpboost_lls": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
             "gpboost_cc": "asymmetric_laplace_constant_curvature_fisher_mode_finding"}
 
@@ -32,6 +32,6 @@ n_epochs : 1
 
 lr: 0.01
 
-# for later
-all_models:  ["gpboost_lls", "gpboost_cc", "gpytorch", "qgam"]
+# for later, plotting
+all_models:  ["gpboost_cc", "gpytorch", "qgam"] # "gpboost_lls", 
 name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpytorch": "VI", "qgam":"GAM"}

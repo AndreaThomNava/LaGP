@@ -1,14 +1,16 @@
-group_sizes: [20, 100, 200, 500]
+group_sizes: [20, 100, 200, 1000]
 num_groups: 20
 re_std: 1.0
 scale_laplace: 1.0
 quantile: 0.8
 min_decreases: [1, 10, 100]
-laplace_approximations : ["asymmetric_laplace_constant_curvature_fisher_mode_finding", 
+laplace_approximations : ["asymmetric_laplace",
+                          "asymmetric_laplace_constant_curvature_fisher_mode_finding", 
                           "asymmetric_laplace_lls_laplace_fisher_mode_finding"]
 approx_dict : {"asymmetric_laplace_constant_curvature_fisher_mode_finding": "CC",
-               "asymmetric_laplace_lls_laplace_fisher_mode_finding": "LLS"}
+               "asymmetric_laplace_lls_laplace_fisher_mode_finding": "LLS", 
+               "asymmetric_laplace":"Fisher-Laplace"}
 B: 10
 integration_nodes: 100
-misspecified: False
+misspecified: True
 save_path: "results/numerical/numerical_results.pkl"

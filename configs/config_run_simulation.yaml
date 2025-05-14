@@ -1,14 +1,14 @@
 simulation:
   seed: 43
   grid_lims: [0, 10]
-  sample_sizes: [1000]  # Different sample sizes for datasets
-  dimensions: [1, 2, 3]  # 1D, 2D, or 3D datasets
+  sample_sizes: [1000, 5000]  # Different sample sizes for datasets
+  dimensions: [5]  # 1D, 2D, or 3D datasets
   likelihoods: 
     - gaussian
    # - t
    # - chi
-    #- ald
-    #- ald_heteroscedastic # testing heteroscedasticity
+    - ald
+    - ald_heteroscedastic # testing heteroscedasticity
   
   # Simulation Settings
   snr: 10.0                # Desired signal-to-noise ratio

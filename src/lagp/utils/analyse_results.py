@@ -560,13 +560,15 @@ def make_plots_real(df, metrics):
         plt.figure(figsize=(10, 6))
         sns.boxplot(data=df, x="dataset", y=f"{metric}", hue="model", palette="Set2")
         # Add titles and labels
+        if metric == "time":
+            plt.yscale("log")
         plt.title(f"{metric} by Dataset.", fontsize=16, c = "black")
         plt.xlabel("Dataset", fontsize=12)
         plt.ylabel(f"{metric.replace("_", " ").title()}", fontsize=12)
         plt.legend(title="Model", title_fontsize="13", fontsize="11", labelcolor = "black")
         plt.tight_layout()
         # Save plots
-        filename = f"{metric}_{metric}"
+        filename = f"{metric}"
         for ext in ["png", "pdf"]:
             plt.savefig(OUTPUT_DIR / f"{filename}.{ext}", bbox_inches="tight", dpi=300)
 

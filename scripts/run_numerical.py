@@ -96,7 +96,7 @@ def main(config, approx):
     )
     plt.xlabel("Sample Size")
     plt.ylabel("Relarive Difference w.r.t. adapt. GHQ")
-    plt.title(f"{approx_dict[laplace_approximation]}", color="black")
+    plt.title(f"{approx_dict[laplace_approximation]}. Misspecified: {misspecified}", color="black")
     legend = plt.legend(title="Min Decrease", labelcolor="black")
     legend.get_title().set_color("black")
     plt.tight_layout()
@@ -104,7 +104,7 @@ def main(config, approx):
     # Save plots
     
     OUTPUT_DIR = Path("results/numerical")
-    filename = f"{approx_dict[laplace_approximation]}"
+    filename = f"{approx_dict[laplace_approximation]}_miss{misspecified}"
     for ext in ["png", "pdf"]:
         plt.savefig(OUTPUT_DIR / f"{filename}.{ext}", bbox_inches="tight", dpi=300)
         

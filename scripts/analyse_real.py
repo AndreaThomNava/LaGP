@@ -49,13 +49,13 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     print(args)
-    RESULT_PATH = os.path.join("results/realdata", args.results_name)
+    RESULT_PATH = os.path.join("results/real_data", args.results_name)
     print(RESULT_PATH)
     CONFIGS_PATH = os.path.join("configs", args.configs)
    
     latex_table = run_analysis(RESULT_PATH, CONFIGS_PATH)
     # save it
-    OUTPUT_FILE = "results/realdata/table_results.tex"
+    OUTPUT_FILE = "results/real_data/table_results.tex"
     with open(OUTPUT_FILE, "w") as f:
         f.write(latex_table)
 

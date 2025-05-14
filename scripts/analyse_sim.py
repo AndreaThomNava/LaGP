@@ -41,7 +41,7 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH):
     # make and save plots
     
     metrics_for_plotting = ["quantile_loss", "interval_loss", "coverage", "width", "time"] # df.columns[5:]
-    make_plots(df = df, metrics = metrics_for_plotting)
+    make_plots(df = df, metrics = metrics_for_plotting, configs=configs)
     make_plots_hypers(df = df, configs=configs, metrics=["signal_variance", "lengthscale"])
    
     return latex_table, hyper_latex_table

@@ -126,7 +126,7 @@ def fit_models_on_all_datasets_parallel(configs, models):
                     replicate_results = future.result()
                     print(f"results: {replicate_results}")
                     # Store the results for this replicate
-                    results[config_key][replicate] = replicate_results
+                    results[config_key][replicate + 1] = replicate_results
                 except Exception as e:
                     print(f"Error with replicate {replicate}: {e}")
 
@@ -158,7 +158,7 @@ if __name__ == "__main__":
 
     # Save the results
     # Ensure the results directory exists
-    OUTPUT_DIR = "results/realdata"
+    OUTPUT_DIR = "results/real_data"
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     # Combine the results and config into one dictionary
@@ -168,7 +168,7 @@ if __name__ == "__main__":
     }
 
     # Construct the output file path (e.g., "results.pkl")
-    output_file = os.path.join(OUTPUT_DIR, "realdata_results_python.pkl")
+    output_file = os.path.join(OUTPUT_DIR, "real_data_results_python.pkl")
 
     # Save the combined dictionary using pickle
     with open(output_file, "wb") as f:

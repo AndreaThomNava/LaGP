@@ -1,47 +1,47 @@
-# make sure this matches the data generation
 simulation:
-  seed: 42
+  seed: 43
   grid_lims: [0, 10]
-  sample_sizes: [100] #, 300]  # Different sample sizes for datasets
-  dimensions: [3] #, 3]  # 1D, 2D, or 3D datasets
+  sample_sizes: [1000]  # Different sample sizes for datasets
+  dimensions: [1, 2, 3]  # 1D, 2D, or 3D datasets
   likelihoods: 
     - gaussian
    # - t
    # - chi
-    - ald
-    - ald_heteroscedastic
+    #- ald
+    #- ald_heteroscedastic # testing heteroscedasticity
   
-  # do i need these here?
+  # Simulation Settings
+  snr: 10.0                # Desired signal-to-noise ratio
+  fixed_snr: True          # True = homoscedastic noise with this SNR; False = heteroscedastic
   pars : {
-    "gaussian": {"scale": 0.5},
-    "ald": {"q": 0.8, "scale": 0.1},
-    "t": {"df": 3, "scale": 1},
-    "chi": {"df": 2, "scale": 1}
+    "gaussian": {"scale": 0.31}, # sqrt(0.31) -> 0.1
+    "ald": {"q": 0.8, "scale": 0.1}, #
+    "t": {"df": 3, "scale": 0.1},
+    "chi": {"df": 2, "scale": 0.1}
   }
-  ## useless can be removed ? --> noise_levels: [0.1, 0.2, 0.3]  # Noise levels for adding to data
-  replicates: 5 # 10
+  # useless noise_levels: [0.1, 0.2, 0.3]  # Noise levels for adding to data
+  replicates: 5
 
-# for simulation !
+# update also simulation config
 gp_parameters:
   kernel:
     type: matern
     nu: 1.5
     lengthscale: 0.5
-    signal_variance: 2.0
+    signal_variance: 1.0
   # You can add more GP parameters as needed
 
-output:
-  data_directory: './data/'  # Directory to save generated datasets
-  log_directory: './logs/'   # Directory to save logs
-
-# specific for the simulation run
-threshold_approximation: 1001
-inducing_points:  500
 
 ## TARGET QUANTILE ##
 target_quantile: 0.8
 
+# MIN DECREASE LOG-LIKELIHOOD FOR GPBOOST
 delta_logl: 10
+
+
+# specific for the simulation run
+threshold_approximation: 1001
+inducing_points:  500
 
 # level for prediction intervals --> build a alphax100% prediction interval
 alpha: 0.9

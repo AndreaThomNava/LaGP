@@ -142,7 +142,7 @@ def main():
     # Step 2: Define arguments
     parser.add_argument(
         "--config", type=str, 
-         default = "config_data_generation.yaml" ,
+         default = "config_run_simulation.yaml" ,
            help="Path to the YAML configuration file."
     )
 

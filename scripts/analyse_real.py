@@ -31,7 +31,7 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH):
     latex_table = make_latex_table_real(config=configs, summary_df=summary_df, metrics = metrics, metric_criteria= metric_criteria)
 
     # make and save plots
-    metrics_for_plotting = df.columns[3:]
+    metrics_for_plotting = ["quantile_loss", "time"]
     make_plots_real(df = df, metrics = metrics_for_plotting)
    
     return latex_table

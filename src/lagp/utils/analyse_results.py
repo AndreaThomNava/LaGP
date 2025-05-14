@@ -552,7 +552,7 @@ def make_plots_real(df, metrics):
     # Example for plotting with sample_size on x-axis and color by method
     # sns.set(style="whitegrid")  
 
-    OUTPUT_DIR = Path("results/realdata/images")
+    OUTPUT_DIR = Path("results/real_data/images")
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     

@@ -25,7 +25,7 @@ def simulate_grouped_response(group_size, num_groups, re_mean, re_std, quantile,
         )
         Y = random_effects + error
     else:
-        Y = random_effects + np.random.normal(0, 2, size=N)
+        Y = random_effects + np.random.normal(0, 1, size=N)
     
     return Y, group_effects
 
@@ -78,6 +78,8 @@ def compute_aghq(Y, group_size, num_groups, predicted_re, quantile, scale, re_st
         yc = Y[group_size*group : group_size*(group+1)]
         mode = predicted_re.iloc[group_size*group, 0]
         sigma = np.sqrt(predicted_re.iloc[0, 1])
+        # try fixed for a sec
+        sigma = 0.2
         eval_points = mode + np.sqrt(2) * sigma * nodes
         x_i = np.log(adaptive_weights) + g(y=yc, eval_points=eval_points)
         logsum = logsumexp(x_i)

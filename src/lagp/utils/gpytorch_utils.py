@@ -1,9 +1,15 @@
 import torch
 import gpytorch as gpy
-from gpytorch.distributions import Distribution
+from gpytorch.distributions import Distribution, constraints
 
 
 class AsymmetricLaplaceOutput(Distribution):
+
+    # Class attribute
+    arg_constraints = {
+        "scale": constraints.positive,
+    }
+
     def __init__(self, function_samples, quantile, scale):
         self.function_samples = function_samples
         self.quantile = quantile

@@ -133,7 +133,7 @@ load_X_y_preprocessed <- function(dataset_name, dir) {
 }
 
 
-load_cv_splits <- function(dataset_name, dir = "data/real_data_splits", n_splits = 5) {
+load_cv_splits <- function(dataset_name, dir = "data/real_data", n_splits = 5) {
   path <- file.path(dir, paste0(dataset_name, "_cv", n_splits, "_splits.json"))
   
   if (!file.exists(path)) {

@@ -473,7 +473,7 @@ def make_plots(df, metrics, configs):
             
             for metric in metrics:
                 plt.figure(figsize=(10, 6))
-                sns.boxplot(data=df_filtered, x="sample_size", y=f"{metric}", hue="model", palette="Set2")
+                sns.boxplot(data=df_filtered, x="sample_size", y=f"{metric}", hue="model", palette="Set2",showmeans=True)
                 if metric == "coverage":
                     plt.axhline(y=alpha, color="red", linestyle="--", linewidth=1, label = f"Nominal Coverage: {alpha}")
                 elif metric == "time":
@@ -524,7 +524,7 @@ def make_plots_hypers(df, configs, metrics):
             
             for metric in metrics:
                 plt.figure(figsize=(10, 6))
-                sns.boxplot(data=df_filtered, x="sample_size", y=metric, hue="model", palette="Set2")
+                sns.boxplot(data=df_filtered, x="sample_size", y=metric, hue="model", palette="Set2", showmeans=True)
                 # Add titles and labels
                 plt.title(f"{metric} by Sample Size. Likelihood: {likelihood}. Dim: {dim}", fontsize=16, c = "black")
                 plt.axhline(y=true_pars[metric], color="red", linestyle="--", linewidth=1, label = f"True {metric}")
@@ -558,7 +558,7 @@ def make_plots_real(df, metrics):
     
     for metric in metrics:
         plt.figure(figsize=(10, 6))
-        sns.boxplot(data=df, x="dataset", y=f"{metric}", hue="model", palette="Set2")
+        sns.boxplot(data=df, x="dataset", y=f"{metric}", hue="model", palette="Set2", showmeans=True)
         # Add titles and labels
         if metric == "time":
             plt.yscale("log")

@@ -4,7 +4,7 @@ source("R/utils.R")
 library(yaml)
 library(parallel)
 library(reticulate)
-use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
+# use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
 
 # Function to fit and evaluate models for a single replicate
 fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, models, target_quantile = 0.5) {
@@ -70,9 +70,21 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
       fit_time <- pred$fit_time
     } 
     
-    else if (model_name == "stan") {
-     pred <- "to be implemented"
-    }
+    else if (model_name == "vecchia_mcmc") {
+      print("Sampling via MCMC")
+      pred <- model_vecchia_gp(train_X, train_y, test_X,
+                              target_quantile,
+                              stan_model_path = "R/stan/asym_laplace_matern32_noncentered_sparse.stan",
+                              m = 10  # number of neighbors for Vecchia
+                              )
+      print("sampled successfully")
+      latent_pred <- pred$predictions
+      samples <- pred$samples
+      # symmetric Prediction Interval
+      low_pred <- apply(samples, 3, quantile, probs =  alpha/2 )
+      up_pred <- apply(samples, 3, quantile, probs =  1 - (alpha/2))
+      fit_time <- pred$fit_time
+     }
     
     # Compute quantile score
     print("computing scores")
@@ -119,7 +131,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models, num_replicates 
         # Use mclapply for parallel execution (requires 'parallel' package)
         replicate_results <- mclapply(1:num_replicates, function(replicate) {
           fit_and_evaluate_replicate(configs, replicate_config, replicate, models)
-        }, mc.cores = num_replicates) # detectCores()
+        }, mc.cores = 1) # detectCores()
         
         # Store results
         for (replicate in 1:num_replicates) {
@@ -134,7 +146,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models, num_replicates 
 
 
 configs_sim <- load_config("configs/config_run_simulation.yaml")
-models <- list("qgam")
+models <- list("qgam", "vecchia_mcmc")
 for (model_name in models){
   print(models)
 }

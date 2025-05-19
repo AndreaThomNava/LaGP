@@ -8,7 +8,7 @@ import yaml
 from scipy.stats import norm
 
 from lagp.models.model import (  # Assuming you have these model functions
-    model_gpboost, model_gpytorch)
+    model_gpboost, model_gpytorch, model_viva_gp)
 from lagp.utils.generate_data import load_data, obtain_quantile, load_scale_gp
 from lagp.utils.metrics import (coverage_and_width, interval_score,
                                 quantile_score)
@@ -47,6 +47,14 @@ def fit_and_evaluate_replicate(
     f, train_X, train_y, test_X, test_y = load_data(
         likelihood, sample_size, input_dim, replicate, train_split
     )
+
+    # standardize according to train_X statistics
+    train_mean = train_X.mean(axis=0)
+    train_std = train_X.std(axis=0)
+
+    train_X_scaled = (train_X - train_mean) / train_std
+    test_X_scaled = (test_X - train_mean) / train_std  # use train stats here!
+
     # obtain true latent quantile
 
     # if heteroscedastic likelihood, load also second GP!
@@ -74,9 +82,9 @@ def fit_and_evaluate_replicate(
            
             pred, elapsed_time, hyper_params = model_gpboost(
                 quantile=target_quantile,
-                train_X=train_X,
+                train_X=train_X_scaled,
                 train_y=train_y,
-                test_X=test_X,
+                test_X=test_X_scaled,
                 test_y=test_y,
                 approx=approx,
                 delta_logl=delta_logl,
@@ -91,9 +99,9 @@ def fit_and_evaluate_replicate(
         elif model_name == "gpytorch":
             pred, elapsed_time, hyper_params = model_gpytorch(
                 quantile=target_quantile,
-                train_X=train_X,
+                train_X=train_X_scaled,
                 train_y=train_y,
-                test_X=test_X,
+                test_X=test_X_scaled,
                 test_y=test_y,
                 epochs=n_epochs,
                 lr = lr,
@@ -106,6 +114,26 @@ def fit_and_evaluate_replicate(
             stddev_pred = pred.stddev.numpy()
             low_pred = latent_pred - stddev_pred * t
             up_pred = latent_pred + stddev_pred * t
+
+        elif model_name == "VIVA":
+            latent_pred, latend_std, elapsed_time, hyper_params = model_viva_gp(
+                quantile=target_quantile,
+                train_X=train_X_scaled,
+                train_y=train_y,
+                test_X=test_X_scaled,
+                test_y=test_y,
+                rho = 2,
+                lengthscale_init=0.25,
+                outputscale_init=0.25,
+                epochs=n_epochs,
+                use_ic0=True,
+                classify=False,
+            )
+
+            low_pred = latent_pred - latend_std * t
+            up_pred = latent_pred + latend_std * t
+
+
 
         # Compute quantile score
         qs_loss = quantile_score(y=test_y, preds=latent_pred, quantile=target_quantile)

@@ -16,13 +16,6 @@ fit_and_evaluate_replicate <- function(X, y, fold, configs, models) {
   y_test  <- y[test_idx]
   
 
-  if (any(!is.finite(X_train)) || any(!is.finite(y_train))) {
-    stop("Found NA or Inf in training data!")
-  }
-  if (any(!is.finite(X_test)) || any(!is.finite(y_test))) {
-    stop("Found NA or Inf in test data!")
-  }
-  
   delta_logl <- configs$delta_logl
   n_epochs <- configs$n_epochs
   lr <- configs$lr

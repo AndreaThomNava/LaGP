@@ -3,11 +3,14 @@ import gpytorch as gpy
 import numpy as np
 import pandas as pd
 import torch
+from torch import tensor
+from gpytorch.kernels import MaternKernel, ScaleKernel
 import time
 from gpytorch.distributions import Distribution
-
+import viva
+from viva import VIVACpp as VIVA, my_train_cpp as my_train
 from lagp.utils.gpytorch_utils import (AsymmetricLaplaceLikelihood,
-                                       GPRegressionModel)
+                                       GPRegressionModel, AsymmetricLaplaceLikelihood_DKLGP)
 
 
 def model_gpboost(
@@ -174,3 +177,90 @@ def model_gpytorch(
                     }
 
     return pred, elapsed_time, hyper_params
+
+
+def model_viva_gp(
+    quantile: float,
+    train_X: np.ndarray,
+    train_y: np.ndarray,
+    test_X: np.ndarray,
+    test_y: np.ndarray,
+    rho: float = 2.0,
+    lengthscale_init: float = 0.25,
+    outputscale_init: float = 0.25,
+    nu: float = 1.5,
+    epochs: int = 200,
+    use_ic0: bool = True,
+    classify: bool = False
+):
+    """
+    Fit a VIVA (Vecchia approximation) GP model with asymmetric Laplace likelihood.
+
+    Args:
+        quantile: Target quantile.
+        train_X, train_y: Training data.
+        test_X, test_y: Test data.
+        rho: Expansion factor for neighbor search.
+        lengthscale_init, outputscale_init: Kernel init hyperparams.
+        nu: Smoothness for Matern kernel.
+        epochs: Number of training iterations.
+        use_ic0: Whether to use IC0 initialization.
+        classify: Flag for classification (False for regression).
+    
+    Returns:
+        mu_post: Predictive mean at test points.
+        sd_post: Predictive std deviation at test points.
+        elapsed_time: Training time in seconds.
+    """
+
+    # Concatenate train/test for VIVA format
+    X_full = np.vstack((train_X, test_X))
+    y_full = np.concatenate((train_y, np.zeros(len(test_y))))  # dummy y for test
+
+    X_tensor = torch.tensor(X_full, dtype=torch.float32)
+    y_tensor = torch.tensor(y_full, dtype=torch.float32)
+
+    # Define likelihood
+    likelihood = AsymmetricLaplaceLikelihood_DKLGP(quantile=quantile)
+
+    # Define kernel
+    d = X_full.shape[1]
+    K = ScaleKernel(MaternKernel(ard_num_dims=d, nu=nu))
+    K.base_kernel.lengthscale = lengthscale_init
+    K.outputscale = outputscale_init
+
+    # Instantiate VIVA model
+    n_test = test_X.shape[0]
+    model = VIVA(
+        X_tensor,
+        y_tensor,
+        K,
+        likelihood=likelihood,
+        rho=rho,
+        n_test=n_test,
+        classify=classify,
+        use_ic0=use_ic0,
+    )
+
+    # Training
+    start_time = time.time()
+    my_train(model, n_Epoch=epochs)
+    elapsed_time = time.time() - start_time
+
+    # Prediction
+    model.eval()
+    mu_post, var_post = model.predict()
+    mu = mu_post.detach().numpy()
+    sd = var_post.sqrt().detach().numpy()
+
+    signal_variance = np.float64((K.outputscale).detach().numpy().item())
+    lengthscale = np.float64((K.base_kernel.lengthscale[0][0]).detach().numpy().item())
+    noise_variance = np.float64(likelihood.noise.detach().numpy().item())
+
+    # extract hyper
+    hyper_params = {"lengthscale": lengthscale,
+                    "signal_variance":signal_variance,
+                    "noise_variance": noise_variance,
+                    }
+
+    return mu[-n_test:], sd[-n_test:], elapsed_time, hyper_params

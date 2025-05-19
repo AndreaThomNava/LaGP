@@ -1,14 +1,10 @@
 import torch
 import gpytorch as gpy
-from gpytorch.distributions import Distribution, constraints
-
+from gpytorch.distributions import Distribution
+from gpytorch import constraints
 
 class AsymmetricLaplaceOutput(Distribution):
 
-    # Class attribute
-    arg_constraints = {
-        "scale": constraints.positive,
-    }
 
     def __init__(self, function_samples, quantile, scale):
         self.function_samples = function_samples
@@ -50,13 +46,17 @@ class AsymmetricLaplaceLikelihood(gpy.likelihoods.Likelihood):
 
 class GPRegressionModel(gpy.models.ApproximateGP):
     def __init__(self, train_x, inducing_threshold: int, num_inducing: int = 500):
+        assert train_x.dim() == 2
         # Use full Cholesky variational distribution (full rank, no inducing point approximation)
         variational_distribution = gpy.variational.CholeskyVariationalDistribution(num_inducing if train_x.size(0) > inducing_threshold
                                                                                 else train_x.size(0))
         
         # Ensure the inducing points are set as parameters
         num_features = train_x.size(1) if len(train_x.size()) > 1 else 1 
-        inducing_points = torch.nn.Parameter(torch.randn(num_inducing, num_features))
+        # self.inducing_points = torch.nn.Parameter(torch.randn(num_inducing, num_features))
+        init_inducing = train_x[torch.randperm(train_x.size(0))[:num_inducing]]
+        inducing_points = torch.nn.Parameter(init_inducing.clone())
+
         
         variational_strategy = gpy.variational.VariationalStrategy(
             self,

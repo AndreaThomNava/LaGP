@@ -1,4 +1,6 @@
 library(qgam)
+library(cmdstanr)
+library(gptoolsStan)
 
 
 # Quantile function for the Asymmetric Laplace Distribution
@@ -18,6 +20,13 @@ quantile_func_asym_laplace <- function(x, q, scale) {
   rvs[ind] <- -log((1 - x[ind]) / (1 - q)) * scale / q
   
   return(rvs)
+}
+
+# Function to generate samples via PIT
+ralaplace <- function(n, q, scale) {
+  u <- runif(n)  # Step 1: sample from Uniform(0,1)
+  samples <- quantile_func_asym_laplace(u, q, scale)  # Step 2: apply quantile function
+  return(samples)
 }
 
 
@@ -223,6 +232,127 @@ model_qgam <- function(train_X, train_y, test_X, target_quantile = 0.5, smooth_t
     fit_time = fit_time))
 }
 
+
+#### UTILS FOR VECCHIA ####
+# 2) Vecchia adjacency function (works with 1D and 2D inputs)
+vecchia_adj <- function(X, num_neighbors) {
+  X <- as.matrix(X)
+  N <- nrow(X)
+  adj <- matrix(0L, N, N)
+  
+  for (i in 2:N) {
+    previous <- 1:(i-1)
+    diffs <- sweep(X[previous, , drop=FALSE], 2, X[i, ], "-")
+    dists <- rowSums(diffs^2)
+    neighbors <- previous[order(dists)[seq_len(min(num_neighbors, length(previous)))]]
+    adj[neighbors, i] <- 1L
+  }
+  adj
+}
+
+# 3) Convert adjacency matrix to lattice predecessors matrix
+lattice_predecessors <- function(adj, num_neighbors) {
+  N <- ncol(adj)
+  lattice <- matrix(-1L, nrow = N, ncol = num_neighbors + 1)
+  lattice[, num_neighbors + 1] <- 1:N
+  for (i in seq_len(N)) {
+    preds <- which(adj[, i] == 1)
+    if (length(preds) < num_neighbors) {
+      preds <- c(preds, rep(-1L, num_neighbors - length(preds)))
+    }
+    lattice[i, 1:num_neighbors] <- preds
+  }
+  lattice
+}
+
+# 4) Convert lattice predecessors to edge index for Stan (1-based)
+predecessors_to_edge_index <- function(predecessors) {
+  N <- nrow(predecessors)
+  num_neighbors <- ncol(predecessors) - 1
+  edges_list <- vector("list", N)
+  
+  for (i in 1:N) {
+    node <- predecessors[i, num_neighbors + 1]
+    parents <- predecessors[i, 1:num_neighbors]
+    parents <- parents[parents >= 0]  # remove padding
+    if (length(parents) == 0) {
+      edges_list[[i]] <- NULL
+    } else {
+      edges_list[[i]] <- cbind(parents, rep(node, length(parents)))
+    }
+  }
+  edges <- do.call(rbind, edges_list)
+  edges
+}
+
+#### ACTUAL MODEL ####
+
+model_vecchia_gp <- function(train_X, train_y, test_X,
+                                      target_quantile = 0.5,
+                                      stan_model_path = "R/stan/asym_laplace_matern32_noncentered_sparse.stan",
+                                      m = 5)
+                             {
+  
+  X <- rbind(train_X, test_X)
+  N <- nrow(X)
+  D <- ncol(X)
+  
+  adj <- vecchia_adj(X, num_neighbors = m)
+  lattice <- lattice_predecessors(adj, m)
+  edge_index <- predecessors_to_edge_index(lattice)
+  
+  
+  n_train = nrow(train_X)
+  n_test = nrow(test_X)
+  
+  is_observed <- rep(0, N)
+  is_observed[1:n_train] <- 1
+  
+  y_test <- rep(0, n_test)
+  
+  y_masked <- c(train_y, y_test)
+  # y_masked[is_observed == 0] <- 0  # dummy value, won't be used in model
+  
+  
+  data_list <- list(
+    N = N,
+    D = D,
+    x_mat = X,
+    y = y_masked,
+    is_observed = is_observed,
+    tau = target_quantile,
+    epsilon = 1e-6,      # jitter
+    num_edges = nrow(edge_index),
+    edge_index = t(edge_index)
+    
+  )
+  
+  # 4. Compile and fit the Stan model --------------------------------------------
+  
+  mod <- cmdstan_model(stan_model_path, 
+                       include_paths = gptools_include_path())
+  fit_time <- system.time({
+    fit <- mod$sample(
+      data = data_list,
+      chains = 2,
+      iter_warmup = 200,
+      iter_sampling = 200
+    )})[["elapsed"]]
+  print("here 1")
+  f_samples <- fit$draws("f")
+  print("here 2")
+  f_samples_test <- f_samples[(n_train + 1):N]
+  print("here 3")
+  f_mean <- apply(f_samples, 3, mean)
+  f_mean_test <- f_mean[(n_train + 1):N]
+  print("here 4")
+  
+  
+  return(list(
+    predictions = f_mean_test,
+    samples = f_samples_test,
+    fit_time = fit_time))
+}
 
 ## GP via STAN/MCMC ##
 fit_gp_stan <- function(train_X, train_y, test_X, target_quantile, 

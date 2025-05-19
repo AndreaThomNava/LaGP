@@ -33,6 +33,13 @@ def fit_and_evaluate_replicate(X, y, fold,
     X_train, X_test = X.iloc[train_idx,:], X.iloc[test_idx,:]
     y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
 
+    # standardize according to train_X statistics
+    train_mean = X_train.mean(axis=0)
+    train_std = X_train.std(axis=0)
+
+    train_X_scaled = (X_train - train_mean) / train_std
+    test_X_scaled = (X_test - train_mean) / train_std  # use train stats here!
+
     delta_logl = configs["delta_logl"]
     n_epochs = configs["n_epochs"]
     lr = configs["lr"]
@@ -51,9 +58,9 @@ def fit_and_evaluate_replicate(X, y, fold,
             approx = gpb_approxs[model_name]
             pred, elapsed_time, hyper_params = model_gpboost(
                 quantile=target_quantile,
-                train_X=X_train,
+                train_X=train_X_scaled,
                 train_y=y_train,
-                test_X=X_test,
+                test_X=test_X_scaled,
                 test_y=y_test,
                 approx=approx,
                 delta_logl=delta_logl,
@@ -66,9 +73,9 @@ def fit_and_evaluate_replicate(X, y, fold,
         elif model_name == "gpytorch":
             pred, elapsed_time, hyper_params = model_gpytorch(
                 quantile=target_quantile,
-                train_X=X_train,
+                train_X=train_X_scaled,
                 train_y=y_train,
-                test_X=X_test,
+                test_X=test_X_scaled,
                 test_y=y_test,
                 epochs=n_epochs,
                 lr = lr,

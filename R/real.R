@@ -14,6 +14,12 @@ fit_and_evaluate_replicate <- function(X, y, fold, configs, models) {
   X_test  <- X[test_idx, , drop = FALSE]
   y_train <- y[train_idx]
   y_test  <- y[test_idx]
+
+  train_X_scaled <- scale(X_train)
+  test_X_scaled <- scale(X_test,
+                       center = attr(train_X_scaled, "scaled:center"),
+                       scale = attr(train_X_scaled, "scaled:scale"))
+
   
 
   delta_logl <- configs$delta_logl
@@ -28,7 +34,7 @@ fit_and_evaluate_replicate <- function(X, y, fold, configs, models) {
   for (model_name in models) {
     if (model_name == "qgam") {
       print("Fitting qgam")
-      pred <- model_qgam(X_train, y_train, X_test, target_quantile)
+      pred <- model_qgam(train_X_scaled, y_train, test_X_scaled, target_quantile)
       latent_pred <- pred$predictions
       fit_time <- pred$fit_time
     } 

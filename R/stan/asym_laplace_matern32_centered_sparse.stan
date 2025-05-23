@@ -40,22 +40,15 @@ parameters {
   real<lower=1e-4> sigma;
   real<lower=1e-4> lengthscale;
   
-  vector[N] z;           // non-centered GP latent
+  vector[N] f;           // centered GP latent
   real<lower=1e-4> obs_sigma;  // scale for asym Laplace likelihood
 }
 
-transformed parameters {
-  vector[N] f;
-  f = gp_inv_graph_matern32_cov(
-    z, rep_vector(0, N), x, sigma, lengthscale,
-    edge_index, degrees, epsilon
-  );
-  
-}
 
 model {
   // Priors
-  z ~ normal(0, 1);
+  f ~ gp_graph_matern32_cov(zeros_vector(N), x, sigma, lengthscale, edge_index, degrees,
+                                epsilon);
   obs_sigma ~ lognormal(0, 1);     // scale of ALD
   sigma ~ lognormal(0, 1);         // marginal std dev of GP
   lengthscale ~ lognormal(0, 1);   // smoothness scale of GP
@@ -63,7 +56,7 @@ model {
   // Likelihood
   for (n in 1:N) {
     if (is_observed[n])
-      // target += normal_lpdf(y[n] | f[n], obs_sigma);
-      target += asym_laplace_lpdf(y[n] | f[n], tau, obs_sigma);
+      target += normal_lpdf(y[n] | f[n], obs_sigma);
+     // target += asym_laplace_lpdf(y[n] | f[n], tau, obs_sigma);
   }
 }

@@ -8,7 +8,7 @@ import yaml
 from scipy.stats import norm
 
 from lagp.models.model import (  # Assuming you have these model functions
-    model_gpboost, model_gpytorch)
+    model_gpboost, model_gpytorch, model_viva_gp)
 from lagp.utils.generate_data import  load_X_y_preprocessed, save_cv_splits, load_cv_splits, load_X_y, save_cv_splits_preprocessed
 from lagp.utils.metrics import quantile_score
 
@@ -33,12 +33,17 @@ def fit_and_evaluate_replicate(X, y, fold,
     X_train, X_test = X.iloc[train_idx,:], X.iloc[test_idx,:]
     y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
 
-    # standardize according to train_X statistics
-    train_mean = X_train.mean(axis=0)
-    train_std = X_train.std(axis=0)
+    # Compute min and max from training data
+    train_min = X_train.min(axis=0)
+    train_max = X_train.max(axis=0)
 
-    train_X_scaled = (X_train - train_mean) / train_std
-    test_X_scaled = (X_test - train_mean) / train_std  # use train stats here!
+    # Avoid division by zero in case some feature is constant
+    train_range = train_max - train_min
+    train_range[train_range == 0] = 1.0
+
+    # Apply scaling to training and test data
+    train_X_scaled = (X_train - train_min) / train_range
+    test_X_scaled = (X_test - train_min) / train_range  # use train stats!
 
     delta_logl = configs["delta_logl"]
     n_epochs = configs["n_epochs"]
@@ -84,6 +89,23 @@ def fit_and_evaluate_replicate(X, y, fold,
             )
 
             latent_pred = pred.mean.numpy()
+
+
+        elif model_name == "VIVA":
+            latent_pred, latend_std, elapsed_time, hyper_params = model_viva_gp(
+                quantile=target_quantile,
+                train_X=train_X_scaled,
+                train_y=y_train,
+                test_X=test_X_scaled,
+                test_y=y_test,
+                rho = 1.5, # fixed
+                lengthscale_init=0.25,
+                outputscale_init=0.25,
+                epochs=n_epochs,
+                use_ic0=True,
+                classify=False,
+            )
+
 
 
         # Compute quantile score

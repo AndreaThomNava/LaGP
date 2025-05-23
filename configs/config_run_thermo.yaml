@@ -25,8 +25,6 @@ pars : {
 
 scale_laplace: 0.1 ## CAREFULL !!
 
-min_decrease: 10  # Minimum decrease threshold for model fitting
-
 # GPBoost settings (if applicable)
 gpboost:
   min_dec: 10  # Minimum decrease for GPBoost optimization

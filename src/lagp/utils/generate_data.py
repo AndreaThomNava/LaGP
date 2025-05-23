@@ -104,7 +104,7 @@ def simulate_latentGP(
     N = X.shape[0]
     X_torch = torch.tensor(X, dtype=torch.float)
     # Evaluate the kernel
-    covar = kernel(X_torch)
+    covar = kernel(X_torch) #, X_torch).evaluate()#, X_torch).evaluate()
     mean = torch.zeros(N)  # Zero mean GP
 
     mvn = gpy.distributions.MultivariateNormal(mean, covar)
@@ -327,7 +327,10 @@ def load_X_y_preprocessed(dataset_name, dir):
     if not os.path.exists(path):
         raise FileNotFoundError(f"Dataset '{dataset_name}' not found at {path}")
 
-    df = pd.read_csv(path, sep=" ")
+    if dataset_name in ["protein", "elevators"]:
+        df = pd.read_csv(path, sep=" ", header=None)
+    else:
+        df = pd.read_csv(path, sep=" ")
 
     # Features & Response
     X = df.iloc[:, 1:]
@@ -415,7 +418,7 @@ def compute_dict_pars(signal_variance, snr, quantile):
     "gaussian": {"scale": scale_gaussian}, 
     "ald": {"q": quantile, "scale": scale_ald}, 
     "t": {"df": 3, "scale": scale_t},
-    "chi": {"df": 2, "scale": 0.1}
+    "chi": {"df": 1, "scale": 1} # fixed to 1 for now
     }
 
     return pars

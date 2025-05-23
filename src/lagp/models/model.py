@@ -38,9 +38,11 @@ def model_gpboost(
 
     N = len(train_X)
     vecchia = N > n_vecchia
+    
+    start_time = time.time()
     gpq = gpb.GPModel(
         gp_coords=train_X,
-        cov_function="matern",
+        cov_function="matern_ard",
         cov_fct_shape=1.5,
         gp_approx="vecchia" if vecchia else "none",
         num_neighbors=30,
@@ -56,10 +58,7 @@ def model_gpboost(
         "trace": False,
     }
     # fit
-    start_time = time.time()
     gpq.fit(X=np.ones(N), y=train_y, params=params)
-    end_time = time.time()
-    elapsed_time = end_time - start_time
     # predict
     pred = gpq.predict(
         X_pred=np.ones(len(test_X)),
@@ -68,6 +67,8 @@ def model_gpboost(
         predict_var=True,
     )
 
+    end_time = time.time()
+    elapsed_time = end_time - start_time
 
     # extract hyper-parames
     cov_pars = gpq.get_cov_pars()
@@ -156,16 +157,14 @@ def model_gpytorch(
         if epoch % 50 == 0:
             print(f"Epoch {epoch}: Loss = {loss.item():.4f}")
         optimizer.step()
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-
     # ---- Evaluation ----
     model.eval()
     likelihood.eval()
     with torch.no_grad():
         pred = model(test_X_tensor)
         # predictions = pred.mean  # Mode or median of asymmetric Laplace
-
+    end_time = time.time()
+    elapsed_time = end_time - start_time
     # Access the estimated hyperparameters: detach grads and make numpy
     lengthscale = np.float64(model.covar_module.base_kernel.lengthscale.detach().numpy().item())
     output_variance = np.float64(model.covar_module.outputscale.detach().numpy().item())
@@ -185,7 +184,7 @@ def model_viva_gp(
     train_y: np.ndarray,
     test_X: np.ndarray,
     test_y: np.ndarray,
-    rho: float = 2.0,
+    rho: float = 1.5,
     lengthscale_init: float = 0.25,
     outputscale_init: float = 0.25,
     nu: float = 1.5,
@@ -231,6 +230,8 @@ def model_viva_gp(
 
     # Instantiate VIVA model
     n_test = test_X.shape[0]
+
+    start_time = time.time()
     model = VIVA(
         X_tensor,
         y_tensor,
@@ -243,13 +244,13 @@ def model_viva_gp(
     )
 
     # Training
-    start_time = time.time()
     my_train(model, n_Epoch=epochs)
-    elapsed_time = time.time() - start_time
+    
 
     # Prediction
     model.eval()
     mu_post, var_post = model.predict()
+    elapsed_time = time.time() - start_time
     mu = mu_post.detach().numpy()
     sd = var_post.sqrt().detach().numpy()
 

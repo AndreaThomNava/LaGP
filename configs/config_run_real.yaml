@@ -10,8 +10,8 @@ gp_parameters:
 ## TARGET QUANTILE
 target_quantile: 0.8
 
-threshold_approximation: 1000
-inducing_points:  100
+threshold_approximation: 1001
+inducing_points:  1000
 
 delta_logl: 10
 

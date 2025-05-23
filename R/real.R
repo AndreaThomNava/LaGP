@@ -15,11 +15,23 @@ fit_and_evaluate_replicate <- function(X, y, fold, configs, models) {
   y_train <- y[train_idx]
   y_test  <- y[test_idx]
 
-  train_X_scaled <- scale(X_train)
-  test_X_scaled <- scale(X_test,
-                       center = attr(train_X_scaled, "scaled:center"),
-                       scale = attr(train_X_scaled, "scaled:scale"))
-
+  # Compute min and max for each column of the training set
+  train_min <- apply(X_train, 2, min)
+  train_max <- apply(X_train, 2, max)
+  
+  # Compute range
+  train_range <- train_max - train_min
+  
+  # Avoid division by zero for constant columns
+  train_range[train_range == 0] <- 1.0
+  
+  # Center and scale training data
+  train_X_scaled <- (X_train - matrix(train_min, nrow = nrow(X_train), ncol = ncol(X_train), byrow = TRUE)) /
+    matrix(train_range, nrow = nrow(X_train), ncol = ncol(X_train), byrow = TRUE)
+  
+  # Center and scale test data using training statistics
+  test_X_scaled <- (X_test - matrix(train_min, nrow = nrow(X_test), ncol = ncol(X_test), byrow = TRUE)) /
+    matrix(train_range, nrow = nrow(X_test), ncol = ncol(X_test), byrow = TRUE)
   
 
   delta_logl <- configs$delta_logl

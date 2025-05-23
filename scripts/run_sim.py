@@ -48,12 +48,6 @@ def fit_and_evaluate_replicate(
         likelihood, sample_size, input_dim, replicate, train_split
     )
 
-    # standardize according to train_X statistics
-    train_mean = train_X.mean(axis=0)
-    train_std = train_X.std(axis=0)
-
-    train_X_scaled = (train_X - train_mean) / train_std
-    test_X_scaled = (test_X - train_mean) / train_std  # use train stats here!
 
     # obtain true latent quantile
 
@@ -82,9 +76,9 @@ def fit_and_evaluate_replicate(
            
             pred, elapsed_time, hyper_params = model_gpboost(
                 quantile=target_quantile,
-                train_X=train_X_scaled,
+                train_X=train_X,
                 train_y=train_y,
-                test_X=test_X_scaled,
+                test_X=test_X,
                 test_y=test_y,
                 approx=approx,
                 delta_logl=delta_logl,
@@ -99,9 +93,9 @@ def fit_and_evaluate_replicate(
         elif model_name == "gpytorch":
             pred, elapsed_time, hyper_params = model_gpytorch(
                 quantile=target_quantile,
-                train_X=train_X_scaled,
+                train_X=train_X,
                 train_y=train_y,
-                test_X=test_X_scaled,
+                test_X=test_X,
                 test_y=test_y,
                 epochs=n_epochs,
                 lr = lr,
@@ -118,11 +112,11 @@ def fit_and_evaluate_replicate(
         elif model_name == "VIVA":
             latent_pred, latend_std, elapsed_time, hyper_params = model_viva_gp(
                 quantile=target_quantile,
-                train_X=train_X_scaled,
+                train_X=train_X,
                 train_y=train_y,
-                test_X=test_X_scaled,
+                test_X=test_X,
                 test_y=test_y,
-                rho = 2,
+                rho = 1.5, # fixed
                 lengthscale_init=0.25,
                 outputscale_init=0.25,
                 epochs=n_epochs,

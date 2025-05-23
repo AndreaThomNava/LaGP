@@ -1,4 +1,4 @@
-group_sizes: [20, 100, 200, 1000]
+group_sizes: [20, 100, 200, 500]
 num_groups: 20
 re_std: 1.0
 scale_laplace: 1.0

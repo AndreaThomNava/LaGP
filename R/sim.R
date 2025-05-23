@@ -4,7 +4,7 @@ source("R/utils.R")
 library(yaml)
 library(parallel)
 library(reticulate)
-use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
+#use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
 
 # Function to fit and evaluate models for a single replicate
 fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, models, target_quantile = 0.5) {
@@ -33,6 +33,7 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
   train_y <- data$y_train
   test_X <- data$X_test
   test_y <- data$y_test
+  
   
   if (is_heteroscedastic) {
     # Load the scale GP (g) if heteroscedastic
@@ -75,7 +76,7 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
       pred <- model_vecchia_gp(train_X, train_y, test_X,
                               target_quantile,
                               stan_model_path = "R/stan/asym_laplace_matern32_noncentered_sparse.stan",
-                              m = 10  # number of neighbors for Vecchia
+                              m = 5  # number of neighbors for Vecchia
                               )
       print("sampled successfully")
       latent_pred <- pred$predictions
@@ -146,7 +147,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models, num_replicates 
 
 
 configs_sim <- load_config("configs/config_run_simulation.yaml")
-models <- list("qgam") #, "vecchia_mcmc")
+models <- list("qgam", "vecchia_mcmc") #, "vecchia_mcmc")
 for (model_name in models){
   print(models)
 }

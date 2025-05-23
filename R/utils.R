@@ -132,7 +132,14 @@ load_X_y_preprocessed <- function(dataset_name, dir) {
     stop(sprintf("Dataset '%s' not found at %s", dataset_name, path))
   }
   
-  df <- read.table(path, sep = " ", header = TRUE)
+  if (dataset_name %in% c("protein", "elevators")) {
+    df <- read.table(path, sep = " ", header = FALSE)
+  }
+  else {
+    df <- read.table(path, sep = " ", header = TRUE)
+  }
+  
+  
   
   # Features & Response
   y <- df[[1]]
@@ -199,6 +206,10 @@ model_qgam <- function(train_X, train_y, test_X, target_quantile = 0.5, smooth_t
 
   # Dynamically create the training data frame (with y as the response variable)
   train_data <- data.frame(y = train_y)
+  # Create a data frame for the test data
+  test_data <- as.data.frame(test_X)  # Directly convert test_X into a data frame
+  # Rename the columns in the test data
+  colnames(test_data) <- paste0("X", 1:ncol(test_data))
   
   # Add each column of X as separate predictors in the data frame
   for (i in 1:ncol(train_X)) {
@@ -211,19 +222,14 @@ model_qgam <- function(train_X, train_y, test_X, target_quantile = 0.5, smooth_t
   })
   formula <- as.formula(paste("y ~", paste(formula_parts, collapse = " + ")))
   # print(paste0("formula qgam: ", formula))
+  
   # Fit the QGAM model
   fit_time <- system.time({
     fit <- qgam(formula, data = train_data, qu = target_quantile)
+    # Make predictions on the test set
+    pred <- predict(fit, newdata = test_data, se = TRUE)
   })[["elapsed"]]
   
-  # Create a data frame for the test data
-  test_data <- as.data.frame(test_X)  # Directly convert test_X into a data frame
-  
-  # Rename the columns in the test data
-  colnames(test_data) <- paste0("X", 1:ncol(test_data))
-  
-  # Make predictions on the test set
-  pred <- predict(fit, newdata = test_data, se = TRUE)
   
   # Return predictions along with standard errors
   return(list(
@@ -341,7 +347,7 @@ model_vecchia_gp <- function(train_X, train_y, test_X,
   print("here 1")
   f_samples <- fit$draws("f")
   print("here 2")
-  f_samples_test <- f_samples[(n_train + 1):N]
+  f_samples_test <- f_samples[, , (n_train + 1):N]
   print("here 3")
   f_mean <- apply(f_samples, 3, mean)
   f_mean_test <- f_mean[(n_train + 1):N]
@@ -390,23 +396,6 @@ fit_gp_stan <- function(train_X, train_y, test_X, target_quantile,
     fit_time = fit_time))
   
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ### ----------------- EVALUATION METRICS ---------------- ###
 

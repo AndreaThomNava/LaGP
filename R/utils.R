@@ -37,29 +37,41 @@ load_config <- function(config_path) {
 }
 
 # load data and train and test split
-load_data <- function(likelihood, sample_size, input_dim, replicate, train_split, file_path = NULL) {
-  folder_name <- paste0(sample_size, "_", input_dim)
+load_data <- function(
+    randeff,
+    likelihood,
+    n_groups,
+    group_size,
+    replicate,
+    file_path = NULL
+) {
+  folder_name <- file.path(randeff, paste0(n_groups, "_", group_size))
   file_name <- paste0("data_replicate_", replicate, ".npz")
   
   if (is.null(file_path)) {
-    file_path <- file.path("data", "simulated_data", folder_name, likelihood, file_name)
+    file_path <- file.path("data", "simulated_data_mm", folder_name, likelihood, file_name)
   }
   
   np <- reticulate::import("numpy")
   data <- np$load(file_path)
   
-  X <- data[["X"]]
-  y <- data[["y"]]
-  f <- data[["f"]]
+  # Define a helper to safely extract optional elements
+  safe_get <- function(key) {
+    if (key %in% names(data)) data[[key]] else NULL
+  }
   
-  n <- nrow(X)
-  n_train <- floor(train_split * n)
-  X_train <- X[1:n_train, , drop = FALSE]
-  y_train <- y[1:n_train]
-  X_test <- X[(n_train + 1):n, , drop = FALSE]
-  y_test <- y[(n_train + 1):n]
-  
-  list(f = f, X_train = X_train, y_train = y_train, X_test = X_test, y_test = y_test)
+  list(
+    X_train = data[["X_train"]],
+    y_train = data[["y_train"]],
+    X_test = data[["X_test"]],
+    y_test = data[["y_test"]],
+    group_train = safe_get("group_train"),
+    group_test = safe_get("group_test"),
+    fe_train = safe_get("fe_train"),
+    fe_test = safe_get("fe_test"),
+    eps_train = safe_get("eps_train"),
+    eps_test = safe_get("eps_test")
+  )
 }
 
 # Load the scale GP (g) from a .npz file
@@ -163,37 +175,39 @@ load_cv_splits <- function(dataset_name, dir = "data/real_data", n_splits = 5) {
 
 
 # Recover true quantile
-obtain_quantile <- function(f, noise, pars, target_quantile, g = NULL) {
-  n <- length(f)
+# Recover true quantile
+obtain_quantile <- function(eps, noise, pars, target_quantile, g = NULL) {
+  n <- length(eps)
   if (!is.null(g)) {
     stopifnot(length(g) == n)
   }
   
   if (noise == "gaussian") {
-    scale <- if (!is.null(g)) g else pars[["gaussian"]][["scale"]]
+    scale <- if (!is.null(g)) g else pars$gaussian$scale
     delta <- qnorm(target_quantile) * scale
     
   } else if (noise == "ald") {
-    q <- pars[["ald"]][["q"]]
-    scale <- if (!is.null(g)) g else pars[["ald"]][["scale"]]
+    q <- pars$ald$q
+    scale <- if (!is.null(g)) g else pars$ald$scale
     delta <- quantile_func_asym_laplace(target_quantile, q, 1) * scale
     
   } else if (noise == "t") {
-    df <- pars[["t"]][["df"]]
-    scale <- if (!is.null(g)) g else pars[["t"]][["scale"]]
+    df <- pars$t$df
+    scale <- if (!is.null(g)) g else pars$t$scale
     delta <- qt(target_quantile, df = df) * scale
     
   } else if (noise == "chi") {
-    df <- pars[["chi"]][["df"]]
-    scale <- if (!is.null(g)) g else pars[["chi"]][["scale"]]
+    df <- pars$chi$df
+    scale <- if (!is.null(g)) g else pars$chi$scale
     delta <- qchisq(target_quantile, df = df) * scale
     
   } else {
     stop(paste("Unsupported noise model:", noise))
   }
   
-  return(f + delta)
+  return(eps + delta)
 }
+
 
 
 
@@ -432,7 +446,7 @@ coverage_and_width <- function(y, pred_low, pred_up) {
 
 
 
-
+###### MIXED MODELS SIMULATION ######
 
 
 

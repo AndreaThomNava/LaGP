@@ -1,5 +1,5 @@
 from typing import Tuple
-
+import pandas as pd
 import numpy as np
 
 
@@ -70,8 +70,6 @@ def coverage_and_width(
     return coverage, width
 
 
-import numpy as np
-
 def compute_bias_mse(true_param: np.ndarray, estimates: np.ndarray):
     """
     Compute bias and MSE of estimated parameters.
@@ -95,3 +93,21 @@ def compute_bias_mse(true_param: np.ndarray, estimates: np.ndarray):
     mse = np.mean((estimates - true_param) ** 2, axis=0)
     
     return {"bias": bias, "mse": mse}
+
+
+def align_re(group_train, group_test, re, test_true_latent_quantile, pred_var):
+
+    group_train_df = pd.DataFrame({"group_id":group_train})
+    group_test_df = pd.DataFrame({"group_id":group_test})
+
+    predicted_re = pd.DataFrame({"pred_re": re["Group_1"]})
+    predicted_var = pd.DataFrame({"pred_var": pred_var})
+
+    train_re = pd.concat([group_train_df, predicted_re], axis = 1)
+    test_re = pd.concat([group_test_df, pd.DataFrame({"true_re": test_true_latent_quantile})],axis = 1)
+    test_re = pd.concat([test_re, predicted_var],axis = 1)
+
+    # align by merging on id
+    merged = test_re.merge(train_re, on = "group_id", how= "inner").drop_duplicates(subset="group_id")
+
+    return merged["true_re"], merged["pred_re"], merged["pred_var"]

@@ -16,12 +16,13 @@ from lagp.utils.gpytorch_utils import (AsymmetricLaplaceLikelihood,
 def model_gpboost(
     quantile: float,
     train_X: np.ndarray,
+    group_train: np.ndarray,
     train_y: np.ndarray,
     test_X: np.ndarray,
+    group_test: np.ndarray,
     test_y: np.ndarray,
     approx: str,
     delta_logl: float,
-    n_vecchia: int = 1000,
 ) -> dict:
     """
     Fit the GPBoost model and predict on the test set.
@@ -36,53 +37,49 @@ def model_gpboost(
         - pred: Predicted values for test data
     """
 
-    N = len(train_X)
-    vecchia = N > n_vecchia
+    
     
     start_time = time.time()
+    
     gpq = gpb.GPModel(
-        gp_coords=train_X,
-        cov_function="matern_ard",
-        cov_fct_shape=1.5,
-        gp_approx="vecchia" if vecchia else "none",
-        num_neighbors=30,
-        matrix_inversion_method="iterative" if vecchia else "cholesky",
+        group_data=group_train,
         likelihood=approx,
         likelihood_additional_param=quantile,
         cover_tree_radius=delta_logl,
         num_parallel_threads=2,
-    )
+        )
     params = {
-        "estimate_aux_pars": True,
-        "init_aux_pars": np.array([0.1]),
-        "trace": False,
+    "estimate_aux_pars": True,
+    "init_aux_pars": np.array([0.1]),
+    "trace": False,
     }
     # fit
-    gpq.fit(X=np.ones(N), y=train_y, params=params)
-    # predict
+    gpq.fit(X=train_X, y=train_y, params=params)
+
+    # predict (contains also fixed effects predictors)
     pred = gpq.predict(
-        X_pred=np.ones(len(test_X)),
-        gp_coords_pred=test_X,
+        X_pred=test_X,
+        group_data_pred=group_test,
         predict_response=False,  # get the latent data
         predict_var=True,
-    )
+        )
 
+    # predict latent random effect
+    re_estimate = gpq.predict_training_data_random_effects(predict_var=True)
+  
     end_time = time.time()
     elapsed_time = end_time - start_time
 
     # extract hyper-parames
     cov_pars = gpq.get_cov_pars()
-    length_scale = cov_pars["GP_range"].iloc[0]
-    output_variance = cov_pars["GP_var"].iloc[0]
     noise_variance = gpq.get_aux_pars()["scale"]
 
-    hyper_params = {"lengthscale": length_scale,
-                    "signal_variance":output_variance,
+    hyper_params = {"cov_pars":cov_pars,
                     "noise_variance": noise_variance,
                     }
     
 
-    return pred, elapsed_time, hyper_params
+    return pred, re_estimate, elapsed_time, hyper_params
 
 
 def model_gpytorch(

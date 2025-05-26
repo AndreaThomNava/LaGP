@@ -7,32 +7,45 @@ library(reticulate)
 #use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
 
 # Function to fit and evaluate models for a single replicate
-fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, models, target_quantile = 0.5) {
+fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, models) {
   
   likelihood <- replicate_config$likelihood
   is_heteroscedastic <- grepl("heteroscedastic", likelihood)
   
-  sample_size <- replicate_config$sample_size
-  input_dim <- replicate_config$input_dim
+  # target quantile
+  target_quantile <- configs$target_quantile
+  randeff <- configs$randeff
+  
+  n_groups <- replicate_config$n_groups
+  group_size <- replicate_config$group_size
   print(paste("Likelihood: ", likelihood))
-  print(paste("Sample size: ", sample_size))
-  print(paste("Dim: ", input_dim))
+  print(paste("Num. Groups: ", n_groups))
+  print(paste("Group Size: ", group_size))
   print(paste("Replicate", replicate))
   
   delta_logl <- configs$delta_logl
   alpha <- configs$alpha
-  train_split <- configs$train_split
-  print(train_split)
-  n_epochs <- configs$n_epochs
-  lr <- configs$lr
+  test_split <- configs$test_size
+  print(test_split)
+
   
-  # Load the dataset for this replicate
-  data <- load_data(likelihood, sample_size, input_dim, replicate, train_split)
-  f <- data$f
+  # Load the dataset
+  data <- load_data(
+    randeff = randeff,
+    likelihood = likelihood,
+    n_groups = n_groups,
+    group_size = group_size,
+    replicate = replicate
+  )
+  
   train_X <- data$X_train
   train_y <- data$y_train
   test_X <- data$X_test
   test_y <- data$y_test
+  group_train <- data$group_train
+  group_test <- data$group_test
+  eps_test <- data$eps_test
+  g <- if (is_heteroscedastic) data$g else NULL
   
   
   if (is_heteroscedastic) {
@@ -45,13 +58,13 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
     noise <- likelihood
   }
   
-  # Obtain the true latent quantile
-  true_latent_quantile <- obtain_quantile(
-    f = f, 
-    noise = noise, 
-    pars = configs$simulation$pars, 
-    target_quantile = target_quantile, 
-    g = if (is_heteroscedastic) g else NULL
+  # Compute true latent quantile
+  test_true_latent_quantile <- obtain_quantile(
+    eps = eps_test,
+    noise = likelihood,
+    pars = configs$data_generation$pars,
+    target_quantile = target_quantile,
+    g = g
   )
   
   # Needed for prediction intervals
@@ -115,18 +128,18 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
 fit_models_on_all_datasets_parallel <- function(configs, models, num_replicates = 10) {
   results <- list()
   
-  for (likelihood in configs$simulation$likelihoods) {
-    for (sample_size in configs$simulation$sample_sizes) {
-      for (input_dim in configs$simulation$dimensions) {
+  for (likelihood in configs$likelihood) {
+    for (n_groups in configs$n_groups) {
+      for (group_size in configs$group_size) {
         
         # Prepare the configuration for this dataset
         replicate_config <- list(
           likelihood = likelihood,
-          sample_size = sample_size,
-          input_dim = input_dim
+          n_groups = n_groups,
+          group_size = group_size
         )
         
-        config_key <- paste(likelihood, sample_size, input_dim, sep = "_")
+        config_key <- paste(likelihood, n_groups, group_size, sep = "_")
         results[[config_key]] <- vector("list", num_replicates)
         
         # Use mclapply for parallel execution (requires 'parallel' package)
@@ -146,17 +159,17 @@ fit_models_on_all_datasets_parallel <- function(configs, models, num_replicates 
 }
 
 
-configs_sim <- load_config("configs/config_run_simulation.yaml")
+configs_sim <- load_config("configs/config_test.yaml")
 models <- list("qgam", "vecchia_mcmc") #, "vecchia_mcmc")
 for (model_name in models){
   print(models)
 }
-num_replicates <- configs_sim$simulation$replicates
+num_replicates <- configs_sim$replicate
 results <- fit_models_on_all_datasets_parallel(configs = configs_sim, models = models,
                                                num_replicates = num_replicates)
 
 # Save the results
-OUTPUT_DIR <- "results/simulation"
+OUTPUT_DIR <- file.path("results", "simulation_mm", configs$randeff)
 dir.create(OUTPUT_DIR, showWarnings = FALSE)
 
 # Combine results and config into one list

@@ -1,0 +1,55 @@
+# General parameters for data generation and splitting
+
+data_generation:
+  n_groups: [200,  1000]
+  group_size: [10, 100]
+  
+  signal_variance: 1.0 # for one grouped random effect
+  fixed_srn: True
+  snr: 5.0
+  quantile: 0.8
+  likelihood: ["ald", "gaussian"]
+  pars : {
+    "gaussian": {"scale": 0.31}, # sqrt(0.31) -> 0.1
+    "ald": {"q": 0.8, "scale": 0.1}, #
+    "t": {"df": 3, "scale": 0.1},
+    "chi": {"df": 2, "scale": 0.1}
+  }
+  replicate: 5
+  test_size: 0.2
+  randeff: "One_random_effect"
+  output_folder: "simulated_data_mm"
+  random_state: 123
+  extrapolate: False
+
+  # FIXED EFFECTS
+  num_covariates: 5
+  has_F: True
+  factor_m2: 1.0
+  
+
+  # FOR MORE COMPLEX RANDOM EFFECTS STRUCTURES
+  sigma2: 0.25 
+  sigma2_1: 0.25
+  sigma2_2: 0.25
+  sigma2_3: 0.25
+
+
+
+
+##### for running simulation ########
+  
+models: ["gpboost_cc", "gpboost_lls"]
+replicate: 5
+n_groups: [200] #,  1000]
+group_size: [10, 100]
+likelihood: ["ald", "gaussian"]
+randeff: "One_random_effect"
+
+  
+delta_logl: 10
+alpha: 0.9
+target_quantile: 0.8
+gpb_approxs: {"gpboost_lls": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
+            "gpboost_cc": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
+            "gpboost_cc_var_corr": "asymmetric_laplace_constant_curvature_fisher_mode_finding_var_cor_pred"}

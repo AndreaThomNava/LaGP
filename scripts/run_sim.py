@@ -11,7 +11,7 @@ from lagp.models.model import (  # Assuming you have these model functions
     model_gpboost, model_gpytorch, model_viva_gp)
 from lagp.utils.generate_data import load_data, obtain_quantile, load_scale_gp
 from lagp.utils.metrics import (coverage_and_width, interval_score,
-                                quantile_score)
+                                quantile_score, align_re)
 
 
 def fit_and_evaluate_replicate(
@@ -30,36 +30,37 @@ def fit_and_evaluate_replicate(
     """
     likelihood = replicate_config["likelihood"]
     is_heteroscedastic = re.search("heteroscedastic", likelihood) is not None
-    sample_size = replicate_config["sample_size"]
-    input_dim = replicate_config["input_dim"]
+    n_group = replicate_config["n_group"]
+    group_size = replicate_config["group_size"]
     
     delta_logl = configs["delta_logl"]
     alpha = configs["alpha"]
-    train_split = configs["train_split"]
-    n_epochs = configs["n_epochs"]
-    lr = configs["lr"]
-    threshold_approx = configs["threshold_approximation"]
-    inducing_points = configs["inducing_points"]
-    target_quantile = configs["target_quantile"]
     gpb_approxs = configs["gpb_approxs"]
-
-    # Load the dataset for this replicate
-    f, train_X, train_y, test_X, test_y = load_data(
-        likelihood, sample_size, input_dim, replicate, train_split
+    target_quantile = configs["target_quantile"]
+    randeff = configs["randeff"]
+    data = load_data(
+        randeff=randeff,  # e.g., "Two_randomly_crossed_random_effects"
+        likelihood=likelihood,
+        n_groups=n_group,
+        group_size=group_size,
+        replicate=replicate,
     )
+
+    train_X = data["X_train"]
+    train_y = data["y_train"]
+    test_X = data["X_test"]
+    test_y = data["y_test"]
+    group_train = data["group_train"]
+    group_test = data["group_test"]
+    eps_test = data["eps_test"]
+
 
 
     # obtain true latent quantile
+    noise = likelihood
 
-    # if heteroscedastic likelihood, load also second GP!
-    if is_heteroscedastic:
-        g = load_scale_gp(likelihood, sample_size, input_dim, replicate, file_path=None)
-        noise = likelihood.split("_")[0]
-    else:
-        noise = likelihood
-
-    true_latent_quantile = obtain_quantile(
-        f=f, noise=noise, pars=configs["simulation"]["pars"], target_quantile=target_quantile, g = g if is_heteroscedastic else None
+    test_true_latent_quantile = obtain_quantile(
+        eps = eps_test, noise=noise, pars=configs["data_generation"]["pars"], target_quantile=target_quantile, g = g if is_heteroscedastic else None
     )
     # needed for prediction intervals
     normv = norm()
@@ -73,89 +74,51 @@ def fit_and_evaluate_replicate(
         # Matches models starting with 'gpboost'
         if re.match(r"^gpboost", model_name):
             approx = gpb_approxs[model_name]
-           
-            pred, elapsed_time, hyper_params = model_gpboost(
+            print("here")
+            pred, res, elapsed_time, hyper_params = model_gpboost(
                 quantile=target_quantile,
                 train_X=train_X,
+                group_train=group_train,
                 train_y=train_y,
                 test_X=test_X,
+                group_test=group_test,
                 test_y=test_y,
                 approx=approx,
                 delta_logl=delta_logl,
-                n_vecchia= threshold_approx,
             )
 
-            latent_pred = pred["mu"]
+            # with fixed effects
+            pred_with_fixed_effects = pred["mu"]
             stddev_pred = np.sqrt(pred["var"])
-            low_pred = latent_pred - stddev_pred * t
-            up_pred = latent_pred + stddev_pred * t
 
-        elif model_name == "gpytorch":
-            pred, elapsed_time, hyper_params = model_gpytorch(
-                quantile=target_quantile,
-                train_X=train_X,
-                train_y=train_y,
-                test_X=test_X,
-                test_y=test_y,
-                epochs=n_epochs,
-                lr = lr,
-                inducing_threshold=threshold_approx,
-                inducing_points=inducing_points
-            )
+            # matches predicted random effects from training groups to test groups
+            true_re, pred_re, pred_std = align_re(group_train, group_test, res, test_true_latent_quantile, stddev_pred)
+            low_pred = pred_re - pred_std * t
+            up_pred = pred_re + pred_std * t
 
-            latent_pred = pred.mean.numpy()
-
-            stddev_pred = pred.stddev.numpy()
-            low_pred = latent_pred - stddev_pred * t
-            up_pred = latent_pred + stddev_pred * t
-
-        elif model_name == "VIVA":
-            latent_pred, latend_std, elapsed_time, hyper_params = model_viva_gp(
-                quantile=target_quantile,
-                train_X=train_X,
-                train_y=train_y,
-                test_X=test_X,
-                test_y=test_y,
-                rho = 1.5, # fixed
-                lengthscale_init=0.25,
-                outputscale_init=0.25,
-                epochs=n_epochs,
-                use_ic0=True,
-                classify=False,
-            )
-
-            low_pred = latent_pred - latend_std * t
-            up_pred = latent_pred + latend_std * t
-
-
-
+            
         # Compute quantile score
-        qs_loss = quantile_score(y=test_y, preds=latent_pred, quantile=target_quantile)
+        qs_loss = quantile_score(y=test_y, preds=pred_with_fixed_effects, quantile=target_quantile)
 
-        # Compute interval score
-        len_train = len(train_y)
-        test_true_latent_quantile = true_latent_quantile[len_train:]
         interval_loss = interval_score(
-            y=test_true_latent_quantile,
+            y=true_re,
             pred_low=low_pred,
             pred_up=up_pred,
-            alpha=alpha,
-        )
+            alpha=alpha,)
 
         # compute coverage and width
         coverage, width = coverage_and_width(
-            y=test_true_latent_quantile, pred_low=low_pred, pred_up=up_pred
-        )
+           y=true_re, pred_low=low_pred, pred_up=up_pred)
 
         # store results
         model_results[model_name] = {
             "quantile_loss": qs_loss,
             "interval_loss": interval_loss,
             "coverage": coverage,
-            "width": width,
+             "width": width,
             "time": elapsed_time,
-            "lengthscale": hyper_params["lengthscale"],
-            "signal_variance": hyper_params["signal_variance"],
+            "lengthscale": hyper_params["cov_pars"],
+            #"signal_variance": hyper_params["noise_variance"],
             "noise_variance": hyper_params["noise_variance"]
         }
 
@@ -166,19 +129,19 @@ def fit_models_on_all_datasets_parallel(configs, models, num_replicates=10):
     results = {}
 
     # Loop over configurations
-    for likelihood in configs["simulation"]["likelihoods"]:
-        for sample_size in configs["simulation"]["sample_sizes"]:
-            for input_dim in configs["simulation"]["dimensions"]:
+    for likelihood in configs["likelihood"]:
+        for n_group in configs["n_groups"]:
+            for group_size in configs["group_size"]:
 
                 # Prepare the configuration dictionary
                 replicate_config = {
                     "likelihood": likelihood,
-                    "sample_size": sample_size,
-                    "input_dim": input_dim,
+                    "n_group": n_group,
+                    "group_size": group_size,
                 }
 
                 # Store results for this configuration
-                config_key = f"{likelihood}_{sample_size}_{input_dim}"
+                config_key = f"{likelihood}_{n_group}_{group_size}"
                 results[config_key] = {}
                 print(config_key)
                 # Use ProcessPoolExecutor to parallelize across replicates
@@ -213,7 +176,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config",
         type=str,
-        default="config_run_simulation.yaml",
+        default="config_test.yaml",
         help="Path to the YAML config file",
     )
     args = parser.parse_args()
@@ -222,7 +185,8 @@ if __name__ == "__main__":
         configs = yaml.safe_load(f)
 
     models = configs["models"]
-    num_replicates = configs["simulation"]["replicates"]
+    num_replicates = configs["replicate"]
+    randeff = configs["randeff"]
 
     results = fit_models_on_all_datasets_parallel(
         configs, models, num_replicates=num_replicates
@@ -230,7 +194,7 @@ if __name__ == "__main__":
 
     # Save the results
     # Ensure the results directory exists
-    OUTPUT_DIR = "results/simulation"
+    OUTPUT_DIR = os.path.join("results/simulation_mm", f"{randeff}")
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     # Combine the results and config into one dictionary

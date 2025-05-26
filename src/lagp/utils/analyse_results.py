@@ -195,7 +195,7 @@ def make_latex_table(config, summary_df, metrics, metric_criteria):
 
 
     # Lower headers for fixed columns (likelihood, sample size, dim)
-    lower_headers = [r"\scriptsize \textbf{Noise}", r"\scriptsize \textbf{N}", r"\scriptsize \textbf{d}"]
+    lower_headers = [r"\scriptsize \textbf{Noise}", r"\scriptsize \textbf{M}", r"\scriptsize \textbf{n}"]
     lower_headers.extend(model_headers)
 
     # Build the LaTeX header

@@ -20,8 +20,8 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH):
 
     metrics = [
         ("quantile_loss_mean", "quantile_loss_std", "Quantile Score"),  # 3rd element is the name/label
-        ("interval_loss_mean", "interval_loss_std", "Interval Score"),
-        ("coverage_mean", "coverage_std", "Coverage"),
+        #("interval_loss_mean", "interval_loss_std", "Interval Score"),
+        #("coverage_mean", "coverage_std", "Coverage"),
         ("time_mean", "time_std", "Time")
     ]
     # Define metrics and optimality

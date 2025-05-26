@@ -25,8 +25,8 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
   
   delta_logl <- configs$delta_logl
   alpha <- configs$alpha
-  test_split <- configs$test_size
-  print(test_split)
+  test_split <- configs$data_generation$test_size
+  print(paste("test size", test_split))
 
   
   # Load the dataset
@@ -74,49 +74,44 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
 
   
   for (model_name in models) {
-    if (model_name == "qgam") {
-      print("Fitting qgam")
-      pred <- model_qgam(train_X, train_y, test_X, target_quantile)
-      latent_pred <- pred$predictions
-      stddev_pred <- sqrt(pred$se)
-      low_pred <- latent_pred - stddev_pred * t
-      up_pred <- latent_pred + stddev_pred * t
-      fit_time <- pred$fit_time
+    if (model_name == "lqmm") {
+      print("Fitting lqmm")
+      
+      res <- model_lqmm(train_X = train_X, train_y = train_y,
+                        group_train = group_train, test_X = test_X, group_test = group_test,
+                        target_quantile = target_quantile)
+      
+      latent_pred <- res$predictions
+      scale <- res$hyper_params$noise_variance
+      re_var <- res$hyper_params$cov_pars
+      fit_time <- res$fit_time
+      
     } 
     
-    else if (model_name == "vecchia_mcmc") {
-      print("Sampling via MCMC")
-      pred <- model_vecchia_gp(train_X, train_y, test_X,
-                              target_quantile,
-                              stan_model_path = "R/stan/asym_laplace_matern32_noncentered_sparse.stan",
-                              m = 5  # number of neighbors for Vecchia
-                              )
+    
+    else if (model_name == "brms") {
+      print("BRMS: Sampling via MCMC")
+      pred <- model_brms_quantile(train_X = train_X, train_y = train_y,
+                                  group_train = group_train, test_X = test_X, group_test = group_test,
+                                  target_quantile = target_quantile)
+      
       print("sampled successfully")
       latent_pred <- pred$predictions
-      samples <- pred$samples
-      # symmetric Prediction Interval
-      low_pred <- apply(samples, 3, quantile, probs =  alpha/2 )
-      up_pred <- apply(samples, 3, quantile, probs =  1 - (alpha/2))
       fit_time <- pred$fit_time
+      hyper_params <- pred$hyper_params
+      scale <- hyper_params$noise_variance
+      re_var <- hyper_params$cov_pars
      }
     
     # Compute quantile score
     print("computing scores")
     qs_loss <- quantile_score(test_y, latent_pred, target_quantile)
     print(paste("QS loss:", qs_loss))
-    # Compute interval score
-    test_true_latent_quantile <- true_latent_quantile[(length(train_y) + 1):sample_size]
-    interval_loss <- interval_score(test_true_latent_quantile, low_pred, up_pred, alpha)
-    print(paste("IS loss: ", interval_loss))
-    
-    # Compute coverage and width
-    coverage_and_width_results <- coverage_and_width(test_true_latent_quantile, low_pred, up_pred)
     
     model_results[[model_name]] <- list(
       quantile_loss = qs_loss,
-      interval_loss = interval_loss,
-      coverage = coverage_and_width_results[1],
-      width = coverage_and_width_results[2],
+      scale = scale,
+      re_var = re_var,
       time = fit_time
     )
   }
@@ -160,7 +155,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models, num_replicates 
 
 
 configs_sim <- load_config("configs/config_test.yaml")
-models <- list("qgam", "vecchia_mcmc") #, "vecchia_mcmc")
+models <- list("lqmm", "brms") #, "vecchia_mcmc") #, "vecchia_mcmc")
 for (model_name in models){
   print(models)
 }

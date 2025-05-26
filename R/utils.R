@@ -1,6 +1,7 @@
 library(qgam)
 library(cmdstanr)
 library(gptoolsStan)
+library(brms)
 
 
 # Quantile function for the Asymmetric Laplace Distribution
@@ -65,12 +66,12 @@ load_data <- function(
     y_train = data[["y_train"]],
     X_test = data[["X_test"]],
     y_test = data[["y_test"]],
-    group_train = safe_get("group_train"),
-    group_test = safe_get("group_test"),
-    fe_train = safe_get("fe_train"),
-    fe_test = safe_get("fe_test"),
-    eps_train = safe_get("eps_train"),
-    eps_test = safe_get("eps_test")
+    group_train = data[["group_train"]],
+    group_test = data[["group_test"]],
+    fe_train = data[["fe_train"]],
+    fe_test = data[["fe_test"]],
+    eps_train = data[["eps_train"]],
+    eps_test = data[["eps_test"]]
   )
 }
 
@@ -175,7 +176,6 @@ load_cv_splits <- function(dataset_name, dir = "data/real_data", n_splits = 5) {
 
 
 # Recover true quantile
-# Recover true quantile
 obtain_quantile <- function(eps, noise, pars, target_quantile, g = NULL) {
   n <- length(eps)
   if (!is.null(g)) {
@@ -212,6 +212,128 @@ obtain_quantile <- function(eps, noise, pars, target_quantile, g = NULL) {
 
 
 ### ----------------- MODEL FITTING --------------------- ###
+
+
+### LQMM (Geraci) ###
+model_lqmm <- function(train_X, train_y, group_train, 
+                       test_X, group_test, target_quantile = 0.5) {
+  
+  
+  predictor_names <- c("intercept", paste0("X", 1:(ncol(train_X) - 1)))
+  colnames(train_X) <- predictor_names
+  colnames(test_X) <- predictor_names
+  
+  data <- data.frame(train_X)
+  data$group <- as.factor(group_train)
+  data$y <- matrix(train_y, ncol = 1)
+  
+  data_test <- data.frame(test_X)
+  data_test$group <- factor(group_test, levels = levels(data$group))
+  
+  formula_fixed <- as.formula(paste("y ~ -1 +", paste(predictor_names, collapse = " + ")))
+  
+  # Time fitting and prediction together
+  timing <- system.time({
+    fit.lqmm <- lqmm(
+      fixed = formula_fixed,
+      random = ~ 1,
+      group = group,
+      data = data,
+      tau = target_quantile,
+      nK = 11,
+      type = "normal"
+    )
+    
+    X_test <- as.matrix(data_test[, predictor_names])
+    fixed_pred <- X_test %*% fit.lqmm$theta_x
+    
+    re_train <- ranef(fit.lqmm)
+    train_groups <- rownames(re_train)
+    
+    re_test <- rep(0, length(group_test))
+    names(re_test) <- as.character(group_test)
+    matching_indices <- as.character(group_test) %in% train_groups
+    re_test[matching_indices] <- re_train[as.character(group_test[matching_indices]), 1]
+    
+    pred <- drop(fixed_pred + re_test)
+  })
+  
+  scale_param <- fit.lqmm$scale
+  varcorr <- VarCorr(fit.lqmm)
+  # Pack into a list
+  hyper_params <- list(
+    cov_pars = varcorr,
+    noise_variance = scale_param
+  )
+  
+  return(list(
+    predictions = pred,
+    random_effects = re_test,
+    fixed_effects = drop(fixed_pred),
+    fit_time = timing["elapsed"],
+    hyper_params = hyper_params
+  ))
+}
+
+### BRMS ###
+model_brms_quantile <- function(train_X, train_y, group_train,
+                                test_X, group_test,
+                                target_quantile = 0.5) {
+  
+  # Prepare training data
+  predictor_names <- c("intercept", paste0("X", 1:(ncol(train_X) - 1)))
+  colnames(train_X) <- predictor_names
+  data_train <- data.frame(train_X)
+  data_train$y <- train_y
+  data_train$group <- factor(group_train)
+  
+  # Prepare test data
+  colnames(test_X) <- predictor_names
+  data_test <- data.frame(test_X)
+  data_test$group <- factor(group_test, levels = levels(data_train$group))  # align levels
+  
+  # Build formula: no intercept if it's already in X
+  formula_fixed <- bf(
+    as.formula(
+      paste("y ~ -1 +", paste(predictor_names, collapse = " + "), "+ (1 | group)")
+    ),
+    quantile = target_quantile
+  )
+  
+  # Fit model with timing
+  fit_time <- system.time({
+    fit <- brm(
+      formula = formula_fixed,
+      data = data_train,
+      family = asym_laplace(),
+      chains = 2, iter = 2000, refresh = 0,
+      control = list(adapt_delta = 0.95),
+      seed = 42
+    )
+    
+    # Predict on test set, including random effects (level 1)
+    pred <- fitted(fit, newdata = data_test, re_formula = NULL)
+  })[["elapsed"]]
+  
+  # Extract hyperparameters
+  cov_pars <- VarCorr(fit)$group$sd[, "Estimate"] # Random effect SD
+  noise_variance <- VarCorr(fit)$residual__$sd[, "Estimate"]    # Residual scale
+  
+  hyper_params <- list(
+    cov_pars = cov_pars,
+    noise_variance = noise_variance
+  )
+  
+  return(list(
+    predictions = pred[, "Estimate"],
+    se = pred[, "Est.Error"],
+    fit_time = fit_time,
+    hyper_params = hyper_params,
+    model = fit  # optional: for future inspection
+  ))
+}
+
+
 
 ## QGAM (Fasiolo) ##
 

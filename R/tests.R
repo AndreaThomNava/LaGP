@@ -3,56 +3,178 @@
 source("R/utils.R")
 
 ### LOAD CONFIGS ###
-config_path <- "configs/config_data_generation.yaml"
+config_path <- "configs/config_test.yaml"
 configs <- load_config(config_path)
 class(configs) # list of lists
 configs[1] # simulation
 configs[2] # gp parameters
 configs[3] # output
 
-configs$simulation$replicates
-
-configs_sim <- load_config("configs/config_run_simulation.yaml")
-train_split <- configs_sim$train_split
+configs$replicate
 
 
 ### LOAD DATA ###
 likelihood <- "gaussian"
-sample_size <- 300
-input_dim <- 2
+n_groups <- 200
+group_size <- 10
 replicate <- 2
+randeff <- configs$randeff
+# Load the dataset
+data <- load_data(
+  randeff = randeff,
+  likelihood = likelihood,
+  n_groups = n_groups,
+  group_size = group_size,
+  replicate = replicate
+)
+names(data)
 
-data <- load_data(likelihood, sample_size, input_dim, replicate, train_split) 
+train_X <- data$X_train
+train_y <- data$y_train
+test_X <- data$X_test
+test_y <- data$y_test
+group_train <- data$group_train
+group_test <- data$group_test
+eps_test <- data$eps_test 
 class(data)
-f <- data$f
-n <- length(f)
-data$X_train
+
 
 #####
 
-pars <- configs$simulation$pars
-target_quantile <- 0.9
-latent_quantiles <- obtain_quantile(f, likelihood, pars, target_quantile)
-latent_quantiles
-train_index <- floor(n * train_split)
-train_latent_quantiles <- latent_quantiles[1:train_index]
-test_latent_quantiles <- latent_quantiles[(train_index + 1): n]
+# Compute true latent quantile
+is_heteroscedastic <- grepl("heteroscedastic", likelihood)
+g <- if (is_heteroscedastic) data$g else NULL
+target_quantile <- configs$target_quantile
+test_true_latent_quantile <- obtain_quantile(
+  eps = eps_test,
+  noise = likelihood,
+  pars = configs$data_generation$pars,
+  target_quantile = target_quantile,
+  g = g
+)
+test_true_latent_quantile
 
-plot(data$X_train, train_latent_quantiles)
-points(x = data$X_train, y = data$y_train, col = "green")
-# noise --> looks homoscedastic and heavy tailed --> ALD!
-plot(data$X_train, train_latent_quantiles -data$y_train)
+# test LQMM and BRMS
+library("lqmm")
 
-### DATA PREP ###
-X_train <- data$X_train
-y_train <- data$y_train
-X_test <- data$X_test
-y_test <- data$y_test
+
+# Test example
+set.seed(123)
+
+M <- 50
+n <- 10
+test <- data.frame(x = runif(n*M,0,1), group = rep(1:M,each=n))
+test$y <- 10*test$x + rep(rnorm(M, 0, 2), each = n) + rchisq(n*M, 3)
+
+# Assign column names if train_X is a matrix
+
+predictor_names <- c("intercept", paste0("X", 1:(ncol(train_X)-1)))
+colnames(train_X) <- predictor_names
+colnames(test_X) <- predictor_names
+# Combine all into a data frame
+data <- data.frame(train_X)
+data$group <- as.factor(group_train)
+data$y <- matrix(train_y, ncol = 1)
+
+data_test <- data.frame(test_X)
+data_test$group <- factor(group_test, levels = levels(data$group))  # important!
+# data_test$y <- matrix(test_y, ncol = 1)
+
+# Construct formula manually
+formula_fixed <- as.formula(paste("y ~ -1 +", paste(predictor_names, collapse = " + ")))
+
+# Fit the model
+fit.lqmm <- lqmm(
+  fixed = formula_fixed,
+  random = ~ 1,
+  group = group,
+  data = data,
+  tau = 0.8,
+  nK = 11,
+  type = "normal"
+)
+
+fit.lqmm
+
+# Extract estimates
+VarCorr(fit.lqmm)
+coef(fit.lqmm)
+
+re <- ranef(fit.lqmm)
+re
+str(fit.lqmm)
+
+fit.lqmm$scale
+VarCorr(fit.lqmm)
+
+# 1. Fixed effects prediction
+X_test <- as.matrix(data_test[, predictor_names])
+fixed_pred <- X_test %*% fit.lqmm$theta_x  # (n_test x 1) matrix
+
+# Get group labels from training
+re_train <- ranef(fit.lqmm)
+train_groups <- rownames(re_train)
+re_test <- rep(0, length(group_test))
+names(re_test) <- as.character(group_test)
+matching_indices <- as.character(group_test) %in% train_groups
+re_test[matching_indices] <- re_train[as.character(group_test[matching_indices]),1]
+
+# 5. Final prediction = fixed + random
+pred <- drop(fixed_pred + re_test)
+class(pred)
+
+rownames(eps_test) <- group_test
+rownames(eps_test)
+eps_test
+
+re_test
+
+# in the comparison can remove where re_test is zero
+mean((eps_test[re_test != 0] - re_test[re_test!= 0])**2)
+
+
+res <- model_brms_quantile(train_X = train_X, train_y = train_y,
+           group_train = group_train, test_X = test_X, group_test = group_test,
+           target_quantile = target_quantile)
+
+
+fit.test <- lqmm(
+  fixed = y ~ X2,
+  random = ~ 1,
+  group = group,
+  data = data,
+  tau = 0.5,
+  nK = 5,      # fewer quadrature nodes
+  type = "normal"
+)
+
+ranef(fit.test)  # should now work
+
+## Orthodont data
+data(Orthodont)
+
+# Random intercept model
+fitOi.lqmm <- lqmm(distance ~ age, random = ~ 1, group = Subject,
+                   tau = c(0.1,0.5,0.9), data = Orthodont)
+coef(fitOi.lqmm)
+ranef(fitOi.lqmm)
+
+
+# Random slope model
+fitOs.lqmm <- lqmm(distance ~ age, random = ~ age, group = Subject,
+                   tau = c(0.1,0.5,0.9), cov = "pdDiag", data = Orthodont)
+
+
+
+ranef(fitOs.lqmm)
+
+
+
 
 
 # fit QGAM 
-res_qgam <- model_qgam(train_X = X_train, train_y = y_train, test_X = X_test,
-           quantile = target_quantile, smooth_term = 20)
+res_qgam <- model_qgam(train_X = train_X, train_y = train_y, test_X = test_X,
+                       target_quantile = target_quantile, smooth_term = 5)
 preds <- res_qgam$predictions
 pred_std <- res_qgam$se
 fit_time <- res_qgam$fit_time

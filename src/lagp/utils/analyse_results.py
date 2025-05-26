@@ -25,8 +25,8 @@ def make_flattened_df(results: pd.DataFrame) -> pd.DataFrame:
         {
             "model": model,
             "likelihood": "_".join(cfg.split("_")[:-2]), # could have an extra split for heteroscedastic
-            "sample_size": int(cfg.split("_")[-2]),
-            "dim": int(cfg.split("_")[-1]),
+            "n_groups": int(cfg.split("_")[-2]),
+            "group_size": int(cfg.split("_")[-1]),
             "replicate": replicate,
             **metrics,
         }
@@ -102,7 +102,7 @@ def group_flattened_df(flat_df: pd.DataFrame) -> pd.DataFrame:
     """
 
     # Group by likelihood, sample_size, dim, and model_method
-    grouped = flat_df.groupby(['likelihood', 'sample_size', 'dim', 'model'])
+    grouped = flat_df.groupby(['likelihood', 'n_groups', 'group_size', 'model'])
 
     def sem(x):
         return x.std() / np.sqrt(len(x))
@@ -212,11 +212,11 @@ def make_latex_table(config, summary_df, metrics, metric_criteria):
 
     # Build table rows
     rows = []
-    for _, group in summary_df.groupby(['likelihood', 'sample_size', 'dim']):
+    for _, group in summary_df.groupby(['likelihood', 'n_groups', 'group_size']):
         row = [
             fr"\scriptsize {noise_dict[group['likelihood'].iloc[0]]}", # map likelihood to chosen name
-            fr"\scriptsize {group['sample_size'].iloc[0]}",
-            fr"\scriptsize {group['dim'].iloc[0]}"
+            fr"\scriptsize {group['n_groups'].iloc[0]}",
+            fr"\scriptsize {group['group_size'].iloc[0]}"
         ]
         
         # For every metric, look for the best value and later make it bold --> use np.isclose
@@ -456,37 +456,37 @@ def make_plots(df, metrics, configs):
     # Example for plotting with sample_size on x-axis and color by method
     # sns.set(style="whitegrid")  
 
-    OUTPUT_DIR = Path("results/simulation/images")
+    OUTPUT_DIR = Path("results/simulation_mm/One_random_effect/images")
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    dims = df["dim"].unique()
+    n_groups = df["n_groups"].unique()
     likelihoods = df["likelihood"].unique()
 
     alpha = configs["alpha"]
 
     for likelihood in likelihoods:
-        for dim in dims:
+        for n_g in n_groups:
 
-            df_filtered = df[df["dim"] == dim]
+            df_filtered = df[df["n_groups"] == n_g]
             df_filtered = df_filtered[df_filtered["likelihood"] == likelihood]
             # Assuming 'model_method' is the column representing different methods
             
             for metric in metrics:
                 plt.figure(figsize=(10, 6))
-                sns.boxplot(data=df_filtered, x="sample_size", y=f"{metric}", hue="model", palette="Set2",showmeans=True)
+                sns.boxplot(data=df_filtered, x="group_size", y=f"{metric}", hue="model", palette="Set2",showmeans=True)
                 if metric == "coverage":
                     plt.axhline(y=alpha, color="red", linestyle="--", linewidth=1, label = f"Nominal Coverage: {alpha}")
                 elif metric == "time":
                       plt.yscale("log")
                 
                 # Add titles and labels
-                plt.title(f"{metric} by Sample Size. Likelihood: {likelihood}. Dim: {dim}", fontsize=16, c = "black")
-                plt.xlabel("Sample Size", fontsize=12)
+                plt.title(f"{metric} by group size. Likelihood: {likelihood}. Num. Groups: {n_g}", fontsize=16, c = "black")
+                plt.xlabel("Group Size", fontsize=12)
                 plt.ylabel(f"{metric.replace("_", " ").title()}", fontsize=12)
                 plt.legend(title="Model", title_fontsize="13", fontsize="11", labelcolor = "black")
                 plt.tight_layout()
                 # Save plots
-                filename = f"{metric}_{likelihood}_{dim}"
+                filename = f"{metric}_{likelihood}_{n_g}"
                 for ext in ["png", "pdf"]:
                     plt.savefig(OUTPUT_DIR / f"{filename}.{ext}", bbox_inches="tight", dpi=300)
 

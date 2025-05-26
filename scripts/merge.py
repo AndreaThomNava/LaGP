@@ -5,7 +5,7 @@ import pickle
 import os
 
 def merge_results(pickle_results_1, pickle_results_2):
-    """Merge results from Python (gpboost, gpytorch) and R (qgam, stan)."""
+    """Merge results from Python (gpboost) and R (lqmm, brsm)."""
     merged_results = pickle_results_1.copy()
 
     for config_key, replicate_data in pickle_results_2["results"].items():
@@ -33,13 +33,13 @@ def main():
     # Argument parsing
     parser = argparse.ArgumentParser(description="Merge results from two pickle files.")
     parser.add_argument('pickle_file_1', nargs='?',
-                        default = "simulation/simulation_results_python.pkl",
+                        default = "simulation_mm/One_random_effect/simulation_results_python.pkl",
                         type=str, help="Path to the first pickle file.")
     parser.add_argument('pickle_file_2', nargs='?',
-                        default = "simulation/simulation_results_R.pkl",
+                        default = "simulation_mm/One_random_effect/simulation_results_R.pkl",
                         type=str, help="Path to the second pickle file.")
     parser.add_argument('output_file', nargs='?',
-                        default = "simulation/simulation_results.pkl",
+                        default = "simulation_mm/One_random_effect/simulation_results.pkl",
                         type=str, help="Path to save the merged results.")
     
     args = parser.parse_args()

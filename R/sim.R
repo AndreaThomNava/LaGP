@@ -7,7 +7,7 @@ library(reticulate)
 #use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
 
 # Function to fit and evaluate models for a single replicate
-fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, models, target_quantile = 0.5) {
+fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, models) {
   
   likelihood <- replicate_config$likelihood
   is_heteroscedastic <- grepl("heteroscedastic", likelihood)
@@ -25,6 +25,7 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
   print(train_split)
   n_epochs <- configs$n_epochs
   lr <- configs$lr
+  target_quantile <- configs$target_quantile
   
   # Load the dataset for this replicate
   data <- load_data(likelihood, sample_size, input_dim, replicate, train_split)

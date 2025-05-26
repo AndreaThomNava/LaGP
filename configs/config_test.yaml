@@ -42,7 +42,7 @@ data_generation:
 models: ["gpboost_cc", "gpboost_lls"]
 replicate: 5
 n_groups: [200] #,  1000]
-group_size: [10, 100]
+group_size: [10] #, 100]
 likelihood: ["ald", "gaussian"]
 randeff: "One_random_effect"
 
@@ -53,3 +53,12 @@ target_quantile: 0.8
 gpb_approxs: {"gpboost_lls": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
             "gpboost_cc": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
             "gpboost_cc_var_corr": "asymmetric_laplace_constant_curvature_fisher_mode_finding_var_cor_pred"}
+
+##### for the analysis of the results ######
+all_models : ["gpboost_cc", "lqmm", "brms"]
+
+name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpboost_cc_var_corr": "CC corr",
+           "brms": "BRMS", "lqmm":"LQMM"}
+           
+likelihood_dict : {"gaussian":"N", "ald": "ALD", "t":"t", "chi":"chi", "ald_heteroscedastic": HetALD}
+

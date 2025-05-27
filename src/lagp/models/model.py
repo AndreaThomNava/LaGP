@@ -72,7 +72,13 @@ def model_gpboost(
 
     # extract hyper-parames
     cov_pars = gpq.get_cov_pars()
-    length_scale = cov_pars["GP_range"].iloc[0]
+
+    range_keys = [k for k in cov_pars.columns if k.startswith("GP_range")]
+    estimated_ranges = [cov_pars[k].iloc[0] for k in range_keys]
+    # Aggregate — mean range
+    length_scale = np.mean(estimated_ranges)
+    #length_scale = cov_pars["GP_range"].iloc[0]
+
     output_variance = cov_pars["GP_var"].iloc[0]
     noise_variance = gpq.get_aux_pars()["scale"]
 
@@ -166,7 +172,7 @@ def model_gpytorch(
     end_time = time.time()
     elapsed_time = end_time - start_time
     # Access the estimated hyperparameters: detach grads and make numpy
-    lengthscale = np.float64(model.covar_module.base_kernel.lengthscale.detach().numpy().item())
+    lengthscale = np.float64(np.mean(model.covar_module.base_kernel.lengthscale.detach().numpy()))
     output_variance = np.float64(model.covar_module.outputscale.detach().numpy().item())
     noise_variance = np.float64(likelihood.scale.detach().numpy().item())
 
@@ -255,7 +261,7 @@ def model_viva_gp(
     sd = var_post.sqrt().detach().numpy()
 
     signal_variance = np.float64((K.outputscale).detach().numpy().item())
-    lengthscale = np.float64((K.base_kernel.lengthscale[0][0]).detach().numpy().item())
+    lengthscale = np.float64(np.mean(K.base_kernel.lengthscale.detach().numpy()))
     noise_variance = np.float64(likelihood.noise.detach().numpy().item())
 
     # extract hyper

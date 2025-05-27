@@ -59,57 +59,78 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
   t <- qnorm(1 - (1 - alpha) / 2)
   
   model_results <- list()
-
   
   for (model_name in models) {
-    if (model_name == "qgam") {
-      print("Fitting qgam")
-      pred <- model_qgam(train_X, train_y, test_X, target_quantile)
-      latent_pred <- pred$predictions
-      stddev_pred <- sqrt(pred$se)
-      low_pred <- latent_pred - stddev_pred * t
-      up_pred <- latent_pred + stddev_pred * t
-      fit_time <- pred$fit_time
-    } 
     
-    else if (model_name == "vecchia_mcmc") {
-      print("Sampling via MCMC")
-      pred <- model_vecchia_gp(train_X, train_y, test_X,
-                              target_quantile,
-                              stan_model_path = "R/stan/asym_laplace_matern32_noncentered_sparse.stan",
-                              m = 5  # number of neighbors for Vecchia
-                              )
-      print("sampled successfully")
-      latent_pred <- pred$predictions
-      samples <- pred$samples
-      # symmetric Prediction Interval
-      low_pred <- apply(samples, 3, quantile, probs =  alpha/2 )
-      up_pred <- apply(samples, 3, quantile, probs =  1 - (alpha/2))
-      fit_time <- pred$fit_time
-     }
+    latent_pred <- NULL
+    stddev_pred <- NULL
+    low_pred <- NULL
+    up_pred <- NULL
+    fit_time <- NA_real_
+    qs_loss <- NA_real_
+    interval_loss <- NA_real_
+    coverage <- NA_real_
+    width <- NA_real_
     
-    # Compute quantile score
-    print("computing scores")
-    qs_loss <- quantile_score(test_y, latent_pred, target_quantile)
-    print(paste("QS loss:", qs_loss))
-    # Compute interval score
-    test_true_latent_quantile <- true_latent_quantile[(length(train_y) + 1):sample_size]
-    interval_loss <- interval_score(test_true_latent_quantile, low_pred, up_pred, alpha)
-    print(paste("IS loss: ", interval_loss))
-    
-    # Compute coverage and width
-    coverage_and_width_results <- coverage_and_width(test_true_latent_quantile, low_pred, up_pred)
+    tryCatch({
+      
+      if (model_name == "qgam") {
+        print("Fitting qgam")
+        pred <- model_qgam(train_X, train_y, test_X, target_quantile)
+        latent_pred <- pred$predictions
+        stddev_pred <- sqrt(pred$se)
+        low_pred <- latent_pred - stddev_pred * t
+        up_pred <- latent_pred + stddev_pred * t
+        fit_time <- pred$fit_time
+        
+      } else if (model_name == "vecchia_mcmc") {
+        print("Sampling via MCMC")
+        pred <- model_vecchia_gp(train_X, train_y, test_X,
+                                 target_quantile,
+                                 stan_model_path = "R/stan/asym_laplace_matern32_noncentered_sparse.stan",
+                                 m = 5)
+        print("sampled successfully")
+        latent_pred <- pred$predictions
+        samples <- pred$samples
+        low_pred <- apply(samples, 3, quantile, probs = alpha / 2)
+        up_pred <- apply(samples, 3, quantile, probs = 1 - alpha / 2)
+        fit_time <- pred$fit_time
+      }
+      
+      if (!is.null(latent_pred)) {
+        qs_loss <- quantile_score(test_y, latent_pred, target_quantile)
+        print(paste("QS loss:", qs_loss))
+        
+        test_true_latent_quantile <- true_latent_quantile[(length(train_y) + 1):sample_size]
+        
+        interval_loss <- interval_score(test_true_latent_quantile, low_pred, up_pred, alpha)
+        print(paste("IS loss: ", interval_loss))
+        
+        coverage_and_width_results <- coverage_and_width(test_true_latent_quantile, low_pred, up_pred)
+        coverage <- coverage_and_width_results[1]
+        width <- coverage_and_width_results[2]
+      } else {
+        print("No predictions available for QS or IS calculation.")
+      }
+      
+      print(paste("Time:", fit_time))
+      
+    }, error = function(e) {
+      print(paste("Model", model_name, "failed with error:", e$message))
+      # All outputs stay NA or NULL
+    })
     
     model_results[[model_name]] <- list(
       quantile_loss = qs_loss,
       interval_loss = interval_loss,
-      coverage = coverage_and_width_results[1],
-      width = coverage_and_width_results[2],
+      coverage = coverage,
+      width = width,
       time = fit_time
     )
   }
   
   return(model_results)
+  
 }
 
 # Function to fit models on all datasets in parallel
@@ -148,7 +169,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models, num_replicates 
 
 
 configs_sim <- load_config("configs/config_run_simulation.yaml")
-models <- list("qgam", "vecchia_mcmc") #, "vecchia_mcmc")
+models <- list("qgam") #, "vecchia_mcmc") #, "vecchia_mcmc")
 for (model_name in models){
   print(models)
 }

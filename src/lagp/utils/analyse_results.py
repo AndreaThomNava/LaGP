@@ -7,6 +7,17 @@ import os
 from pathlib import Path
 
 
+def replace_missing_with_nan(obj):
+    if isinstance(obj, dict):
+        return {k: replace_missing_with_nan(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [replace_missing_with_nan(item) for item in obj]
+    elif obj is None:
+        return np.nan
+    else:
+        return obj
+
+
 def make_flattened_df(results: pd.DataFrame) -> pd.DataFrame:
     """
     Make a flattened dataframe out of the pickled results.
@@ -480,7 +491,7 @@ def make_plots(df, metrics, configs):
                       plt.yscale("log")
                 
                 # Add titles and labels
-                plt.title(f"{metric} by Sample Size. Likelihood: {likelihood}. Dim: {dim}", fontsize=16, c = "black")
+                plt.title(f"{metric.replace("_", " ").title()} by Sample Size. Likelihood: {likelihood}. Dim: {dim}", fontsize=16, c = "black")
                 plt.xlabel("Sample Size", fontsize=12)
                 plt.ylabel(f"{metric.replace("_", " ").title()}", fontsize=12)
                 plt.legend(title="Model", title_fontsize="13", fontsize="11", labelcolor = "black")

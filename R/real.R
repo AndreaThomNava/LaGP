@@ -44,16 +44,32 @@ fit_and_evaluate_replicate <- function(X, y, fold, configs, models) {
   model_results <- list()
   
   for (model_name in models) {
-    if (model_name == "qgam") {
-      print("Fitting qgam")
-      pred <- model_qgam(train_X_scaled, y_train, test_X_scaled, target_quantile)
-      latent_pred <- pred$predictions
-      fit_time <- pred$fit_time
-    } 
     
+    latent_pred <- NULL
+    fit_time <- NA_real_
+    qs_loss <- NA_real_
     
-    # Compute quantile score
-    qs_loss <- quantile_score(y = y_test, preds = latent_pred, quantile = target_quantile)
+    tryCatch({
+      if (model_name == "qgam") {
+        print("Fitting qgam")
+        pred <- model_qgam(train_X_scaled, y_train, test_X_scaled, target_quantile)
+        latent_pred <- pred$predictions
+        fit_time <- pred$fit_time
+      }
+      
+      if (!is.null(latent_pred)) {
+        qs_loss <- quantile_score(y = y_test, preds = latent_pred, quantile = target_quantile)
+        print(paste("QS loss:", qs_loss))
+      } else {
+        print("No predictions available for QS loss calculation.")
+      }
+      
+      print(paste("Time:", fit_time))
+      
+    }, error = function(e) {
+      print(paste("Model", model_name, "failed with error:", e$message))
+      # fallback values are already set
+    })
     
     model_results[[model_name]] <- list(
       quantile_loss = qs_loss,
@@ -62,7 +78,6 @@ fit_and_evaluate_replicate <- function(X, y, fold, configs, models) {
   }
   
   return(model_results)
-}
 
 fit_models_on_all_datasets_parallel <- function(configs, models) {
   

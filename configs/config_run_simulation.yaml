@@ -2,7 +2,7 @@ simulation:
   seed: 43
   grid_lims: [0, 1]
   sample_sizes: [1000] #, 5000, 10000]  # Different sample sizes for datasets
-  dimensions: [1] #, 3, 5]  # 1D, 2D, or 3D datasets
+  dimensions: [3] #, 3, 5]  # 1D, 2D, or 3D datasets
   likelihoods: 
    # - gaussian
    # - t
@@ -20,7 +20,7 @@ simulation:
     "chi": {"df": 2, "scale": 0.1}
   }
   # useless noise_levels: [0.1, 0.2, 0.3]  # Noise levels for adding to data
-  replicates: 100
+  replicates: 10
 
 # update also simulation config
 gp_parameters:
@@ -49,7 +49,7 @@ alpha: 0.9
 train_split: 0.75
 
 # for python
-models: ["gpboost_cc", "gpboost_cc_var_corr", "VIVA"] #, "qgam"] "gpytorch"
+models: ["gpytorch", "VIVA"] #["gpboost_cc", "gpboost_cc_var_corr", "VIVA"] #, "qgam"] "gpytorch"
 # hyper-params --> useful for producing later results
 models_with_hyperparams: ["gpboost_cc", "gpboost_cc_var_corr", "gpytorch", "VIVA"]
 

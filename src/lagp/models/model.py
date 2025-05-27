@@ -71,10 +71,12 @@ def model_gpboost(
     elapsed_time = end_time - start_time
 
     # extract hyper-parames
-    cov_pars = gpq.get_cov_pars()
-    noise_variance = gpq.get_aux_pars()["scale"]
+    cov_pars = gpq.get_cov_pars().to_dict()
+    flat_cov_pars = {group: next(iter(val.values())) for group, val in cov_pars.items()}
 
-    hyper_params = {"cov_pars":cov_pars,
+    noise_variance = np.float64(gpq.get_aux_pars()["scale"].iloc[0])
+
+    hyper_params = {**flat_cov_pars,
                     "noise_variance": noise_variance,
                     }
     

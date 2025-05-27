@@ -3,6 +3,7 @@
 import argparse
 import pickle
 import os
+from lagp.utils.analyse_results import replace_missing_with_nan
 
 def merge_results(pickle_results_1, pickle_results_2):
     """Merge results from Python (gpboost) and R (lqmm, brsm)."""
@@ -59,11 +60,14 @@ def main():
 
     # Merge the results
     merged_results = merge_results(res_python, res_R)
+
+    ## replace NAs from failed runs with np.nan 
+    clean_results = replace_missing_with_nan(merged_results)
    
     OUTPUT_PATH = os.path.join(RESULTS_PATH, args.output_file)
     # Save the merged results to the output file
     with open(OUTPUT_PATH, "wb") as output_f:
-        pickle.dump(merged_results, output_f)
+        pickle.dump(clean_results, output_f)
 
     print(f"Results merged and saved to {args.output_file}")
 

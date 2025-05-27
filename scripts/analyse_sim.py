@@ -29,22 +29,23 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH):
 
 
     df = make_flattened_df(results = res)
+    print(df)
     summary_df = group_flattened_df(flat_df=df)
     
     # compute MSE on parameter estimation
-    #df_mse = df_mse_hyper(flat_df = df, configs = configs)
+    df_mse = df_mse_hyper(flat_df = df, configs = configs)
 
     # make latex table and plots
-    #hyper_latex_table = make_latex_table_hyperparams(config=configs, summary_df=df_mse)
+    hyper_latex_table = make_latex_table_hyperparams(config=configs, summary_df=df_mse)
     latex_table = make_latex_table(config=configs, summary_df=summary_df, metrics = metrics, metric_criteria= metric_criteria)
 
     # make and save plots
     
     metrics_for_plotting = ["quantile_loss","time"] # "interval_loss", "coverage", "width", "time"] # df.columns[5:]
     make_plots(df = df, metrics = metrics_for_plotting, configs=configs)
-    # make_plots_hypers(df = df, configs=configs, metrics=["signal_variance", "lengthscale"])
+    make_plots_hypers(df = df, configs=configs, metrics=["re_var_1"]) # , "lengthscale"
    
-    return latex_table #, hyper_latex_table
+    return latex_table, hyper_latex_table
 
 
 if __name__ == "__main__":
@@ -63,13 +64,13 @@ if __name__ == "__main__":
     print(RESULT_PATH)
     CONFIGS_PATH = os.path.join("configs", args.configs)
    
-    latex_table= run_analysis(RESULT_PATH, CONFIGS_PATH) # , hyper_latex_table 
+    latex_table, hyper_latex_table= run_analysis(RESULT_PATH, CONFIGS_PATH) # , hyper_latex_table 
     # save it
     OUTPUT_FILE = "results/simulation_mm/One_random_effect/table_results.tex"
     with open(OUTPUT_FILE, "w") as f:
         f.write(latex_table)
     OUTPUT_FILE_MSE = "results/simulation_mm/One_random_effect/table_results_hyper.tex"
-    #with open(OUTPUT_FILE_MSE, "w") as f:
-     #   f.write(hyper_latex_table)
+    with open(OUTPUT_FILE_MSE, "w") as f:
+        f.write(hyper_latex_table)
 
 

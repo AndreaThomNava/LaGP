@@ -240,8 +240,9 @@ model_lqmm <- function(train_X, train_y, group_train,
       group = group,
       data = data,
       tau = target_quantile,
-      nK = 11,
-      type = "normal"
+      nK = 30,
+      type = "normal",
+      control = list(verbose = TRUE, LP_tol_ll = 1e-6, LP_max_iter = 1000)
     )
     
     X_test <- as.matrix(data_test[, predictor_names])
@@ -261,10 +262,8 @@ model_lqmm <- function(train_X, train_y, group_train,
   scale_param <- fit.lqmm$scale
   varcorr <- VarCorr(fit.lqmm)
   # Pack into a list
-  hyper_params <- list(
-    cov_pars = varcorr,
-    noise_variance = scale_param
-  )
+  # Unpack into top-level list
+  hyper_params <- c(as.list(varcorr), list(noise_variance = scale_param))
   
   return(list(
     predictions = pred,
@@ -319,10 +318,8 @@ model_brms_quantile <- function(train_X, train_y, group_train,
   cov_pars <- VarCorr(fit)$group$sd[, "Estimate"] # Random effect SD
   noise_variance <- VarCorr(fit)$residual__$sd[, "Estimate"]    # Residual scale
   
-  hyper_params <- list(
-    cov_pars = cov_pars,
-    noise_variance = noise_variance
-  )
+  # Unpack into top-level list
+  hyper_params <- c(as.list(cov_pars), list(noise_variance = noise_variance))
   
   return(list(
     predictions = pred[, "Estimate"],

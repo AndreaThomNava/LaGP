@@ -5,6 +5,31 @@ import seaborn as sns
 import pickle
 import os
 from pathlib import Path
+from lagp.utils.generate_data import compute_dict_pars
+
+def replace_missing_with_nan(obj):
+    if isinstance(obj, dict):
+        return {k: replace_missing_with_nan(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [replace_missing_with_nan(item) for item in obj]
+    elif obj is None:
+        return np.nan
+    else:
+        return obj
+
+
+def flatten_hyper_params(hyper_params):
+    flat = {}
+    re_idx = 1
+
+    for k, v in hyper_params.items():
+        if k == "noise_variance":
+            flat["noise_variance"] = float(v)
+        else:
+            flat[f"re_var_{re_idx}"] = float(v)
+            re_idx += 1
+
+    return flat
 
 
 def make_flattened_df(results: pd.DataFrame) -> pd.DataFrame:
@@ -28,7 +53,8 @@ def make_flattened_df(results: pd.DataFrame) -> pd.DataFrame:
             "n_groups": int(cfg.split("_")[-2]),
             "group_size": int(cfg.split("_")[-1]),
             "replicate": replicate,
-            **metrics,
+            **{k: v for k, v in metrics.items() if k != "hyper_params"},
+            **flatten_hyper_params(metrics.get("hyper_params", {}))
         }
         for cfg, reps in results.items()
         for replicate, rep_result in reps.items()
@@ -127,15 +153,18 @@ def group_flattened_df(flat_df: pd.DataFrame) -> pd.DataFrame:
 def df_mse_hyper(flat_df, configs):
    
     models_with_hyperparams = configs["models_with_hyperparams"]
-    lengthscale = configs["gp_parameters"]["kernel"]["lengthscale"]
-    signal_variance = configs["gp_parameters"]["kernel"]["signal_variance"]
-    # noise_variance = configs["gp_parameters"]["kernel"]["legthscale"]
+    signal_variance = configs["data_generation"]["signal_variance"]
+    pars = compute_dict_pars(
+            signal_variance=signal_variance,
+            snr=configs["data_generation"]["snr"],
+            quantile=configs["target_quantile"],
+        )
     
     # keep only if model has estimated the hyper-parameters
     filtered_df = flat_df[flat_df['model'].isin(models_with_hyperparams)]
     
      # Group by likelihood, sample_size, dim, and model_method
-    grouped = filtered_df.groupby(['likelihood', 'sample_size', 'dim', 'model'])
+    grouped = filtered_df.groupby(['likelihood', 'n_groups', 'group_size', 'model'])
 
 
     def make_mse_function(true_param: np.ndarray):
@@ -144,12 +173,12 @@ def df_mse_hyper(flat_df, configs):
             return np.mean((est_array - true_param) ** 2)
         return mse
     
-    mse_lengthscale = make_mse_function(lengthscale)
+    #mse_lengthscale = make_mse_function(lengthscale)
     mse_signal = make_mse_function(signal_variance)
     
     grouped_df = grouped.agg(
-       mse_lengthscale =  ("lengthscale", mse_lengthscale),
-       mse_signal_variance = ("signal_variance", mse_signal)
+      # mse_lengthscale =  ("lengthscale", mse_lengthscale),
+       mse_signal_variance = ("re_var_1", mse_signal)
     ).reset_index()
 
     return grouped_df
@@ -379,7 +408,7 @@ def make_latex_table_hyperparams(config, summary_df):
 
     # Metrics to include
     metrics = [
-        ("mse_lengthscale", None, "Lengthscale MSE"),
+        #("mse_lengthscale", None, "Lengthscale MSE"),
         ("mse_signal_variance", None, "Signal Variance MSE"),
     ]
     metric_criteria = {label: "min" for _, _, label in metrics}
@@ -394,7 +423,7 @@ def make_latex_table_hyperparams(config, summary_df):
     for _ in range(n_metrics):
         model_headers.extend([fr"\multicolumn{{1}}{{c}}{{\textbf{{\tiny {name_dict[model]}}}}}" for model in models])
 
-    lower_headers = [r"\scriptsize \textbf{Noise}", r"\scriptsize \textbf{N}", r"\scriptsize \textbf{d}"] + model_headers
+    lower_headers = [r"\scriptsize \textbf{Noise}", r"\scriptsize \textbf{M}", r"\scriptsize \textbf{n}"] + model_headers
 
     header = fr"""
     \begin{{table}}[ht]
@@ -408,11 +437,11 @@ def make_latex_table_hyperparams(config, summary_df):
     """
 
     rows = []
-    for _, group in summary_df.groupby(['likelihood', 'sample_size', 'dim']):
+    for _, group in summary_df.groupby(['likelihood', 'n_groups', 'group_size']):
         row = [
             fr"\scriptsize {noise_dict[group['likelihood'].iloc[0]]}",
-            fr"\scriptsize {group['sample_size'].iloc[0]}",
-            fr"\scriptsize {group['dim'].iloc[0]}"
+            fr"\scriptsize {group['n_groups'].iloc[0]}",
+            fr"\scriptsize {group['group_size'].iloc[0]}"
         ]
 
         best_metrics = {}
@@ -502,38 +531,36 @@ def make_plots_hypers(df, configs, metrics):
     # Example for plotting with sample_size on x-axis and color by method
     # sns.set(style="whitegrid")  
 
-    OUTPUT_DIR = Path("results/simulation/images")
+    OUTPUT_DIR = Path("results/simulation_mm/One_random_effect/images")
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     models_with_hyperparams = configs["models_with_hyperparams"]
-    signal_variance = configs["gp_parameters"]["kernel"]["signal_variance"]
-    lengthscale = configs["gp_parameters"]["kernel"]["lengthscale"]
-    true_pars = {"signal_variance": signal_variance,
-                 "lengthscale": lengthscale}
+    signal_variance = configs["data_generation"]["signal_variance"]
+    
     # keep only if model has estimated the hyper-parameters
     df = df[df['model'].isin(models_with_hyperparams)]
    
-    dims = df["dim"].unique()
+    n_groups = df["n_groups"].unique()
     likelihoods = df["likelihood"].unique()
 
     for likelihood in likelihoods:
-        for dim in dims:
+        for n_g in n_groups:
 
-            df_filtered = df[df["dim"] == dim]
+            df_filtered = df[df["n_groups"] == n_g]
             df_filtered = df_filtered[df_filtered["likelihood"] == likelihood]
             # Assuming 'model_method' is the column representing different methods
             
             for metric in metrics:
                 plt.figure(figsize=(10, 6))
-                sns.boxplot(data=df_filtered, x="sample_size", y=metric, hue="model", palette="Set2", showmeans=True)
+                sns.boxplot(data=df_filtered, x="group_size", y=metric, hue="model", palette="Set2", showmeans=True)
                 # Add titles and labels
-                plt.title(f"{metric} by Sample Size. Likelihood: {likelihood}. Dim: {dim}", fontsize=16, c = "black")
-                plt.axhline(y=true_pars[metric], color="red", linestyle="--", linewidth=1, label = f"True {metric}")
-                plt.xlabel("Sample Size", fontsize=12)
+                plt.title(f"{metric} by Group Size. Likelihood: {likelihood}. Num. Groups: {n_g}", fontsize=16, c = "black")
+                plt.axhline(y=signal_variance, color="red", linestyle="--", linewidth=1, label = f"True {metric}") #signal_variance
+                plt.xlabel("Group Size", fontsize=12)
                 plt.ylabel(f"{metric.replace("_", " ").title()}", fontsize=12)
                 plt.legend(title="Model", title_fontsize="13", fontsize="11", labelcolor = "black")
                 plt.tight_layout()
                 # Save plots
-                filename = f"{metric}_{likelihood}_{dim}"
+                filename = f"{metric}_{likelihood}_{n_g}"
                 for ext in ["png", "pdf"]:
                     plt.savefig(OUTPUT_DIR / f"{filename}.{ext}", bbox_inches="tight", dpi=300)
 

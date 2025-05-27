@@ -117,9 +117,7 @@ def fit_and_evaluate_replicate(
             "coverage": coverage,
              "width": width,
             "time": elapsed_time,
-            "re_var": hyper_params["cov_pars"],
-            #"signal_variance": hyper_params["noise_variance"],
-            "scale": hyper_params["noise_variance"]
+            "hyper_params": hyper_params
         }
 
     return model_results

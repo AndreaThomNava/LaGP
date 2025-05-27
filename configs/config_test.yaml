@@ -2,7 +2,7 @@
 
 data_generation:
   n_groups: [200,  1000]
-  group_size: [10, 100]
+  group_size: [10, 100, 500, 1000]
   
   signal_variance: 1.0 # for one grouped random effect
   fixed_srn: True
@@ -42,7 +42,7 @@ data_generation:
 models: ["gpboost_cc", "gpboost_lls"]
 replicate: 5
 n_groups: [200] #,  1000]
-group_size: [10] #, 100]
+group_size: [10, 100, 500] #, 100] #, 500, 1000]
 likelihood: ["ald", "gaussian"]
 randeff: "One_random_effect"
 
@@ -54,8 +54,12 @@ gpb_approxs: {"gpboost_lls": "asymmetric_laplace_constant_curvature_fisher_mode_
             "gpboost_cc": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
             "gpboost_cc_var_corr": "asymmetric_laplace_constant_curvature_fisher_mode_finding_var_cor_pred"}
 
+
+
 ##### for the analysis of the results ######
-all_models : ["gpboost_cc", "lqmm", "brms"]
+all_models : ["gpboost_cc", "gpboost_lls", "lqmm"] #, "brms"]
+models_with_hyperparams : ["gpboost_cc", "gpboost_lls", "lqmm"]
+
 
 name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpboost_cc_var_corr": "CC corr",
            "brms": "BRMS", "lqmm":"LQMM"}

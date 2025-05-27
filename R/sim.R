@@ -70,54 +70,80 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
   # Needed for prediction intervals
   t <- qnorm(1 - (1 - alpha) / 2)
   
+ 
+    
   model_results <- list()
-
+  
+  # For one grouped random effect
+  expected_num_cov_pars <- 1
+  expected_cov_par_names <- c("Group_1")  # Define expected names
+  
+  # Define a "safe empty" hyper_params list to use on failures
+  empty_hyper_params <- c(
+    setNames(rep(NA_real_, expected_num_cov_pars), expected_cov_par_names),
+    list(noise_variance = NA_real_)
+  )
+  
   
   for (model_name in models) {
-    if (model_name == "lqmm") {
-      print("Fitting lqmm")
-      
-      res <- model_lqmm(train_X = train_X, train_y = train_y,
-                        group_train = group_train, test_X = test_X, group_test = group_test,
-                        target_quantile = target_quantile)
-      
-      latent_pred <- res$predictions
-      scale <- res$hyper_params$noise_variance
-      re_var <- res$hyper_params$cov_pars
-      fit_time <- res$fit_time
-      
-    } 
     
+    latent_pred <- NULL
+    hyper_params <- empty_hyper_params
+    fit_time <- NA_real_
+    qs_loss <- NA_real_
     
-    else if (model_name == "brms") {
-      print("BRMS: Sampling via MCMC")
-      pred <- model_brms_quantile(train_X = train_X, train_y = train_y,
-                                  group_train = group_train, test_X = test_X, group_test = group_test,
-                                  target_quantile = target_quantile)
+    tryCatch({
+      if (model_name == "lqmm") {
+        print("Fitting lqmm")
+        res <- model_lqmm(train_X = train_X, train_y = train_y,
+                          group_train = group_train, test_X = test_X, group_test = group_test,
+                          target_quantile = target_quantile)
+        
+        latent_pred <- res$predictions
+        hyper_params <- res$hyper_params
+        fit_time <- res$fit_time
+        
+      } else if (model_name == "brms") {
+        print("BRMS: Sampling via MCMC")
+        pred <- model_brms_quantile(train_X = train_X, train_y = train_y,
+                                    group_train = group_train, test_X = test_X, group_test = test_test,
+                                    target_quantile = target_quantile)
+        
+        print("sampled successfully")
+        latent_pred <- pred$predictions
+        hyper_params <- pred$hyper_params
+        fit_time <- pred$fit_time
+        
+      }
       
-      print("sampled successfully")
-      latent_pred <- pred$predictions
-      fit_time <- pred$fit_time
-      hyper_params <- pred$hyper_params
-      scale <- hyper_params$noise_variance
-      re_var <- hyper_params$cov_pars
-     }
-    
-    # Compute quantile score
-    print("computing scores")
-    qs_loss <- quantile_score(test_y, latent_pred, target_quantile)
-    print(paste("QS loss:", qs_loss))
+      if (!is.null(latent_pred)) {
+        qs_loss <- quantile_score(test_y, latent_pred, target_quantile)
+        print(paste("QS loss:", qs_loss))
+      } else {
+        print("No predictions available for QS loss calculation.")
+      }
+      
+      print(paste("Time:", fit_time))
+      
+    }, error = function(e) {
+      # On any error, fallback to safe empty values
+      print(paste("Model", model_name, "failed with error:", e$message))
+      latent_pred <<- NULL
+      hyper_params <<- empty_hyper_params
+      fit_time <<- NA_real_
+      qs_loss <<- NA_real_
+    })
     
     model_results[[model_name]] <- list(
       quantile_loss = qs_loss,
-      scale = scale,
-      re_var = re_var,
+      hyper_params = hyper_params,
       time = fit_time
     )
   }
   
   return(model_results)
 }
+  
 
 # Function to fit models on all datasets in parallel
 fit_models_on_all_datasets_parallel <- function(configs, models, num_replicates = 10) {
@@ -155,7 +181,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models, num_replicates 
 
 
 configs_sim <- load_config("configs/config_test.yaml")
-models <- list("lqmm", "brms") #, "vecchia_mcmc") #, "vecchia_mcmc")
+models <- list("lqmm")#, "brms") #, "vecchia_mcmc") #, "vecchia_mcmc")
 for (model_name in models){
   print(models)
 }

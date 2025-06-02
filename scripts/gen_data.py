@@ -20,7 +20,7 @@ def gen_mixed_data_from_config(config_file: str):
     num_replicates = data_gen_conf["replicate"]
     test_size = data_gen_conf["test_size"]
     OUTPUT_FOLDER = data_gen_conf["output_folder"]
-    OUTPUT_FOLDER = os.path.join("data",  OUTPUT_FOLDER )
+    OUTPUT_FOLDER = os.path.join("data",  OUTPUT_FOLDER)
 
 
     # Generate noise parameters if fixed_snr is True

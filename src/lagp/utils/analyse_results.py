@@ -154,6 +154,12 @@ def df_mse_hyper(flat_df, configs):
    
     models_with_hyperparams = configs["models_with_hyperparams"]
     signal_variance = configs["data_generation"]["signal_variance"]
+    true_variances = {"re_var_1": signal_variance}
+    randeff = configs["randeff"]
+    if randeff != "One_random_effect":
+        signal_variance_2 = configs["data_generation"]["signal_variance_2"]
+        true_variances.update({"re_var_2": signal_variance_2})
+
     pars = compute_dict_pars(
             signal_variance=signal_variance,
             snr=configs["data_generation"]["snr"],
@@ -167,21 +173,28 @@ def df_mse_hyper(flat_df, configs):
     grouped = filtered_df.groupby(['likelihood', 'n_groups', 'group_size', 'model'])
 
 
-    def make_mse_function(true_param: np.ndarray):
-        def mse(estimates: list[np.ndarray]) -> float:
+    # Variance columns and their true values
+    variance_cols = [col for col in filtered_df.columns if col.startswith("re_var_")]
+    true_vals = [true_variances[f"re_var_{i+1}"] for i in range(len(variance_cols))]
+
+    # Build MSE aggregation functions
+    def make_mse_function(true_param: float):
+        def mse(estimates: list[float]) -> float:
             est_array = np.stack(estimates)
             return np.mean((est_array - true_param) ** 2)
         return mse
-    
-    #mse_lengthscale = make_mse_function(lengthscale)
-    mse_signal = make_mse_function(signal_variance)
-    
-    grouped_df = grouped.agg(
-      # mse_lengthscale =  ("lengthscale", mse_lengthscale),
-       mse_signal_variance = ("re_var_1", mse_signal)
-    ).reset_index()
 
-    return grouped_df
+    # Create aggregation dictionary with proper naming
+    agg_dict = {
+        f"mse_{col}": (col, make_mse_function(true_val))
+        for col, true_val in zip(variance_cols, true_vals)
+    }
+
+    agg_dict.update({"mse_noise_variance": ("noise_variance", make_mse_function(pars["ald"]["scale"]))})
+    # Apply aggregation using named syntax
+    grouped_df = grouped.agg(**agg_dict).reset_index()
+
+    return grouped_df, pars
 
 
 
@@ -407,10 +420,9 @@ def make_latex_table_hyperparams(config, summary_df):
     noise_dict = config["likelihood_dict"]
 
     # Metrics to include
-    metrics = [
-        #("mse_lengthscale", None, "Lengthscale MSE"),
-        ("mse_signal_variance", None, "Signal Variance MSE"),
-    ]
+
+    metrics = [(f"mse_{col}", None, f"MSE of RE {col[-1]} Variance") for col in summary_df.columns if col.startswith("re_var_")]
+
     metric_criteria = {label: "min" for _, _, label in metrics}
 
     fontsize = r"\small"
@@ -475,7 +487,7 @@ def make_latex_table_hyperparams(config, summary_df):
 
 
 
-def make_plots(df, metrics, configs):
+def make_plots(df, metrics, configs, OUTPUT_DIR):
     """
     Make plots about results.
 
@@ -483,11 +495,9 @@ def make_plots(df, metrics, configs):
     """
 
     # Example for plotting with sample_size on x-axis and color by method
-    # sns.set(style="whitegrid")  
-
-    OUTPUT_DIR = Path("results/simulation_mm/One_random_effect/images")
+    # sns.set(style="whitegrid") 
+    OUTPUT_DIR = Path(os.path.join(OUTPUT_DIR, "images"))
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-
     n_groups = df["n_groups"].unique()
     likelihoods = df["likelihood"].unique()
 
@@ -509,7 +519,7 @@ def make_plots(df, metrics, configs):
                       plt.yscale("log")
                 
                 # Add titles and labels
-                plt.title(f"{metric} by group size. Likelihood: {likelihood}. Num. Groups: {n_g}", fontsize=16, c = "black")
+                plt.title(f"{metric.replace("_", " ").title()} by group size. Likelihood: {likelihood}. Num. Groups: {n_g}", fontsize=16, c = "black")
                 plt.xlabel("Group Size", fontsize=12)
                 plt.ylabel(f"{metric.replace("_", " ").title()}", fontsize=12)
                 plt.legend(title="Model", title_fontsize="13", fontsize="11", labelcolor = "black")
@@ -521,7 +531,7 @@ def make_plots(df, metrics, configs):
 
                 plt.close()
                 
-def make_plots_hypers(df, configs, metrics):
+def make_plots_hypers(df, configs, metrics, pars, OUTPUT_DIR):
     """
     Make plots about results.
 
@@ -531,10 +541,21 @@ def make_plots_hypers(df, configs, metrics):
     # Example for plotting with sample_size on x-axis and color by method
     # sns.set(style="whitegrid")  
 
-    OUTPUT_DIR = Path("results/simulation_mm/One_random_effect/images")
+    print("here")
+    OUTPUT_DIR = Path(os.path.join(OUTPUT_DIR, "images"))
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    randeff = configs["randeff"]
     models_with_hyperparams = configs["models_with_hyperparams"]
     signal_variance = configs["data_generation"]["signal_variance"]
+    true_variances = {"re_var_1": signal_variance}
+
+    if randeff != "One_random_effect":
+        signal_variance_2 = configs["data_generation"]["signal_variance_2"]
+        true_variances.update({"re_var_2": signal_variance_2})
+
+    noise_variance = pars["ald"]["scale"]
+    true_variances.update({"noise_variance": noise_variance})
     
     # keep only if model has estimated the hyper-parameters
     df = df[df['model'].isin(models_with_hyperparams)]
@@ -543,18 +564,23 @@ def make_plots_hypers(df, configs, metrics):
     likelihoods = df["likelihood"].unique()
 
     for likelihood in likelihoods:
+        if likelihood == "ald":
+            use_metrics = metrics
+        else:
+            use_metrics = [metric for metric in metrics if metric != "noise_variance"]
+        
         for n_g in n_groups:
-
             df_filtered = df[df["n_groups"] == n_g]
             df_filtered = df_filtered[df_filtered["likelihood"] == likelihood]
             # Assuming 'model_method' is the column representing different methods
-            
-            for metric in metrics:
+            print(f"{likelihood}_{n_g}")
+            for metric in use_metrics:
+                print(f"producing plot for metric: {metric}")
                 plt.figure(figsize=(10, 6))
                 sns.boxplot(data=df_filtered, x="group_size", y=metric, hue="model", palette="Set2", showmeans=True)
                 # Add titles and labels
-                plt.title(f"{metric} by Group Size. Likelihood: {likelihood}. Num. Groups: {n_g}", fontsize=16, c = "black")
-                plt.axhline(y=signal_variance, color="red", linestyle="--", linewidth=1, label = f"True {metric}") #signal_variance
+                plt.title(f"{metric.replace("_", " ").title()} by Group Size. Likelihood: {likelihood}. Num. Groups: {n_g}", fontsize=16, c = "black")
+                plt.axhline(y=true_variances[metric], color="red", linestyle="--", linewidth=1, label = f"True {metric}") #signal_variance
                 plt.xlabel("Group Size", fontsize=12)
                 plt.ylabel(f"{metric.replace("_", " ").title()}", fontsize=12)
                 plt.legend(title="Model", title_fontsize="13", fontsize="11", labelcolor = "black")

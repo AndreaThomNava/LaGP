@@ -69,8 +69,6 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
   
   # Needed for prediction intervals
   t <- qnorm(1 - (1 - alpha) / 2)
-  
- 
     
   model_results <- list()
   
@@ -91,6 +89,8 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
     hyper_params <- empty_hyper_params
     fit_time <- NA_real_
     qs_loss <- NA_real_
+    coverage <- NA_real_
+    interval_loss <- NA_real_
     
     tryCatch({
       if (model_name == "lqmm") {
@@ -106,19 +106,32 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
       } else if (model_name == "brms") {
         print("BRMS: Sampling via MCMC")
         pred <- model_brms_quantile(train_X = train_X, train_y = train_y,
-                                    group_train = group_train, test_X = test_X, group_test = test_test,
+                                    group_train = group_train, test_X = test_X, group_test = group_test,
                                     target_quantile = target_quantile)
         
         print("sampled successfully")
         latent_pred <- pred$predictions
+        # pred_std <- pred$se # contains uncertainty also about fixed effects
         hyper_params <- pred$hyper_params
         fit_time <- pred$fit_time
+        
+       # low_pred <- latent_pred - t * pred_std
+       # up_pred <- latent_pred + t * pred_std
+        
+       # interval_loss <- interval_score(test_true_latent_quantile, low_pred, up_pred, alpha)
+       # print(paste("IS loss: ", interval_loss))
+        
+       # coverage_and_width_results <- coverage_and_width(test_true_latent_quantile, low_pred, up_pred)
+       # coverage <- coverage_and_width_results[1]
+       # width <- coverage_and_width_results[2]
         
       }
       
       if (!is.null(latent_pred)) {
         qs_loss <- quantile_score(test_y, latent_pred, target_quantile)
         print(paste("QS loss:", qs_loss))
+        
+        
       } else {
         print("No predictions available for QS loss calculation.")
       }
@@ -136,6 +149,8 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
     
     model_results[[model_name]] <- list(
       quantile_loss = qs_loss,
+      interval_loss = interval_loss,
+      coverage = coverage,
       hyper_params = hyper_params,
       time = fit_time
     )
@@ -181,7 +196,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models, num_replicates 
 
 
 configs_sim <- load_config("configs/config_test.yaml")
-models <- list("lqmm")#, "brms") #, "vecchia_mcmc") #, "vecchia_mcmc")
+models <- list("lqmm", "brms") #, "vecchia_mcmc") #, "vecchia_mcmc")
 for (model_name in models){
   print(models)
 }
@@ -190,7 +205,7 @@ results <- fit_models_on_all_datasets_parallel(configs = configs_sim, models = m
                                                num_replicates = num_replicates)
 
 # Save the results
-OUTPUT_DIR <- file.path("results", "simulation_mm", configs$randeff)
+OUTPUT_DIR <- file.path("results", "simulation_mm", configs_sim$randeff)
 dir.create(OUTPUT_DIR, showWarnings = FALSE)
 
 # Combine results and config into one list

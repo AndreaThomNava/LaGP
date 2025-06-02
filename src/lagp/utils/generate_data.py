@@ -72,11 +72,16 @@ def make_latents(n_groups, group_size, pars: dict):
     N = n_groups * group_size
     signal_variance = pars.get("signal_variance", 1)
 
+    signal_variance_2 = pars.get("signal_variance_2", 1)
+
+    randef = pars.get("randeff", "One_random_effect")
+
+
     sigma2 = pars.get("sigma2", 0.5**2)
     sigma2_1 = pars.get("sigma2_1", 0.5**2)
     sigma2_2 = pars.get("sigma2_2", 0.5**2)
     sigma2_3 = pars.get("sigma2_3", 0.5**2)
-    randef = pars.get("randef", "One_random_effect")
+    #randef = pars.get("randef", "One_random_effect")
     has_F = pars.get("has_F", False)
     factor_m2 = pars.get("factor_m2", 1)
     num_covariates = pars.get("num_covariates", 5)
@@ -93,19 +98,22 @@ def make_latents(n_groups, group_size, pars: dict):
         group_data = group
     
     elif randef == "Two_completely_crossed_random_effects":
-        n_obs_gr = N // group_size
-        group2 = np.tile(np.arange(n_obs_gr), group_size)
-        b2 = np.random.normal(0, np.sqrt(sigma2_2), size=n_obs_gr)
+        group2 = np.tile(np.arange(n_groups), group_size)
+        b2 = np.random.normal(0, np.sqrt(signal_variance_2), size=n_groups)
         eps = b1[group] + b2[group2]
         group_data = np.column_stack([group, group2])
+    
     
     elif randef == "Two_randomly_crossed_random_effects":
         m2 = int(factor_m2 * group_size) if factor_m2 != 1 else group_size
         group2 = np.repeat(np.arange(m2), N // m2)
         np.random.shuffle(group2)
-        b2 = np.random.normal(0, np.sqrt(sigma2_2), size=m2)
+        b2 = np.random.normal(0, np.sqrt(signal_variance_2), size=m2)
         eps = b1[group] + b2[group2]
         group_data = np.column_stack([group, group2])
+
+
+        ### ABOVE HERE CORRECT ###
     
     elif randef == "Two_nested_random_effects":
         m_nested = group_size * 2

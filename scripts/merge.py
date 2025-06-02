@@ -2,6 +2,7 @@
 
 import argparse
 import pickle
+import yaml
 import os
 from lagp.utils.analyse_results import replace_missing_with_nan
 
@@ -34,18 +35,28 @@ def main():
     # Argument parsing
     parser = argparse.ArgumentParser(description="Merge results from two pickle files.")
     parser.add_argument('pickle_file_1', nargs='?',
-                        default = "simulation_mm/One_random_effect/simulation_results_python.pkl",
+                        default = "simulation_results_python.pkl",
                         type=str, help="Path to the first pickle file.")
     parser.add_argument('pickle_file_2', nargs='?',
-                        default = "simulation_mm/One_random_effect/simulation_results_R.pkl",
+                        default = "simulation_results_R.pkl",
                         type=str, help="Path to the second pickle file.")
     parser.add_argument('output_file', nargs='?',
-                        default = "simulation_mm/One_random_effect/simulation_results.pkl",
+                        default = "simulation_results.pkl",
                         type=str, help="Path to save the merged results.")
+    
+    parser.add_argument('configs', nargs='?',
+                        default = "configs/config_test.yaml",
+                        type=str, help="Path to experiment config.")
     
     args = parser.parse_args()
 
-    RESULTS_PATH = "results"
+    CONFIGS_PATH = args.configs
+    with open(CONFIGS_PATH, "r") as f:
+        configs = yaml.safe_load(f)
+
+    randeff = configs["randeff"]
+
+    RESULTS_PATH = os.path.join("results", "simulation_mm", f"{randeff}")
     # Load the pickle files
     with open(os.path.join(RESULTS_PATH, args.pickle_file_1), "rb") as f1:
         res_python = pickle.load(f1)
@@ -69,7 +80,7 @@ def main():
     with open(OUTPUT_PATH, "wb") as output_f:
         pickle.dump(clean_results, output_f)
 
-    print(f"Results merged and saved to {args.output_file}")
+    print(f"Results merged and saved to {OUTPUT_PATH}")
 
 if __name__ == "__main__":
     main()

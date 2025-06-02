@@ -1,10 +1,12 @@
 # General parameters for data generation and splitting
 
 data_generation:
-  n_groups: [200,  1000]
-  group_size: [10, 100, 500, 1000]
+  n_groups: [10] # [200,  1000]
+  group_size: [10, 100] #, 100, 500, 1000]
   
   signal_variance: 1.0 # for one grouped random effect
+  signal_variance_2: 1.0 # for second random effect
+  
   fixed_srn: True
   snr: 5.0
   quantile: 0.8
@@ -17,7 +19,7 @@ data_generation:
   }
   replicate: 5
   test_size: 0.2
-  randeff: "One_random_effect"
+  randeff: "Two_completely_crossed_random_effects" # "One_random_effect"
   output_folder: "simulated_data_mm"
   random_state: 123
   extrapolate: False
@@ -39,12 +41,12 @@ data_generation:
 
 ##### for running simulation ########
   
-models: ["gpboost_cc", "gpboost_lls"]
-replicate: 5
-n_groups: [200] #,  1000]
-group_size: [10, 100, 500] #, 100] #, 500, 1000]
+models: ["gpboost_cc", "gpboost_lls"] #, "gpboost_cc_var_corr"]
+replicate: 2
+n_groups: [10] #,  1000]
+group_size: [10, 100] #, 100, 500] #, 100] #, 500, 1000]
 likelihood: ["ald", "gaussian"]
-randeff: "One_random_effect"
+randeff: "Two_completely_crossed_random_effects"
 
   
 delta_logl: 10
@@ -57,12 +59,13 @@ gpb_approxs: {"gpboost_lls": "asymmetric_laplace_constant_curvature_fisher_mode_
 
 
 ##### for the analysis of the results ######
-all_models : ["gpboost_cc", "gpboost_lls", "lqmm"] #, "brms"]
-models_with_hyperparams : ["gpboost_cc", "gpboost_lls", "lqmm"]
+all_models : ["gpboost_cc", "gpboost_lls", "gpboost_cc_var_corr", "lqmm", "brms"]
+models_with_hyperparams : ["gpboost_cc", "gpboost_lls","gpboost_cc_var_corr","lqmm", "brms"]
 
 
 name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpboost_cc_var_corr": "CC corr",
            "brms": "BRMS", "lqmm":"LQMM"}
            
 likelihood_dict : {"gaussian":"N", "ald": "ALD", "t":"t", "chi":"chi", "ald_heteroscedastic": HetALD}
+
 

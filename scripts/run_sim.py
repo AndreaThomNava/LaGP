@@ -91,24 +91,31 @@ def fit_and_evaluate_replicate(
             pred_with_fixed_effects = pred["mu"]
             stddev_pred = np.sqrt(pred["var"])
 
-            # matches predicted random effects from training groups to test groups
-            true_re, pred_re, pred_std = align_re(group_train, group_test, res, test_true_latent_quantile, stddev_pred)
-            low_pred = pred_re - pred_std * t
-            up_pred = pred_re + pred_std * t
+            if randeff == "One_random_effect":
+                # matches predicted random effects from training groups to test groups
+                true_re, pred_re, pred_std = align_re(group_train, group_test, res, test_true_latent_quantile, stddev_pred)
+                low_pred = pred_re - pred_std * t
+                up_pred = pred_re + pred_std * t
 
             
         # Compute quantile score
         qs_loss = quantile_score(y=test_y, preds=pred_with_fixed_effects, quantile=target_quantile)
 
-        interval_loss = interval_score(
-            y=true_re,
-            pred_low=low_pred,
-            pred_up=up_pred,
-            alpha=alpha,)
+        if randeff == "One_random_effect":
+            interval_loss = interval_score(
+                y=true_re,
+                pred_low=low_pred,
+                pred_up=up_pred,
+                alpha=alpha,)
 
-        # compute coverage and width
-        coverage, width = coverage_and_width(
-           y=true_re, pred_low=low_pred, pred_up=up_pred)
+            # compute coverage and width
+            coverage, width = coverage_and_width(
+            y=true_re, pred_low=low_pred, pred_up=up_pred)
+        
+        else:
+            interval_loss = np.nan
+            coverage, width = np.nan, np.nan
+
 
         # store results
         model_results[model_name] = {

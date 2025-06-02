@@ -2,7 +2,7 @@ library(qgam)
 library(cmdstanr)
 library(gptoolsStan)
 library(brms)
-
+library(lqmm)
 
 # Quantile function for the Asymmetric Laplace Distribution
 quantile_func_asym_laplace <- function(x, q, scale) {
@@ -242,8 +242,10 @@ model_lqmm <- function(train_X, train_y, group_train,
       tau = target_quantile,
       nK = 30,
       type = "normal",
-      control = list(verbose = TRUE, LP_tol_ll = 1e-6, LP_max_iter = 1000)
-    )
+      control = list(verbose = FALSE, LP_tol_ll = 1e-6, LP_max_iter = 1000)
+   
+    #fit.boot <- boot(fit.lqmm, R = 50, startQR = TRUE)
+       )
     
     X_test <- as.matrix(data_test[, predictor_names])
     fixed_pred <- X_test %*% fit.lqmm$theta_x
@@ -257,6 +259,10 @@ model_lqmm <- function(train_X, train_y, group_train,
     re_test[matching_indices] <- re_train[as.character(group_test[matching_indices]), 1]
     
     pred <- drop(fixed_pred + re_test)
+    
+    # bootstrap
+    # re_b <- extractBoot(fit.boot, "random")
+    
   })
   
   scale_param <- fit.lqmm$scale
@@ -274,32 +280,47 @@ model_lqmm <- function(train_X, train_y, group_train,
   ))
 }
 
-### BRMS ###
+
+#### BRMS ####
 model_brms_quantile <- function(train_X, train_y, group_train,
                                 test_X, group_test,
                                 target_quantile = 0.5) {
   
-  # Prepare training data
-  predictor_names <- c("intercept", paste0("X", 1:(ncol(train_X) - 1)))
+  # Prepare predictors
+  predictor_names <- c("Intercept", paste0("X", 1:(ncol(train_X) - 1)))
   colnames(train_X) <- predictor_names
   data_train <- data.frame(train_X)
   data_train$y <- train_y
-  data_train$group <- factor(group_train)
+  
+  # Wrap grouping variables in data frames if needed
+  if (is.null(dim(group_train))) {
+    group_train <- data.frame(group1 = group_train)
+    group_test <- data.frame(group1 = group_test)
+  } else {
+    group_train <- as.data.frame(group_train)
+    group_test <- as.data.frame(group_test)
+  }
+  
+  group_vars <- names(group_train)
+  
+  # Add grouping variables to training and test data
+  for (v in group_vars) {
+    data_train[[v]] <- factor(group_train[[v]])
+  }
   
   # Prepare test data
   colnames(test_X) <- predictor_names
   data_test <- data.frame(test_X)
-  data_test$group <- factor(group_test, levels = levels(data_train$group))  # align levels
+  for (v in group_vars) {
+    data_test[[v]] <- factor(group_test[[v]], levels = levels(data_train[[v]]))
+  }
   
-  # Build formula: no intercept if it's already in X
-  formula_fixed <- bf(
-    as.formula(
-      paste("y ~ -1 +", paste(predictor_names, collapse = " + "), "+ (1 | group)")
-    ),
-    quantile = target_quantile
-  )
+  # Build random effects part of the formula
+  random_effects <- paste0("(1 | ", group_vars, ")", collapse = " + ")
+  formula_text <- paste("y ~ -1 +", paste(predictor_names, collapse = " + "), "+", random_effects)
+  formula_fixed <- bf(as.formula(formula_text), quantile = target_quantile)
   
-  # Fit model with timing
+  # Fit model and predict
   fit_time <- system.time({
     fit <- brm(
       formula = formula_fixed,
@@ -309,67 +330,27 @@ model_brms_quantile <- function(train_X, train_y, group_train,
       control = list(adapt_delta = 0.95),
       seed = 42
     )
-    
-    # Predict on test set, including random effects (level 1)
     pred <- fitted(fit, newdata = data_test, re_formula = NULL)
   })[["elapsed"]]
   
-  # Extract hyperparameters
-  cov_pars <- VarCorr(fit)$group$sd[, "Estimate"] # Random effect SD
-  noise_variance <- VarCorr(fit)$residual__$sd[, "Estimate"]    # Residual scale
-  
-  # Unpack into top-level list
-  hyper_params <- c(as.list(cov_pars), list(noise_variance = noise_variance))
+  # Extract variance components
+  vc <- VarCorr(fit)
+  cov_pars <- lapply(group_vars, function(g) vc[[g]]$sd[, "Estimate"])
+  cov_pars <- lapply(cov_pars, function(x) x^2)
+  names(cov_pars) <- group_vars
+  noise_variance <- vc$residual__$sd[, "Estimate"]
+  noise_variance <- noise_variance^2
+  hyper_params <- c(cov_pars, list(noise_variance = noise_variance))
   
   return(list(
     predictions = pred[, "Estimate"],
     se = pred[, "Est.Error"],
     fit_time = fit_time,
     hyper_params = hyper_params,
-    model = fit  # optional: for future inspection
+    model = fit
   ))
 }
 
-
-
-## QGAM (Fasiolo) ##
-
-model_qgam <- function(train_X, train_y, test_X, target_quantile = 0.5, smooth_term = 20) {
-  # Function to fit the QGAM model and predict on the test set
-
-  # Dynamically create the training data frame (with y as the response variable)
-  train_data <- data.frame(y = train_y)
-  # Create a data frame for the test data
-  test_data <- as.data.frame(test_X)  # Directly convert test_X into a data frame
-  # Rename the columns in the test data
-  colnames(test_data) <- paste0("X", 1:ncol(test_data))
-  
-  # Add each column of X as separate predictors in the data frame
-  for (i in 1:ncol(train_X)) {
-    train_data[[paste0("X", i)]] <- train_X[, i]
-  }
-  
-  # Dynamically create the formula for qgam model
-  formula_parts <- sapply(1:ncol(train_X), function(i) {
-    paste0("s(X", i, ", k = smooth_term, bs = 'ad')")
-  })
-  formula <- as.formula(paste("y ~", paste(formula_parts, collapse = " + ")))
-  # print(paste0("formula qgam: ", formula))
-  
-  # Fit the QGAM model
-  fit_time <- system.time({
-    fit <- qgam(formula, data = train_data, qu = target_quantile)
-    # Make predictions on the test set
-    pred <- predict(fit, newdata = test_data, se = TRUE)
-  })[["elapsed"]]
-  
-  
-  # Return predictions along with standard errors
-  return(list(
-    predictions = pred$fit,
-    se = pred$se.fit,
-    fit_time = fit_time))
-}
 
 
 #### UTILS FOR VECCHIA ####

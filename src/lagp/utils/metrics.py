@@ -1,5 +1,4 @@
 from typing import Tuple
-
 import numpy as np
 
 
@@ -24,6 +23,15 @@ def quantile_score(y: np.ndarray, preds: np.ndarray, quantile: float) -> float:
     qs = score.mean()
 
     return qs
+
+def compute_rmse(f_true, f_pred):
+    """
+    Returns the Root Mean Squared Error (RMSE) for the predicted quantiles.
+    """
+
+    rmse = np.sqrt(np.mean((f_true - f_pred)**2))
+
+    return rmse
 
 
 def interval_score(y, pred_low, pred_up, alpha):
@@ -70,7 +78,6 @@ def coverage_and_width(
     return coverage, width
 
 
-import numpy as np
 
 def compute_bias_mse(true_param: np.ndarray, estimates: np.ndarray):
     """

@@ -11,7 +11,7 @@ from lagp.models.model import (  # Assuming you have these model functions
     model_gpboost, model_gpytorch, model_viva_gp)
 from lagp.utils.generate_data import load_data, obtain_quantile, load_scale_gp
 from lagp.utils.metrics import (coverage_and_width, interval_score,
-                                quantile_score)
+                                quantile_score, compute_rmse)
 
 
 def fit_and_evaluate_replicate(
@@ -142,6 +142,9 @@ def fit_and_evaluate_replicate(
             alpha=alpha,
         )
 
+        # RMSE
+        rmse= compute_rmse(f_true=test_true_latent_quantile, f_pred=latent_pred)
+
         # compute coverage and width
         coverage, width = coverage_and_width(
             y=test_true_latent_quantile, pred_low=low_pred, pred_up=up_pred
@@ -151,6 +154,7 @@ def fit_and_evaluate_replicate(
         model_results[model_name] = {
             "quantile_loss": qs_loss,
             "interval_loss": interval_loss,
+            "rmse": rmse,
             "coverage": coverage,
             "width": width,
             "time": elapsed_time,
@@ -216,7 +220,20 @@ if __name__ == "__main__":
         default="config_run_simulation.yaml",
         help="Path to the YAML config file",
     )
+
+    parser.add_argument(
+        "--version",
+        type=str,
+        default="001",
+        help="version of experiment",
+    )
+
+
+
+
     args = parser.parse_args()
+    version = args.version
+
     config_path = os.path.join("configs", args.config)
     with open(config_path, "r") as f:
         configs = yaml.safe_load(f)
@@ -230,7 +247,7 @@ if __name__ == "__main__":
 
     # Save the results
     # Ensure the results directory exists
-    OUTPUT_DIR = "results/simulation"
+    OUTPUT_DIR = f"results/simulation/{version}"
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     # Combine the results and config into one dictionary

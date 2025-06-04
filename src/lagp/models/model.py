@@ -46,19 +46,25 @@ def model_gpboost(
         cov_fct_shape=1.5,
         gp_approx="vecchia" if vecchia else "none",
         num_neighbors=30,
-        matrix_inversion_method="iterative" if vecchia else "cholesky",
+        matrix_inversion_method= "iterative" if (vecchia and approx != "gaussian") else "cholesky",
         likelihood=approx,
-        likelihood_additional_param=quantile,
+        likelihood_additional_param=quantile if approx != "gaussian" else 1.,
         cover_tree_radius=delta_logl,
         num_parallel_threads=2,
     )
+    
     params = {
         "estimate_aux_pars": True,
         "init_aux_pars": np.array([0.1]),
         "trace": False,
     }
+
     # fit
-    gpq.fit(X=np.ones(N), y=train_y, params=params)
+    if approx != "gaussian":
+        gpq.fit(X=np.ones(N), y=train_y, params=params)
+    else:
+        gpq.fit(X=np.ones(N), y=train_y)
+
     # predict
     pred = gpq.predict(
         X_pred=np.ones(len(test_X)),
@@ -72,6 +78,8 @@ def model_gpboost(
 
     # extract hyper-parames
     cov_pars = gpq.get_cov_pars()
+    if approx == "gaussian":
+        print(cov_pars)
 
     range_keys = [k for k in cov_pars.columns if k.startswith("GP_range")]
     estimated_ranges = [cov_pars[k].iloc[0] for k in range_keys]
@@ -80,7 +88,7 @@ def model_gpboost(
     #length_scale = cov_pars["GP_range"].iloc[0]
 
     output_variance = cov_pars["GP_var"].iloc[0]
-    noise_variance = gpq.get_aux_pars()["scale"]
+    noise_variance = gpq.get_aux_pars()["scale"] if approx != "gaussian" else cov_pars["Error_term"]
 
     hyper_params = {"lengthscale": length_scale,
                     "signal_variance":output_variance,
@@ -271,3 +279,6 @@ def model_viva_gp(
                     }
 
     return mu[-n_test:], sd[-n_test:], elapsed_time, hyper_params
+
+
+

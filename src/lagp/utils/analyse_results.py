@@ -122,6 +122,8 @@ def group_flattened_df(flat_df: pd.DataFrame) -> pd.DataFrame:
     grouped_df = grouped.agg(
         quantile_loss_mean=('quantile_loss', 'mean'),
         quantile_loss_std=('quantile_loss', sem),
+        rmse_mean=('rmse', 'mean'),
+        rmse_std=('rmse', sem),
         interval_loss_mean=('interval_loss', 'mean'),
         interval_loss_std=('interval_loss', sem),
         coverage_mean=('coverage', 'mean'),
@@ -457,7 +459,7 @@ def make_latex_table_hyperparams(config, summary_df):
 
 
 
-def make_plots(df, metrics, configs):
+def make_plots(df, metrics, configs, version):
     """
     Make plots about results.
 
@@ -467,7 +469,7 @@ def make_plots(df, metrics, configs):
     # Example for plotting with sample_size on x-axis and color by method
     # sns.set(style="whitegrid")  
 
-    OUTPUT_DIR = Path("results/simulation/images")
+    OUTPUT_DIR = Path(f"results/simulation/{version}/images")
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     dims = df["dim"].unique()
@@ -503,7 +505,7 @@ def make_plots(df, metrics, configs):
 
                 plt.close()
                 
-def make_plots_hypers(df, configs, metrics):
+def make_plots_hypers(df, configs, metrics, version):
     """
     Make plots about results.
 
@@ -513,7 +515,7 @@ def make_plots_hypers(df, configs, metrics):
     # Example for plotting with sample_size on x-axis and color by method
     # sns.set(style="whitegrid")  
 
-    OUTPUT_DIR = Path("results/simulation/images")
+    OUTPUT_DIR = Path(f"results/simulation/{version}/images")
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     models_with_hyperparams = configs["models_with_hyperparams"]
     signal_variance = configs["gp_parameters"]["kernel"]["signal_variance"]
@@ -532,7 +534,9 @@ def make_plots_hypers(df, configs, metrics):
             df_filtered = df[df["dim"] == dim]
             df_filtered = df_filtered[df_filtered["likelihood"] == likelihood]
             # Assuming 'model_method' is the column representing different methods
-            
+
+            effective_range = lengthscale * np.sqrt(dim) * 2.448/2.74
+            true_pars["lengthscale"] = effective_range
             for metric in metrics:
                 plt.figure(figsize=(10, 6))
                 sns.boxplot(data=df_filtered, x="sample_size", y=metric, hue="model", palette="Set2", showmeans=True)

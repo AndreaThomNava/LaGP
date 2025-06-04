@@ -7,7 +7,7 @@ import pickle
 import yaml
 
 
-def run_analysis(RESULT_PATH, CONFIGS_PATH):
+def run_analysis(RESULT_PATH, CONFIGS_PATH, version):
     """
     Run analyis: make plots and table of results.
     
@@ -21,11 +21,13 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH):
     metrics = [
         ("quantile_loss_mean", "quantile_loss_std", "Quantile Score"),  # 3rd element is the name/label
         ("interval_loss_mean", "interval_loss_std", "Interval Score"),
+        ("rmse_mean", "rmse_std", "RMSE"),
         ("coverage_mean", "coverage_std", "Coverage"),
         ("time_mean", "time_std", "Time")
     ]
     # Define metrics and optimality
-    metric_criteria = {"Quantile Score": "min", "Interval Score": "min", "Coverage": "check_coverage", "Time": "min"}
+    metric_criteria = {"Quantile Score": "min", "Interval Score": "min", "Coverage": "check_coverage", "Time": "min",
+                       "RMSE": "min"}
 
 
     df = make_flattened_df(results = res)
@@ -40,9 +42,9 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH):
 
     # make and save plots
     
-    metrics_for_plotting = ["quantile_loss", "interval_loss", "coverage", "width", "time"] # df.columns[5:]
-    make_plots(df = df, metrics = metrics_for_plotting, configs=configs)
-    make_plots_hypers(df = df, configs=configs, metrics=["signal_variance", "lengthscale"])
+    metrics_for_plotting = ["quantile_loss", "rmse", "interval_loss", "coverage", "width", "time"] # df.columns[5:]
+    make_plots(df = df, metrics = metrics_for_plotting, configs=configs, version=version)
+    make_plots_hypers(df = df, configs=configs, metrics=["signal_variance", "lengthscale"], version = version)
    
     return latex_table, hyper_latex_table
 
@@ -57,18 +59,22 @@ if __name__ == "__main__":
                         default = "config_run_simulation.yaml",
                         help="Name of the configs file")
     
+    parser.add_argument("--version", type = str,
+                        default = "001",
+                        help="version of the experiment to analyze")
+    
     args = parser.parse_args()
-    print(args)
-    RESULT_PATH = os.path.join("results/simulation", args.results_name)
+    version = args.version
+    RESULT_PATH = os.path.join(f"results/simulation/{version}", args.results_name)
     print(RESULT_PATH)
     CONFIGS_PATH = os.path.join("configs", args.configs)
    
-    latex_table, hyper_latex_table = run_analysis(RESULT_PATH, CONFIGS_PATH)
+    latex_table, hyper_latex_table = run_analysis(RESULT_PATH, CONFIGS_PATH, version)
     # save it
-    OUTPUT_FILE = "results/simulation/table_results.tex"
+    OUTPUT_FILE = f"results/simulation/{version}/table_results.tex"
     with open(OUTPUT_FILE, "w") as f:
         f.write(latex_table)
-    OUTPUT_FILE_MSE = "results/simulation/table_results_hyper.tex"
+    OUTPUT_FILE_MSE = f"results/simulation/{version}/table_results_hyper.tex"
     with open(OUTPUT_FILE_MSE, "w") as f:
         f.write(hyper_latex_table)
 

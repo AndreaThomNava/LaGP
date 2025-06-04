@@ -1,17 +1,17 @@
 simulation:
   seed: 43
   grid_lims: [0, 1]
-  sample_sizes: [1000] #, 5000, 10000]  # Different sample sizes for datasets
-  dimensions: [3] #, 3, 5]  # 1D, 2D, or 3D datasets
+  sample_sizes: [1000, 5000, 10000] #, 5000, 10000]  # Different sample sizes for datasets
+  dimensions: [1] #, 3, 5]  # 1D, 2D, or 3D datasets
   likelihoods: 
-   # - gaussian
+     - gaussian
    # - t
    # - chi
      - ald
     #- ald_heteroscedastic # testing heteroscedasticity
   
   # Simulation Settings
-  snr: 5.0                # Desired signal-to-noise ratio
+  snr: 10.0                # Desired signal-to-noise ratio
   fixed_snr: True          # True = homoscedastic noise with this SNR; False = heteroscedastic
   pars : {
     "gaussian": {"scale": 0.31}, # sqrt(0.31) -> 0.1
@@ -20,7 +20,7 @@ simulation:
     "chi": {"df": 2, "scale": 0.1}
   }
   # useless noise_levels: [0.1, 0.2, 0.3]  # Noise levels for adding to data
-  replicates: 10
+  replicates: 5
 
 # update also simulation config
 gp_parameters:
@@ -49,13 +49,15 @@ alpha: 0.9
 train_split: 0.75
 
 # for python
-models: ["gpytorch", "VIVA"] #["gpboost_cc", "gpboost_cc_var_corr", "VIVA"] #, "qgam"] "gpytorch"
+models: ["gpboost_cc", "gpboost_normal"] #["gpboost_cc", "gpboost_cc_var_corr", "VIVA"] #, "qgam"] "gpytorch"
 # hyper-params --> useful for producing later results
-models_with_hyperparams: ["gpboost_cc", "gpboost_cc_var_corr", "gpytorch", "VIVA"]
+models_with_hyperparams: ["gpboost_cc", "gpboost_normal"] #"gpboost_cc_var_corr", "gpytorch", "VIVA"]
 
 gpb_approxs: {"gpboost_lls": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
             "gpboost_cc": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
-            "gpboost_cc_var_corr": "asymmetric_laplace_constant_curvature_fisher_mode_finding_var_cor_pred"}
+            "gpboost_cc_var_corr": "asymmetric_laplace_constant_curvature_fisher_mode_finding_var_cor_pred",
+            "gpboost_normal": "gaussian"}
+
 
 
 # for GPytorch
@@ -64,12 +66,12 @@ lr: 0.01
 
 
 # fix dicts
-name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpytorch": "VI", "qgam":"GAM",
+name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpytorch": "VI", "qgam":"GAM", "gpboost_normal": "gpbN",
             "gpboost_cc_var_corr": "CC corr", "vecchia_mcmc": "BSGP", "VIVA":"VIVA"}
 likelihood_dict : {"gaussian":"N", "ald": "ALD", "t":"t", "chi":"chi", "ald_heteroscedastic": HetALD}
 
 # what I want to plot/make latex tables for
-all_models: ["gpboost_cc", "gpboost_cc_var_corr", "gpytorch", "qgam", "vecchia_mcmc", "VIVA"] # ["gpboost_lls", "gpboost_cc", "gpytorch", "qgam"]
+all_models: ["gpboost_cc", "gpboost_normal"] #gpboost_cc_var_corr", "gpytorch", "qgam", "vecchia_mcmc", "VIVA"] # ["gpboost_lls", "gpboost_cc", "gpytorch", "qgam"]
 
 
 

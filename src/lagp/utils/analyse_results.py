@@ -550,8 +550,12 @@ def make_plots_hypers(df, configs, metrics, pars, OUTPUT_DIR):
     signal_variance = configs["data_generation"]["signal_variance"]
     true_variances = {"re_var_1": signal_variance}
 
+    crossed = False
+    if randeff == "Two_completely_crossed_random_effects":
+        crossed = True
     if randeff != "One_random_effect":
         signal_variance_2 = configs["data_generation"]["signal_variance_2"]
+        n_groups_2 = configs["data_generation"]["n_groups_2"]
         true_variances.update({"re_var_2": signal_variance_2})
 
     noise_variance = pars["ald"]["scale"]
@@ -579,7 +583,7 @@ def make_plots_hypers(df, configs, metrics, pars, OUTPUT_DIR):
                 plt.figure(figsize=(10, 6))
                 sns.boxplot(data=df_filtered, x="group_size", y=metric, hue="model", palette="Set2", showmeans=True)
                 # Add titles and labels
-                plt.title(f"{metric.replace("_", " ").title()} by Group Size. Likelihood: {likelihood}. Num. Groups: {n_g}", fontsize=16, c = "black")
+                plt.title(f"{metric.replace("_", " ").title()} by Group Size. Likelihood: {likelihood}. Num. Groups: {n_g if not crossed else (int(n_g), n_groups_2) }", fontsize=16, c = "black")
                 plt.axhline(y=true_variances[metric], color="red", linestyle="--", linewidth=1, label = f"True {metric}") #signal_variance
                 plt.xlabel("Group Size", fontsize=12)
                 plt.ylabel(f"{metric.replace("_", " ").title()}", fontsize=12)

@@ -73,6 +73,7 @@ def make_latents(n_groups, group_size, pars: dict):
     signal_variance = pars.get("signal_variance", 1)
 
     signal_variance_2 = pars.get("signal_variance_2", 1)
+    n_groups_2 = pars.get("n_groups_2", 10)
 
     randef = pars.get("randeff", "One_random_effect")
 
@@ -98,8 +99,15 @@ def make_latents(n_groups, group_size, pars: dict):
         group_data = group
     
     elif randef == "Two_completely_crossed_random_effects":
-        group2 = np.tile(np.arange(n_groups), group_size)
-        b2 = np.random.normal(0, np.sqrt(signal_variance_2), size=n_groups)
+        # assert group_size >= n_groups_2, (
+        # "To create a completely crossed design, group_size must be >= n_groups_2 "
+        # "so each level of the second random effect is observed within each level of the first."
+        # )
+        # assert N % n_groups_2 == 0, (
+        # "N must be divisible by n_groups_2 to tile group2 evenly across all observations."
+        # )
+        group2 = np.tile(np.arange(n_groups_2), N//n_groups_2)
+        b2 = np.random.normal(0, np.sqrt(signal_variance_2), size=n_groups_2)
         eps = b1[group] + b2[group2]
         group_data = np.column_stack([group, group2])
     
@@ -145,7 +153,7 @@ def make_latents(n_groups, group_size, pars: dict):
         X[:, 1:] *= delta_var_f
         fe = X @ beta
     else:
-        X = np.zeros((N, num_covariates + 1))
+        X = np.zeros((N, 1))
         X[:, 0] = 1
         fe = np.zeros(N)
     

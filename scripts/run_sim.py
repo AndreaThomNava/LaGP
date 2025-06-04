@@ -184,6 +184,13 @@ if __name__ == "__main__":
         default="config_test.yaml",
         help="Path to the YAML config file",
     )
+
+    parser.add_argument(
+        "--version",
+        type=str,
+        default="001",
+        help="Version number",
+    )
     args = parser.parse_args()
     config_path = os.path.join("configs", args.config)
     with open(config_path, "r") as f:
@@ -199,7 +206,7 @@ if __name__ == "__main__":
 
     # Save the results
     # Ensure the results directory exists
-    OUTPUT_DIR = os.path.join("results/simulation_mm", f"{randeff}")
+    OUTPUT_DIR = os.path.join("results/simulation_mm", f"{randeff}", args.version)
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     # Combine the results and config into one dictionary

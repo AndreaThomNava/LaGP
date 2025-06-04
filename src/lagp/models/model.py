@@ -51,7 +51,8 @@ def model_gpboost(
     params = {
     "estimate_aux_pars": True,
     "init_aux_pars": np.array([0.1]),
-    "trace": False,
+   # "init_cov_pars": np.array([1,1]),
+    "trace": True,
     }
     # fit
     gpq.fit(X=train_X, y=train_y, params=params)
@@ -72,10 +73,11 @@ def model_gpboost(
 
     # extract hyper-parames
     cov_pars = gpq.get_cov_pars().to_dict()
+    print(cov_pars)
     flat_cov_pars = {group: next(iter(val.values())) for group, val in cov_pars.items()}
 
     noise_variance = np.float64(gpq.get_aux_pars()["scale"].iloc[0])
-
+    print(noise_variance)
     hyper_params = {**flat_cov_pars,
                     "noise_variance": noise_variance,
                     }

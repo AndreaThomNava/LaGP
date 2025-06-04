@@ -1,11 +1,13 @@
 # General parameters for data generation and splitting
 
 data_generation:
-  n_groups: [10] # [200,  1000]
-  group_size: [10, 100] #, 100, 500, 1000]
+  n_groups: [10, 100, 500, 1000] # [200,  1000]
+  group_size: [10, 100, 1000] #, 100, 500, 1000]
   
+  n_groups_2 : 50 # how many levels for the second random effect -->  group_size > n_groups_2
+                    # N/n_group_2, should be an integer
   signal_variance: 1.0 # for one grouped random effect
-  signal_variance_2: 1.0 # for second random effect
+  signal_variance_2: 2.0 # for second random effect
   
   fixed_srn: True
   snr: 5.0
@@ -18,7 +20,7 @@ data_generation:
     "chi": {"df": 2, "scale": 0.1}
   }
   replicate: 5
-  test_size: 0.2
+  test_size: 0.8
   randeff: "Two_completely_crossed_random_effects" # "One_random_effect"
   output_folder: "simulated_data_mm"
   random_state: 123
@@ -26,7 +28,7 @@ data_generation:
 
   # FIXED EFFECTS
   num_covariates: 5
-  has_F: True
+  has_F: False
   factor_m2: 1.0
   
 
@@ -43,8 +45,8 @@ data_generation:
   
 models: ["gpboost_cc", "gpboost_lls"] #, "gpboost_cc_var_corr"]
 replicate: 2
-n_groups: [10] #,  1000]
-group_size: [10, 100] #, 100, 500] #, 100] #, 500, 1000]
+n_groups: [10, 100, 500, 1000] # [200,  1000]
+group_size: [10, 100, 1000] #, 100, 500, 1000]
 likelihood: ["ald", "gaussian"]
 randeff: "Two_completely_crossed_random_effects"
 
@@ -59,8 +61,8 @@ gpb_approxs: {"gpboost_lls": "asymmetric_laplace_constant_curvature_fisher_mode_
 
 
 ##### for the analysis of the results ######
-all_models : ["gpboost_cc", "gpboost_lls", "gpboost_cc_var_corr", "lqmm", "brms"]
-models_with_hyperparams : ["gpboost_cc", "gpboost_lls","gpboost_cc_var_corr","lqmm", "brms"]
+all_models : ["gpboost_cc", "gpboost_lls"] #, "gpboost_cc_var_corr", "lqmm", "brms"]
+models_with_hyperparams : ["gpboost_cc", "gpboost_lls"] #,"gpboost_cc_var_corr","lqmm", "brms"]
 
 
 name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpboost_cc_var_corr": "CC corr",

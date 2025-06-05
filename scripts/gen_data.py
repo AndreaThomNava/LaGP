@@ -42,6 +42,7 @@ def gen_data(name_config_file: str):
         pars = compute_dict_pars(signal_variance=signal_variance,
                                  snr = snr,
                                  quantile=sim_config["pars"]["ald"]["q"])
+        print(pars)
         mu_dict = compute_u_scale_gp(signal_variance=signal_variance, pars = pars)
     else:
         pars = config["simulation"]["pars"]

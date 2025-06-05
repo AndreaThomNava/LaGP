@@ -105,6 +105,8 @@ def simulate_latentGP(
     X_torch = torch.tensor(X, dtype=torch.float)
     # Evaluate the kernel
     covar = kernel(X_torch) #, X_torch).evaluate()#, X_torch).evaluate()
+    print(covar.evaluate())
+    print(kernel.base_kernel.lengthscale)
     mean = torch.zeros(N)  # Zero mean GP
 
     mvn = gpy.distributions.MultivariateNormal(mean, covar)
@@ -261,6 +263,31 @@ def load_data(likelihood, sample_size, input_dim, replicate, train_split, file_p
 
     return f, X_train, y_train, X_test, y_test
 
+
+def load_full_data(likelihood, sample_size, input_dim, replicate, train_split, file_path = None):
+    """
+    Load data from a .npz file containing X, y, and optionally f.
+    Assumes the function is called from the root directory, so that paths work as expected.
+
+    Input:
+
+
+    Output:
+
+    """
+    folder_name = f"{sample_size}_{input_dim}"
+    file_name = f"data_replicate_{replicate}.npz"
+    if file_path is None:
+        file_path = os.path.join(
+            "data", "simulated_data", folder_name, likelihood, file_name
+        )
+    # print(f"path: {file_path}")
+    data = np.load(file_path)
+    X = data["X"]
+    y = data["y"]
+    f = data["f"]
+
+    return f, X, y
 
 
 def load_scale_gp(likelihood, sample_size, input_dim, replicate, file_path=None):

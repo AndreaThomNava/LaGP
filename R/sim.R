@@ -178,7 +178,8 @@ results <- fit_models_on_all_datasets_parallel(configs = configs_sim, models = m
                                                num_replicates = num_replicates)
 
 # Save the results
-OUTPUT_DIR <- "results/simulation"
+version <- "001"
+OUTPUT_DIR <- paste0("results/simulation/", version)
 dir.create(OUTPUT_DIR, showWarnings = FALSE)
 
 # Combine results and config into one list

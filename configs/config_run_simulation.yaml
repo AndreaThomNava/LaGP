@@ -1,8 +1,8 @@
 simulation:
   seed: 43
   grid_lims: [0, 1]
-  sample_sizes: [1000, 5000, 10000] #, 10000] #, 5000, 10000]  # Different sample sizes for datasets
-  dimensions: [1, 2] # , 5]  # 1D, 2D, or 3D datasets
+  sample_sizes: [1000, 5000, 10000, 20000] #, 5000, 10000] #, 10000] #, 5000, 10000]  # Different sample sizes for datasets
+  dimensions: [1, 2, 3] # , 5]  # 1D, 2D, or 3D datasets
   likelihoods: 
      - gaussian
    # - t
@@ -20,7 +20,7 @@ simulation:
     "chi": {"df": 2, "scale": 0.1}
   }
   # useless noise_levels: [0.1, 0.2, 0.3]  # Noise levels for adding to data
-  replicates: 5
+  replicates: 50
 
 # update also simulation config
 gp_parameters:

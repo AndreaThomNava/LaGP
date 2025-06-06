@@ -13,6 +13,7 @@ from lagp.utils.generate_data import (
     simulate_response,
     compute_dict_pars,
     compute_u_scale_gp,
+    load_latent_from_file,
 )
 
 
@@ -61,9 +62,9 @@ def gen_data(name_config_file: str):
             print(f"Generating data for sample size: {sample_size}, dimension: {dim}")
 
             # Prepare the grid (same for all likelihoods)
-            X = generate_input_grid(
-                d=dim, sample_size=sample_size, lims=sim_config["grid_lims"]
-            )  # Grid of input points
+            #X = generate_input_grid(
+             #   d=dim, sample_size=sample_size, lims=sim_config["grid_lims"]
+            #)  # Grid of input points
 
             # Generate the latent function (same for all likelihoods)
             nu = gp_config["kernel"]["nu"]
@@ -80,14 +81,16 @@ def gen_data(name_config_file: str):
 
 
             # generate num_replicates indipendent samples
+            Xs = []
             Fs = []
             Gs = []
             for _ in range(sim_config["replicates"]):
-                f = simulate_latentGP(X, kernel, n_samples=1)# * 2
-                f = f.reshape(sample_size)
+                X, f, g = load_latent_from_file(dim, sample_size, _, base_path="data/simulated_latent")
+                Xs.append(X)
+                f = f.reshape(sample_size) 
                 Fs.append(f)
                 # generate heteroscedastic GP
-                g = simulate_latentGP(X, kernel, n_samples=1)
+                #g = simulate_latentGP(X, kernel, n_samples=1)
                 g = g.reshape(sample_size)
                 Gs.append(g)
 
@@ -114,6 +117,7 @@ def gen_data(name_config_file: str):
                     print(f"  Replicate {replicate + 1}/{sim_config['replicates']}")
                     f = Fs[replicate]
                     g = Gs[replicate]
+                    X = Xs[replicate]
                     if fixed_snr:
                         mu = mu_dict[noise]
                         g = g + mu

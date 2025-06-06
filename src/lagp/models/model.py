@@ -44,7 +44,7 @@ def model_gpboost(
     gpq = gpb.GPModel(
         group_data=group_train,
         likelihood=approx,
-        likelihood_additional_param=quantile,
+        likelihood_additional_param=quantile if approx != "gaussian" else 1.,
         cover_tree_radius=delta_logl,
         num_parallel_threads=2,
         )
@@ -55,7 +55,11 @@ def model_gpboost(
     "trace": True,
     }
     # fit
-    gpq.fit(X=train_X, y=train_y, params=params)
+    if approx != "gaussian":
+        gpq.fit(X=train_X, y=train_y, params=params)
+    else:
+        gpq.fit(X=train_X, y=train_y)
+
 
     # predict (contains also fixed effects predictors)
     pred = gpq.predict(
@@ -73,10 +77,11 @@ def model_gpboost(
 
     # extract hyper-parames
     cov_pars = gpq.get_cov_pars().to_dict()
-    print(cov_pars)
-    flat_cov_pars = {group: next(iter(val.values())) for group, val in cov_pars.items()}
+    if approx == "gaussian":
+        print(cov_pars)
+    flat_cov_pars = {group: next(iter(val.values())) for group, val in cov_pars.items() if "Group_" in group}
 
-    noise_variance = np.float64(gpq.get_aux_pars()["scale"].iloc[0])
+    noise_variance = np.float64(gpq.get_aux_pars()["scale"].iloc[0]) if approx != "gaussian" else cov_pars["Error_term"]["Param."]
     print(noise_variance)
     hyper_params = {**flat_cov_pars,
                     "noise_variance": noise_variance,

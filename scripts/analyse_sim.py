@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--results_name", type = str,
-                        default = "simulation_results.pkl",
+                        default = "simulation_results_python.pkl",
                         help="Name of the results.pkl file")
     parser.add_argument("--configs", type = str,
                         default = "configs/config_test.yaml",
@@ -68,8 +68,8 @@ if __name__ == "__main__":
         configs = yaml.safe_load(f)
 
     randeff = configs["randeff"]
-    RESULT_PATH = os.path.join("results/simulation_mm", f"{randeff}", args.results_name)
-    OUTPUT_DIR = f"results/simulation_mm/{randeff}_{args.version}"
+    RESULT_PATH = os.path.join("results/simulation_mm", f"{randeff}",args.version, args.results_name)
+    OUTPUT_DIR = f"results/simulation_mm/{randeff}/{args.version}"
     
     latex_table, hyper_latex_table= run_analysis(RESULT_PATH, CONFIGS_PATH, OUTPUT_DIR) # , hyper_latex_table 
     # save it

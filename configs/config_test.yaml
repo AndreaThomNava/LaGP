@@ -1,10 +1,10 @@
 # General parameters for data generation and splitting
 
 data_generation:
-  n_groups: [10, 100, 500, 1000] # [200,  1000]
-  group_size: [10, 100, 1000] #, 100, 500, 1000]
+  n_groups: [100, 500] # [200,  1000]
+  group_size: [500] #, 1000] #, 100, 500, 1000]
   
-  n_groups_2 : 50 # how many levels for the second random effect -->  group_size > n_groups_2
+  n_groups_2 : 500 # how many levels for the second random effect -->  group_size > n_groups_2
                     # N/n_group_2, should be an integer
   signal_variance: 1.0 # for one grouped random effect
   signal_variance_2: 2.0 # for second random effect
@@ -43,10 +43,10 @@ data_generation:
 
 ##### for running simulation ########
   
-models: ["gpboost_cc", "gpboost_lls"] #, "gpboost_cc_var_corr"]
-replicate: 2
-n_groups: [10, 100, 500, 1000] # [200,  1000]
-group_size: [10, 100, 1000] #, 100, 500, 1000]
+models:  ["gpboost_normal", "gpboost_cc", "gpboost_lls", "gpboost_fisher"] #, "gpboost_cc_var_corr"] "gpboost_cc", "gpboost_lls",
+replicate: 5
+n_groups: [500] # [200,  1000]
+group_size: [500]
 likelihood: ["ald", "gaussian"]
 randeff: "Two_completely_crossed_random_effects"
 
@@ -54,20 +54,24 @@ randeff: "Two_completely_crossed_random_effects"
 delta_logl: 10
 alpha: 0.9
 target_quantile: 0.8
-gpb_approxs: {"gpboost_lls": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
+gpb_approxs: {"gpboost_fisher": "asymmetric_laplace",
+            "gpboost_lls": "asymmetric_laplace_lls_laplace_fisher_mode_finding",
             "gpboost_cc": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
-            "gpboost_cc_var_corr": "asymmetric_laplace_constant_curvature_fisher_mode_finding_var_cor_pred"}
+            "gpboost_cc_var_corr": "asymmetric_laplace_constant_curvature_fisher_mode_finding_var_cor_pred",
+            "gpboost_normal": "gaussian"}
 
 
 
 ##### for the analysis of the results ######
-all_models : ["gpboost_cc", "gpboost_lls"] #, "gpboost_cc_var_corr", "lqmm", "brms"]
-models_with_hyperparams : ["gpboost_cc", "gpboost_lls"] #,"gpboost_cc_var_corr","lqmm", "brms"]
+all_models : ["gpboost_normal", "gpboost_cc", "gpboost_lls", "gpboost_fisher"] # ["gpboost_cc", "gpboost_lls", "gpboost_normal"] #, "gpboost_cc_var_corr", "lqmm", "brms"]
+models_with_hyperparams: ["gpboost_normal", "gpboost_cc", "gpboost_lls", "gpboost_fisher"] #["gpboost_cc", "gpboost_lls", "gpboost_normal"] #,"gpboost_cc_var_corr","lqmm", "brms"]
 
 
 name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpboost_cc_var_corr": "CC corr",
-           "brms": "BRMS", "lqmm":"LQMM"}
+           "brms": "BRMS", "lqmm":"LQMM", "gpboost_normal": "gpbN", "gpboost_fisher": GPFisher}
            
 likelihood_dict : {"gaussian":"N", "ald": "ALD", "t":"t", "chi":"chi", "ald_heteroscedastic": HetALD}
+
+
 
 

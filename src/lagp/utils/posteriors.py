@@ -44,7 +44,9 @@ def laplace_approx(Y, approx, min_dec, quantile, num_groups, group_size):
     mode = re_estimate.iloc[0,0]
     pred_var = re_estimate.iloc[0,1]
 
-    return re_estimate, mode, pred_var, nll
+    estimated_scale = gpq.get_aux_pars()["scale"]["Param."]
+
+    return re_estimate, mode, pred_var, nll, estimated_scale
 
 def plot_posteriors(bs, Y, quantile, scale, re_std, laplace_mean, laplace_var, log_normalising_constant):
 

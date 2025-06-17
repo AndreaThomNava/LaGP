@@ -46,24 +46,30 @@ def compute_naive_log_marglik(Y, group_size, num_groups, quantile, scale, re_std
 
 
 
-def gpboost_nll_min_dec(Y, laplace_approx, min_dec, num_groups, group_size, quantile, scale):
+def gpboost_nll_min_dec(Y, laplace_approx, min_dec, num_groups, group_size, quantile, scale, estimate_scale = True):
     # Step 4: Fit GPBoost model with specified Laplace approximation
     gpq = gpb.GPModel(group_data= np.repeat(range(num_groups), repeats = group_size),
                 likelihood=laplace_approx, 
                 likelihood_additional_param = quantile,
                 cover_tree_radius = min_dec)
     # need to estimate extra params
-    params = {"estimate_aux_pars": True, "init_aux_pars" : np.array([scale]), "trace":False}
+    params = {"estimate_aux_pars": estimate_scale, "init_aux_pars" : np.array([scale]), "trace":False}
     # do i need to fit it?
     gpq.fit(X = np.ones(group_size*num_groups), y=Y, params = params) 
     # obtain neg ll via laplace approximation
     gpb_nll = gpq.neg_log_likelihood(cov_pars=[1.], y = Y) 
     gpb_nll_current = gpq.get_current_neg_log_likelihood() 
+
+    if estimate_scale:
+        # get the scale parameter
+        scale_est = gpq.get_aux_pars()["scale"]["Param."] #["Param. "]
+    else:
+        scale_est = np.array([scale])    
     
-    return gpq, gpb_nll, gpb_nll_current
+    return gpq, gpb_nll, gpb_nll_current, scale_est
 
 
-def compute_aghq(Y, group_size, num_groups, predicted_re, quantile, scale, re_std, K=100):
+def compute_aghq(Y, group_size, num_groups, predicted_re, quantile, scale, re_std, K=100, use_pred_var=True):
     
     nodes, weights = roots_hermite(K)
     # why?
@@ -77,9 +83,10 @@ def compute_aghq(Y, group_size, num_groups, predicted_re, quantile, scale, re_st
     for group in range(num_groups):
         yc = Y[group_size*group : group_size*(group+1)]
         mode = predicted_re.iloc[group_size*group, 0]
-        sigma = np.sqrt(predicted_re.iloc[0, 1])
-        # try fixed for a sec
-        sigma = 0.2
+        if use_pred_var:
+            sigma = np.sqrt(predicted_re.iloc[0, 1])
+        else: 
+            sigma = 0.2
         eval_points = mode + np.sqrt(2) * sigma * nodes
         x_i = np.log(adaptive_weights) + g(y=yc, eval_points=eval_points)
         logsum = logsumexp(x_i)
@@ -98,7 +105,9 @@ def run_simulation(
     min_decreases,
     K,
     B,
-    misspecified
+    misspecified,
+    estimate_scale=True,
+    use_pred_var = True
 ):
     gps = {str(min_dec): [] for min_dec in min_decreases}
     naives = {str(min_dec): [] for min_dec in min_decreases}
@@ -125,7 +134,7 @@ def run_simulation(
         )
 
         for min_dec in min_decreases:
-            gpq, gpboost_ll, gpboost_ll_current = gpboost_nll_min_dec(
+            gpq, gpboost_ll, gpboost_ll_current, used_scale = gpboost_nll_min_dec(
                 Y=Y,
                 laplace_approx=laplace_approximation,
                 min_dec=min_dec, 
@@ -133,6 +142,7 @@ def run_simulation(
                 group_size = group_size,
                 quantile=quantile,
                 scale=scale,
+                estimate_scale=estimate_scale,
             
             )
 
@@ -144,9 +154,10 @@ def run_simulation(
                 num_groups= num_groups,
                 predicted_re=predicted_re, 
                 quantile=quantile,
-                scale=scale,
+                scale=used_scale, # IMPORTANT: use the scale estimated by GPBoost
                 re_std=re_std,
-                K = K
+                K = K,
+                use_pred_var=use_pred_var
                 
             )
 

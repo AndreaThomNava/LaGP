@@ -1,13 +1,13 @@
 simulation:
   seed: 43
   grid_lims: [0, 1]
-  sample_sizes: [20000, 100000] #, 5000, 10000, 20000] #, 5000, 10000] #, 10000] #, 5000, 10000]  # Different sample sizes for datasets
-  dimensions: [2] # , 5]  # 1D, 2D, or 3D datasets
+  sample_sizes: [100] #, 100000] #, 5000, 10000, 20000] #, 5000, 10000] #, 10000] #, 5000, 10000]  # Different sample sizes for datasets
+  dimensions: [1] # , 5]  # 1D, 2D, or 3D datasets
   likelihoods: 
      - gaussian
    # - t
    # - chi
-    # - ald
+     - ald
     #- ald_heteroscedastic # testing heteroscedasticity
   
   # Simulation Settings
@@ -49,9 +49,9 @@ alpha: 0.9
 train_split: 0.75
 
 # for python
-models: ["gpboost_normal" ] #, "gpboost_cc"] # ["gpboost_cc", "gpboost_lls", "gpboost_fisher", "gpboost_normal"] #["gpboost_cc", "gpboost_cc_var_corr", "VIVA"] #, "qgam"] "gpytorch"
+models: ["gpboost_normal", "gpboost_cc", "gpboost_fisher" ] #, "gpboost_cc"] # ["gpboost_cc", "gpboost_lls", "gpboost_fisher", "gpboost_normal"] #["gpboost_cc", "gpboost_cc_var_corr", "VIVA"] #, "qgam"] "gpytorch"
 # hyper-params --> useful for producing later results
-models_with_hyperparams: ["gpboost_normal"] #, "gpboost_cc"] #["gpboost_cc", "gpboost_lls", "gpboost_fisher", "gpboost_normal"] #"gpboost_cc_var_corr", "gpytorch", "VIVA"]
+models_with_hyperparams: ["gpboost_normal", "gpboost_fisher", "gpboost_cc"] #, "gpboost_cc"] #["gpboost_cc", "gpboost_lls", "gpboost_fisher", "gpboost_normal"] #"gpboost_cc_var_corr", "gpytorch", "VIVA"]
 
 gpb_approxs: {"gpboost_fisher": "asymmetric_laplace",
            "gpboost_lls": "asymmetric_laplace_lls_laplace_fisher_mode_finding",
@@ -72,7 +72,7 @@ name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpytorch": "VI", "qgam":
 likelihood_dict : {"gaussian":"N", "ald": "ALD", "t":"t", "chi":"chi", "ald_heteroscedastic": HetALD}
 
 # what I want to plot/make latex tables for
-all_models: ["gpboost_normal"] #, "gpboost_cc"] # ["gpboost_cc", "gpboost_lls", "gpboost_fisher", "gpboost_normal"] #gpboost_cc_var_corr", "gpytorch", "qgam", "vecchia_mcmc", "VIVA"] # ["gpboost_lls", "gpboost_cc", "gpytorch", "qgam"]
+all_models: ["gpboost_normal", "gpboost_cc", "gpboost_fisher"] #, "gpboost_cc"] # ["gpboost_cc", "gpboost_lls", "gpboost_fisher", "gpboost_normal"] #gpboost_cc_var_corr", "gpytorch", "qgam", "vecchia_mcmc", "VIVA"] # ["gpboost_lls", "gpboost_cc", "gpytorch", "qgam"]
 
 
 

@@ -9,11 +9,11 @@ from scipy.stats import norm
 
 from lagp.models.model import (  # Assuming you have these model functions
     model_gpboost, model_gpytorch, model_viva_gp)
-from lagp.utils.generate_data import  load_X_y_preprocessed, save_cv_splits, load_cv_splits, load_X_y, save_cv_splits_preprocessed
+from lagp.utils.generate_data import  load_X_y_preprocessed, load_cv_splits, save_cv_splits_preprocessed
 from lagp.utils.metrics import quantile_score
 
 
-def fit_and_evaluate_replicate(X, y, fold,
+def fit_and_evaluate_replicate(X, group_data, Y, fold,
     configs, models
 ):
     """
@@ -28,10 +28,14 @@ def fit_and_evaluate_replicate(X, y, fold,
         - metrics: dictionary with model names as keys and metrics as values
     """
 
-    train_idx = fold["train_idx"]
-    test_idx = fold["test_idx"]
-    X_train, X_test = X.iloc[train_idx,:], X.iloc[test_idx,:]
-    y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
+    X_train = X[fold["train_idx"]]
+    y_train = Y[fold["train_idx"]]  
+
+    X_test = X[fold["test_idx"]]    
+    y_test = Y[fold["test_idx"]]
+
+    group_train = group_data[fold["train_idx"]]
+    group_test = group_data[fold["test_idx"]]
 
     # Compute min and max from training data
     train_min = X_train.min(axis=0)
@@ -46,10 +50,6 @@ def fit_and_evaluate_replicate(X, y, fold,
     test_X_scaled = (X_test - train_min) / train_range  # use train stats!
 
     delta_logl = configs["delta_logl"]
-    n_epochs = configs["n_epochs"]
-    lr = configs["lr"]
-    threshold_approx = configs["threshold_approximation"]
-    inducing_points = configs["inducing_points"]
     target_quantile = configs["target_quantile"]
     gpb_approxs = configs["gpb_approxs"]
     
@@ -61,65 +61,36 @@ def fit_and_evaluate_replicate(X, y, fold,
          # Matches models starting with 'gpboost'
         if re.match(r"^gpboost", model_name):
             approx = gpb_approxs[model_name]
-            pred, elapsed_time, hyper_params = model_gpboost(
+            pred, res, elapsed_time, hyper_params = model_gpboost(
                 quantile=target_quantile,
-                train_X=train_X_scaled,
+                train_X=X_train,
+                group_train=group_train,
                 train_y=y_train,
-                test_X=test_X_scaled,
+                test_X=X_test,
+                group_test=group_test,
                 test_y=y_test,
                 approx=approx,
                 delta_logl=delta_logl,
-                n_vecchia= threshold_approx,
             )
 
-            latent_pred = pred["mu"]
+
+            # with fixed effects
+            pred_with_fixed_effects = pred["mu"]
+            stddev_pred = np.sqrt(pred["var"])
            
 
-        elif model_name == "gpytorch":
-            pred, elapsed_time, hyper_params = model_gpytorch(
-                quantile=target_quantile,
-                train_X=train_X_scaled,
-                train_y=y_train,
-                test_X=test_X_scaled,
-                test_y=y_test,
-                epochs=n_epochs,
-                lr = lr,
-                inducing_threshold=threshold_approx,
-                inducing_points=inducing_points
-            )
-
-            latent_pred = pred.mean.numpy()
-
-
-        elif model_name == "VIVA":
-            latent_pred, latend_std, elapsed_time, hyper_params = model_viva_gp(
-                quantile=target_quantile,
-                train_X=train_X_scaled,
-                train_y=y_train,
-                test_X=test_X_scaled,
-                test_y=y_test,
-                rho = 1.5, # fixed
-                lengthscale_init=0.25,
-                outputscale_init=0.25,
-                epochs=n_epochs,
-                use_ic0=True,
-                classify=False,
-            )
-
-
-
         # Compute quantile score
-        qs_loss = quantile_score(y = y_test, preds=latent_pred, quantile=target_quantile)
+        qs_loss = quantile_score(y = y_test, preds=pred_with_fixed_effects, quantile=target_quantile)
 
        
         # store results
+            # store results
         model_results[model_name] = {
             "quantile_loss": qs_loss,
             "time": elapsed_time,
-            "lengthscale": hyper_params["lengthscale"],
-            "signal_variance": hyper_params["signal_variance"],
-            "noise_variance": hyper_params["noise_variance"]
+            "hyper_params": hyper_params
         }
+
 
     return model_results
 
@@ -129,11 +100,11 @@ def fit_models_on_all_datasets_parallel(configs, models):
     results = {}
     n_splits = configs["n_splits"]
     # load from config
-    DIR =  "data/real_data"
+    DIR =  "data/real_data_mm"
     # Loop over datasets
     for df_name in configs["datasets"]:
         print(f"Dataset: {df_name}")
-        X, y = load_X_y_preprocessed(dataset_name=df_name, dir = DIR)
+        X, group_data, y = load_X_y_preprocessed(dataset_name=df_name, dir = DIR)
         folds = load_cv_splits(dataset_name=df_name, dir = DIR, n_splits = n_splits)
         # Store results for this configuration
         config_key = f"{df_name}"
@@ -144,7 +115,7 @@ def fit_models_on_all_datasets_parallel(configs, models):
             future_to_replicate = {
                 executor.submit(
                     fit_and_evaluate_replicate,
-                    X, y, folds[replicate],
+                    X, group_data, y, folds[replicate],
                     configs,
                     models,
                 ): replicate
@@ -169,10 +140,19 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config",
         type=str,
-        default="config_run_real.yaml",
+        default="config_mm_real.yaml",
         help="Path to the YAML config file",
     )
+
+    parser.add_argument(
+        "--version",
+        type=str,
+        default="001",
+        help="version number for the run (default: 001)",
+    )
+
     args = parser.parse_args()
+
     config_path = os.path.join("configs", args.config)
     with open(config_path, "r") as f:
         configs = yaml.safe_load(f)
@@ -189,7 +169,7 @@ if __name__ == "__main__":
 
     # Save the results
     # Ensure the results directory exists
-    OUTPUT_DIR = "results/real_data"
+    OUTPUT_DIR = f"results/real_data_mm/{args.version}"
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     # Combine the results and config into one dictionary

@@ -1,0 +1,20 @@
+target_quantile: 0.8
+
+delta_logl: 10
+models:  ["gpboost_normal"] #, "gpboost_cc", "gpboost_lls", "gpboost_fisher"] #, "gpb
+gpb_approxs: {"gpboost_fisher": "asymmetric_laplace",
+            "gpboost_lls": "asymmetric_laplace_lls_laplace_fisher_mode_finding",
+            "gpboost_cc": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
+            "gpboost_cc_var_corr": "asymmetric_laplace_constant_curvature_fisher_mode_finding_var_cor_pred",
+            "gpboost_normal": "gaussian"}
+
+
+
+datasets: ["cars"]
+
+n_splits: 2
+
+
+#### ANALYSIS ###
+all_models: ["gpboost_normal"] # also eventually Qgam
+name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpboost_cc_var_corr": "CC corr", "brms": "BRMS", "lqmm":"LQMM", "gpboost_normal": "gpbN", "gpboost_fisher": GPFisher}

@@ -82,7 +82,8 @@ def make_flattened_df_real(results: pd.DataFrame) -> pd.DataFrame:
             "model" : model, 
             "dataset": dataset,
             "replicate": replicate,
-            **metrics,
+            **{k: v for k, v in metrics.items() if k != "hyper_params"},
+            **flatten_hyper_params(metrics.get("hyper_params", {}))
         }
         for dataset, reps in results.items()
         for replicate, rep_result in reps.items()
@@ -599,7 +600,7 @@ def make_plots_hypers(df, configs, metrics, pars, OUTPUT_DIR):
 
 
     
-def make_plots_real(df, metrics):
+def make_plots_real(df, metrics, OUTPUT_DIR):
     """
     Make plots about results.
 
@@ -609,10 +610,9 @@ def make_plots_real(df, metrics):
     # Example for plotting with sample_size on x-axis and color by method
     # sns.set(style="whitegrid")  
 
-    OUTPUT_DIR = Path("results/real_data/images")
+    OUTPUT_DIR = Path(os.path.join(OUTPUT_DIR, "images"))
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    
     for metric in metrics:
         plt.figure(figsize=(10, 6))
         sns.boxplot(data=df, x="dataset", y=f"{metric}", hue="model", palette="Set2", showmeans=True)

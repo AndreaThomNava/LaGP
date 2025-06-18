@@ -404,65 +404,68 @@ def load_scale_gp(likelihood, sample_size, input_dim, replicate, file_path=None)
 
 ########################  FOR REAL DATASETS ##################
 
-def load_X_y(dataset_name, dir):
-    path = os.path.join(dir, f"{dataset_name}.csv")
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"Dataset '{dataset_name}' not found at {path}")
+def prepare_real_data(dataset_name, dir="data/real_data_mm", subsample: bool = False):
 
-    df = pd.read_csv(path)
+    my_data = pd.read_csv(os.path.join(dir, f"{dataset_name}.csv"))
 
-    if dataset_name == "bike":
-        # Example: predict count from weather and time features
-        y = df["cnt"]
-        X = df.drop(columns=["cnt", "casual", "registered", "dteday"])
-    
-    elif dataset_name == "house":
-        y = df["median_house_value"]
-        X = df.drop(columns=["median_house_value"])
-    
-    elif dataset_name == "power":
-        y = df["Global_active_power"]
-        X = df.drop(columns=["Global_active_power"])
-    
-    elif dataset_name == "protein":
-        y = df["target"] if "target" in df else df.iloc[:, -1]
-        X = df.drop(columns=[y.name])
-    
-    elif dataset_name == "elevators":
-        y = df["failure"] if "failure" in df else df.iloc[:, -1]
-        X = df.drop(columns=[y.name])
-    else:
-        raise ValueError(f"Unknown dataset name: {dataset_name}")
+    if subsample: 
+        # Subsample to 1000 rows for faster processing
+        my_data = my_data.sample(n=1000, random_state=42)
+        
+           
+    if dataset_name == "cars":
+        # Categorical variables
+        cat_vars = ["model_id"] #, "location_id"]
+        group_data_df = my_data[cat_vars]
 
-    return X, y
+        # Convert categorical variables to numeric factor-like codes
+        group_data = group_data_df.apply(lambda col: col.astype("category").cat.codes)
 
+        # If you need it as a NumPy array (like the R matrix)
+        group_data_np = group_data.to_numpy()
+
+        # Drop target and specified dummy columns
+        excluded_cols = [
+            "price", "model_id", "location_id",
+            "manufacturerbmw", "conditionexcellent", "fueldiesel", "title_statusclean",
+            "transmissionautomatic", "drive4wd", "sizecompact", "typebus", "paint_colorblack"
+        ]
+        feat_cols = [col for col in my_data.columns if col not in excluded_cols]
+        X = my_data[feat_cols].to_numpy()
+        # Add intercept term
+        intercept = np.ones((X.shape[0], 1))
+        X = np.hstack([intercept, X])        
+        # Response
+        Y = np.log(my_data["price"].to_numpy())
+
+
+    np.savez_compressed(
+        os.path.join(dir, f"{dataset_name}_preprocessed.npz"),
+        X=X,
+        group_data=group_data_np,
+        Y=Y
+    )
+
+    
 def load_X_y_preprocessed(dataset_name, dir):
-    path = os.path.join(dir, f"{dataset_name}.txt")
+    
+    path = os.path.join(dir, f"{dataset_name}_preprocessed.npz")
     if not os.path.exists(path):
         raise FileNotFoundError(f"Dataset '{dataset_name}' not found at {path}")
-
-    if dataset_name in ["protein", "elevators"]:
-        df = pd.read_csv(path, sep=" ", header=None)
-    else:
-        df = pd.read_csv(path, sep=" ")
-
-    # Features & Response
-    X = df.iloc[:, 1:]
-    y = df.iloc[:, 0]
-
-    #X = X.values  # Selecting multiple features
-    #y = y.values  # Selecting the target variable
-
     
+    data = np.load(path)
+    X = data["X"]   
+    group_data = data["group_data"]
+    y = data["Y"]
 
-    return X, y
+    return X, group_data, y
 
 
-def save_cv_splits(dataset_name, n_splits=5, dir="data/real_data", seed=42):
+def save_cv_splits_preprocessed(dataset_name, n_splits=5, dir="data/real_data_mm", seed=42):
     kf = KFold(n_splits=n_splits, shuffle=True, random_state=seed)
     os.makedirs(dir, exist_ok=True)
 
-    X, y = load_X_y(dataset_name=dataset_name, dir = dir)
+    X, group_data, y = load_X_y_preprocessed(dataset_name=dataset_name, dir = dir)
 
     splits = []
     for fold_idx, (train_idx, test_idx) in enumerate(kf.split(X, y)):
@@ -470,6 +473,8 @@ def save_cv_splits(dataset_name, n_splits=5, dir="data/real_data", seed=42):
             "fold": fold_idx,
             "train_idx": train_idx.tolist(),
             "test_idx": test_idx.tolist(),
+            "train_groups": group_data[train_idx].tolist(),
+            "test_groups": group_data[test_idx].tolist(),
         })
 
     out_path = os.path.join(dir, f"{dataset_name}_cv{n_splits}_splits.json")
@@ -479,28 +484,7 @@ def save_cv_splits(dataset_name, n_splits=5, dir="data/real_data", seed=42):
     print(f"Saved {n_splits}-fold CV splits for '{dataset_name}' to {out_path}")
 
 
-def save_cv_splits_preprocessed(dataset_name, n_splits=5, dir="data/real_data", seed=42):
-    kf = KFold(n_splits=n_splits, shuffle=True, random_state=seed)
-    os.makedirs(dir, exist_ok=True)
-
-    X, y = load_X_y_preprocessed(dataset_name=dataset_name, dir = dir)
-
-    splits = []
-    for fold_idx, (train_idx, test_idx) in enumerate(kf.split(X, y)):
-        splits.append({
-            "fold": fold_idx,
-            "train_idx": train_idx.tolist(),
-            "test_idx": test_idx.tolist(),
-        })
-
-    out_path = os.path.join(dir, f"{dataset_name}_cv{n_splits}_splits.json")
-    with open(out_path, "w") as f:
-        json.dump(splits, f)
-    
-    print(f"Saved {n_splits}-fold CV splits for '{dataset_name}' to {out_path}")
-
-
-def load_cv_splits(dataset_name, dir="data/real_data_splits", n_splits=5):
+def load_cv_splits(dataset_name, dir="data/real_data_mm", n_splits=5):
     path = os.path.join(dir, f"{dataset_name}_cv{n_splits}_splits.json")
     with open(path, "r") as f:
         splits = json.load(f)

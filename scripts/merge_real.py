@@ -35,23 +35,22 @@ def main():
     # Argument parsing
     parser = argparse.ArgumentParser(description="Merge results from two pickle files.")
     parser.add_argument('pickle_file_1', nargs='?',
-                        default = "simulation_results_python.pkl",
+                        default = "real_data_results_python.pkl",
                         type=str, help="Path to the first pickle file.")
     parser.add_argument('pickle_file_2', nargs='?',
-                        default = "simulation_results_R.pkl",
+                        default = "real_data_results_R.pkl",
                         type=str, help="Path to the second pickle file.")
     parser.add_argument('output_file', nargs='?',
-                        default = "simulation_results.pkl",
+                        default = "real_data_results.pkl",
                         type=str, help="Path to save the merged results.")
     
     parser.add_argument('configs', nargs='?',
-                        default = "configs/config_test.yaml",
+                        default = "configs/config_mm_real.yaml",
                         type=str, help="Path to experiment config.")
     
     parser.add_argument('version', nargs='?',
                         default = "001",
                         type=str, help="version number.")
-    
     
     args = parser.parse_args()
 
@@ -59,9 +58,8 @@ def main():
     with open(CONFIGS_PATH, "r") as f:
         configs = yaml.safe_load(f)
 
-    randeff = configs["randeff"]
 
-    RESULTS_PATH = os.path.join("results", "simulation_mm",  f"{randeff}", args.version)
+    RESULTS_PATH = os.path.join("results", "real_data_mm", args.version)
     # Load the pickle files
     with open(os.path.join(RESULTS_PATH, args.pickle_file_1), "rb") as f1:
         res_python = pickle.load(f1)

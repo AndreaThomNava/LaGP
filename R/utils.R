@@ -3,6 +3,10 @@ library(cmdstanr)
 library(gptoolsStan)
 library(brms)
 library(lqmm)
+library(reticulate)
+
+os <- import("os")
+np <- import("numpy")
 
 # Quantile function for the Asymmetric Laplace Distribution
 quantile_func_asym_laplace <- function(x, q, scale) {
@@ -139,30 +143,34 @@ load_X_y <- function(dataset_name, dir) {
   return(list(X = X, y = y))
 }
 
+# Define the R version of load_X_y_preprocessed
 load_X_y_preprocessed <- function(dataset_name, dir) {
-  path <- file.path(dir, paste0(dataset_name, ".txt"))
-  if (!file.exists(path)) {
+  # Construct path
+  
+  path <- file.path(dir, paste0(dataset_name, "_preprocessed.npz"))
+  print(path)
+  # Check if file exists
+  if (!os$path$exists(path)) {
+    message(sprintf("DEBUG: File does not exist at %s", path))
     stop(sprintf("Dataset '%s' not found at %s", dataset_name, path))
   }
   
-  if (dataset_name %in% c("protein", "elevators")) {
-    df <- read.table(path, sep = " ", header = FALSE)
-  }
-  else {
-    df <- read.table(path, sep = " ", header = TRUE)
-  }
+  print("here 2")
   
+ 
+  # Load .npz file using numpy
+  data <- np$load(path, allow_pickle = TRUE)
+ 
+  # Extract components
+  X <- data[["X"]]
+  group_data <- data[["group_data"]]
+  Y <- data[["Y"]]
   
-  
-  # Features & Response
-  y <- df[[1]]
-  X <- df[, -1]
-  
-  return(list(X = X, y = y))
+  return(list(X = X, group_data = group_data, Y = Y))
 }
 
 
-load_cv_splits <- function(dataset_name, dir = "data/real_data", n_splits = 5) {
+load_cv_splits <- function(dataset_name, dir = "data/real_data_mm", n_splits = 5) {
   path <- file.path(dir, paste0(dataset_name, "_cv", n_splits, "_splits.json"))
   
   if (!file.exists(path)) {

@@ -18,7 +18,8 @@ sigma2 <- gp_parameters$kernel$signal_variance
 rho <- gp_parameters$kernel$lengthscale
 nu <- gp_parameters$kernel$nu
 
-
+ns <- 5000
+dims <- 1
 
 for (d in dims) {
   for (n in ns) {

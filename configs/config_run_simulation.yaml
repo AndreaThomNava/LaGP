@@ -53,7 +53,7 @@ models: ["gpboost_normal", "gpboost_cc", "gpboost_fisher" ] #, "gpboost_cc"] # [
 # hyper-params --> useful for producing later results
 models_with_hyperparams: ["gpboost_normal", "gpboost_fisher", "gpboost_cc"] #, "gpboost_cc"] #["gpboost_cc", "gpboost_lls", "gpboost_fisher", "gpboost_normal"] #"gpboost_cc_var_corr", "gpytorch", "VIVA"]
 
-gpb_approxs: {"gpboost_fisher": "asymmetric_laplace",
+gpb_approxs: {"gpboost_fisher": "asymmetric_laplace", # use continue as well, second order helps if not local!
            "gpboost_lls": "asymmetric_laplace_lls_laplace_fisher_mode_finding",
             "gpboost_cc": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
             "gpboost_cc_var_corr": "asymmetric_laplace_constant_curvature_fisher_mode_finding_var_cor_pred",

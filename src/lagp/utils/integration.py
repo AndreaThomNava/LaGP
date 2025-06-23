@@ -6,6 +6,7 @@ from scipy.integrate import quad, trapezoid
 import gpboost as gpb
 from scipy.special import roots_hermite
 from scipy.special import logsumexp
+from scipy.stats import norm
 import gpytorch as gpy
 import pymc as pm
 import torch.nn as nn
@@ -24,10 +25,13 @@ def simulate_grouped_response(group_size, num_groups, re_mean, re_std, quantile,
             x=np.random.uniform(0, 1, N), q=quantile, scale=scale
         )
         Y = random_effects + error
+        density_q = quantile * (1-quantile) / scale**2
     else:
-        Y = random_effects + np.random.normal(0, 1, size=N)
-    
-    return Y, group_effects
+        Y = random_effects + np.random.normal(0, scale, size=N)
+        f_0 = group_effects + norm.ppf(q=quantile, scale = scale)
+        density_q = norm.pdf(f_0, loc = group_effects, scale = scale)
+
+    return Y, group_effects, density_q
 
 
 def compute_naive_log_marglik(Y, group_size, num_groups, quantile, scale, re_std):

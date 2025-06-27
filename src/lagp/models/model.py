@@ -23,6 +23,7 @@ def model_gpboost(
     test_y: np.ndarray,
     approx: str,
     delta_logl: float,
+    estimate_hyper: bool,
 ) -> dict:
     """
     Fit the GPBoost model and predict on the test set.
@@ -48,12 +49,23 @@ def model_gpboost(
         cover_tree_radius=delta_logl,
         num_parallel_threads=2,
         )
-    params = {
-    "estimate_aux_pars": True,
-    "init_aux_pars": np.array([0.1]),
-   # "init_cov_pars": np.array([1,1]),
-    "trace": True,
-    }
+    
+    if estimate_hyper:
+        params = {
+        "estimate_aux_pars": True,
+        "init_aux_pars": np.array([0.1]),
+       #"init_cov_pars": np.array([1,1]),
+        "trace": True,
+        }
+    else:
+        params = {
+        "estimate_aux_pars": True,
+        "init_aux_pars": np.array([0.1]),
+        "init_cov_pars": np.array([1]), # set to true params
+        "estimate_cov_par_index": np.array([0]),
+        "trace": True,
+        }
+
     # fit
     if approx != "gaussian":
         gpq.fit(X=train_X, y=train_y, params=params)

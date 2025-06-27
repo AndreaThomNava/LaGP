@@ -95,13 +95,13 @@ def compute_bias_mse(true_param: np.ndarray, estimates: np.ndarray):
     return {"bias": bias, "mse": mse}
 
 
-def align_re(group_train, group_test, re, test_true_latent_quantile, pred_var):
+def align_re(group_train, group_test, re, test_true_latent_quantile, pred_std):
 
     group_train_df = pd.DataFrame({"group_id":group_train})
     group_test_df = pd.DataFrame({"group_id":group_test})
 
     predicted_re = pd.DataFrame({"pred_re": re["Group_1"]})
-    predicted_var = pd.DataFrame({"pred_var": pred_var})
+    predicted_var = pd.DataFrame({"pred_std": pred_std})
 
     train_re = pd.concat([group_train_df, predicted_re], axis = 1)
     test_re = pd.concat([group_test_df, pd.DataFrame({"true_re": test_true_latent_quantile})],axis = 1)
@@ -110,4 +110,15 @@ def align_re(group_train, group_test, re, test_true_latent_quantile, pred_var):
     # align by merging on id
     merged = test_re.merge(train_re, on = "group_id", how= "inner").drop_duplicates(subset="group_id")
 
-    return merged["true_re"], merged["pred_re"], merged["pred_var"]
+    return merged["true_re"], merged["pred_re"], merged["pred_std"]
+
+
+
+def compute_rmse(f_true, f_pred):
+    """
+    Returns the Root Mean Squared Error (RMSE) for the predicted quantiles.
+    """
+
+    rmse = np.sqrt(np.mean((f_true - f_pred)**2))
+
+    return rmse

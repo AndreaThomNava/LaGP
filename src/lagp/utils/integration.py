@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from lagp.utils.generate_data import quantile_func_asym_laplace, pdf_asym_laplace, generate_input_grid, simulate_latentGP, simulate_response
+from lagp.utils.generate_data import quantile_func_asym_laplace, pdf_asym_laplace, simulate_response
 from scipy import stats
 from scipy.integrate import quad, trapezoid
 import gpboost as gpb

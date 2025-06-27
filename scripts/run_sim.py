@@ -11,7 +11,7 @@ from lagp.models.model import (  # Assuming you have these model functions
     model_gpboost, model_gpytorch, model_viva_gp)
 from lagp.utils.generate_data import load_data, obtain_quantile, load_scale_gp
 from lagp.utils.metrics import (coverage_and_width, interval_score,
-                                quantile_score, align_re)
+                                quantile_score, align_re, compute_rmse)
 
 
 def fit_and_evaluate_replicate(
@@ -38,6 +38,8 @@ def fit_and_evaluate_replicate(
     gpb_approxs = configs["gpb_approxs"]
     target_quantile = configs["target_quantile"]
     randeff = configs["randeff"]
+    estimate_hyper = configs["estimate_hyper"]
+    print(f"estimating hyper-parameters: {estimate_hyper}")
     data = load_data(
         randeff=randeff,  # e.g., "Two_randomly_crossed_random_effects"
         likelihood=likelihood,
@@ -51,6 +53,7 @@ def fit_and_evaluate_replicate(
     test_X = data["X_test"]
     test_y = data["y_test"]
     group_train = data["group_train"]
+    print(group_train.shape)
     group_test = data["group_test"]
     eps_test = data["eps_test"]
 
@@ -85,17 +88,20 @@ def fit_and_evaluate_replicate(
                 test_y=test_y,
                 approx=approx,
                 delta_logl=delta_logl,
+                estimate_hyper=estimate_hyper,
             )
 
             # with fixed effects
             pred_with_fixed_effects = pred["mu"]
             stddev_pred = np.sqrt(pred["var"])
+          
+    
 
             if randeff == "One_random_effect":
                 # matches predicted random effects from training groups to test groups
-                true_re, pred_re, pred_std = align_re(group_train, group_test, res, test_true_latent_quantile, stddev_pred)
-                low_pred = pred_re - pred_std * t
-                up_pred = pred_re + pred_std * t
+                true_re, pred_re, stddev_pred = align_re(group_train, group_test, res, test_true_latent_quantile, stddev_pred)
+                low_pred = pred_re - stddev_pred * t
+                up_pred = pred_re + stddev_pred * t
 
             
         # Compute quantile score
@@ -107,6 +113,8 @@ def fit_and_evaluate_replicate(
                 pred_low=low_pred,
                 pred_up=up_pred,
                 alpha=alpha,)
+            
+            rmse= compute_rmse(f_true=true_re, f_pred=pred_re)
 
             # compute coverage and width
             coverage, width = coverage_and_width(
@@ -114,15 +122,18 @@ def fit_and_evaluate_replicate(
         
         else:
             interval_loss = np.nan
-            coverage, width = np.nan, np.nan
+            coverage, width, rmse = np.nan, np.nan, np.nan
+
+
 
 
         # store results
         model_results[model_name] = {
             "quantile_loss": qs_loss,
             "interval_loss": interval_loss,
+            "rmse": rmse,
             "coverage": coverage,
-             "width": width,
+            "width": width,
             "time": elapsed_time,
             "hyper_params": hyper_params
         }

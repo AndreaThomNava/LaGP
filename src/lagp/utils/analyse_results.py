@@ -140,6 +140,8 @@ def group_flattened_df(flat_df: pd.DataFrame) -> pd.DataFrame:
         quantile_loss_std=('quantile_loss', sem),
         interval_loss_mean=('interval_loss', 'mean'),
         interval_loss_std=('interval_loss', sem),
+        rmse_mean=('rmse', 'mean'),
+        rmse_std=('rmse', sem),
         coverage_mean=('coverage', 'mean'),
         coverage_std=('coverage', sem),
         width_mean=('width', 'mean'),

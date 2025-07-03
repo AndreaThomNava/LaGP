@@ -18,10 +18,13 @@ sigma2 <- gp_parameters$kernel$signal_variance
 rho <- gp_parameters$kernel$lengthscale
 nu <- gp_parameters$kernel$nu
 
-ns <- 5000
-dims <- 1
 
 for (d in dims) {
+  if (d > 2){
+    rho_d <- rho * sqrt(d/2)
+  } else {
+    rho_d <- rho
+  }
   for (n in ns) {
     for (b in 1:B) {
       
@@ -30,7 +33,7 @@ for (d in dims) {
       coords <- matrix(runif(n * d), ncol = d)
       
       # --- Latent GP (f) ---
-      RFmodel_f <- RMmatern(var = sigma2, notinvnu = TRUE, scale = rho, nu = nu)
+      RFmodel_f <- RMmatern(var = sigma2, notinvnu = TRUE, scale = rho_d, nu = nu)
       sim_f <- RFsimulate(RFmodel_f, x = coords)
       sim_f <- RFspDataFrame2conventional(sim_f)
       f <- sim_f$data

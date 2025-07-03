@@ -1,6 +1,7 @@
 library(RandomFields)
 library(reticulate)
 library(yaml)
+use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
 
 set.seed(2)
 

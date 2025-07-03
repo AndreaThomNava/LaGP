@@ -40,7 +40,7 @@ for (d in dims) {
       f <- sim_f$data
       
       # --- Heteroscedastic GP (g) ---
-      RFmodel_g <- RMmatern(var = sigma2, notinvnu = TRUE, scale = rho, nu = nu)  # You can change var here
+      RFmodel_g <- RMmatern(var = sigma2, notinvnu = TRUE, scale = rho_d, nu = nu)  # You can change var here
       sim_g <- RFsimulate(RFmodel_g, x = coords)
       sim_g <- RFspDataFrame2conventional(sim_g)
       g <- sim_g$data

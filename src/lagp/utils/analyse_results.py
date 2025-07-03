@@ -535,7 +535,7 @@ def make_plots_hypers(df, configs, metrics, version):
             df_filtered = df_filtered[df_filtered["likelihood"] == likelihood]
             # Assuming 'model_method' is the column representing different methods
 
-            effective_range = lengthscale # / 2.7
+            effective_range = lengthscale * np.sqrt(dim/2) if dim > 2 else lengthscale
             true_pars["lengthscale"] = effective_range
             for metric in metrics:
                 plt.figure(figsize=(10, 6))

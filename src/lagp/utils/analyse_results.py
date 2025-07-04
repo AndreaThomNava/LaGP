@@ -476,6 +476,7 @@ def make_plots(df, metrics, configs, version):
     likelihoods = df["likelihood"].unique()
 
     alpha = configs["alpha"]
+    target_quantile =  configs["target_quantile"]
 
     for likelihood in likelihoods:
         for dim in dims:
@@ -491,6 +492,8 @@ def make_plots(df, metrics, configs, version):
                     plt.axhline(y=alpha, color="red", linestyle="--", linewidth=1, label = f"Nominal Coverage: {alpha}")
                 elif metric == "time":
                       plt.yscale("log")
+                elif metric == "empirical_quantile":
+                    plt.axhline(y = target_quantile)
                 
                 # Add titles and labels
                 plt.title(f"{metric.replace("_", " ").title()} by Sample Size. Likelihood: {likelihood}. Dim: {dim}", fontsize=16, c = "black")

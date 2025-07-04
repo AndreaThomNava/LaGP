@@ -49,16 +49,16 @@ alpha: 0.9
 train_split: 0.75
 
 # for python
-models: ["gpboost_normal", "gpboost_cc", "gpboost_fisher", "gpboost_lls", "gpboost_ll2_v2", "gpytorch"] #,
+models: ["gpboost_normal", "gpboost_cc", "gpboost_fisher", "gpboost_lls", "gpboost_lls_v2", "gpytorch"] #,
 # hyper-params --> useful for producing later results
-models_with_hyperparams:  ["gpboost_normal", "gpboost_cc", "gpboost_fisher", "gpboost_lls", "gpboost_ll2_v2", "gpytorch"] #, "gpboost_cc"] #["gpboost_cc", "gpboost_lls", "gpboost_fisher", "gpboost_normal"] #"gpboost_cc_var_corr", "gpytorch", "VIVA"]
+models_with_hyperparams:  ["gpboost_normal", "gpboost_cc", "gpboost_fisher", "gpboost_lls", "gpboost_lls_v2", "gpytorch"] #, "gpboost_cc"] #["gpboost_cc", "gpboost_lls", "gpboost_fisher", "gpboost_normal"] #"gpboost_cc_var_corr", "gpytorch", "VIVA"]
 
 gpb_approxs: {"gpboost_fisher": "asymmetric_laplace_fisher_mode_finding", # use continue as well, second order helps if not local!
            "gpboost_lls": "asymmetric_laplace_lls_laplace_fisher_mode_finding",
             "gpboost_cc": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
             "gpboost_cc_var_corr": "asymmetric_laplace_constant_curvature_fisher_mode_finding_var_cor_pred",
             "gpboost_normal": "gaussian",
-            "gpboost_lls_v2": "asymmetric_laplace_lls_laplacev2_fisher_mode_finding"}
+            "gpboost_lls_v2": "asymmetric_laplace_lls_laplace_v2_fisher_mode_finding"}
 
 
 
@@ -73,7 +73,7 @@ name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpytorch": "VI", "qgam":
 likelihood_dict : {"gaussian":"N", "ald": "ALD", "t":"t", "chi":"chi", "ald_heteroscedastic": HetALD}
 
 # what I want to plot/make latex tables for
-all_models: ["gpboost_normal", "gpboost_cc", "gpboost_fisher", "gpboost_lls", "gpboost_ll2_v2", "gpytorch"] #, "gpboost_cc"] # ["gpboost_cc", "gpboost_lls", "gpboost_fisher", "gpboost_normal"] #gpboost_cc_var_corr", "gpytorch", "qgam", "vecchia_mcmc", "VIVA"] # ["gpboost_lls", "gpboost_cc", "gpytorch", "qgam"]
+all_models: ["gpboost_normal", "gpboost_cc", "gpboost_fisher", "gpboost_lls", "gpboost_lls_v2", "gpytorch"] #, "gpboost_cc"] # ["gpboost_cc", "gpboost_lls", "gpboost_fisher", "gpboost_normal"] #gpboost_cc_var_corr", "gpytorch", "qgam", "vecchia_mcmc", "VIVA"] # ["gpboost_lls", "gpboost_cc", "gpytorch", "qgam"]
 
 
 

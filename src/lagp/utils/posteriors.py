@@ -80,9 +80,13 @@ def generalised_laplace_approx(Y, approx, min_dec, quantile, num_groups, group_s
     gpq.fit(y=Y, params = params) 
     print(gpq.likelihood_learning_rate)
     nll = gpq.get_current_neg_log_likelihood()
-    re_estimate = gpq.predict_training_data_random_effects(predict_var=True)
-    mode = re_estimate.iloc[0,0]
-    pred_var = re_estimate.iloc[0,1]
+    re_estimate = gpq.predict(group_data_pred= np.repeat(range(num_groups), repeats = group_size),
+                              predict_response=False) # gpq.predict_training_data_random_effects(predict_var=True)
+    #mode = re_estimate.iloc[0,0]
+    #pred_var = re_estimate.iloc[0,1]
+
+    mode = re_estimate["mu"]
+    pred_var = re_estimate
 
     estimated_scale = gpq.get_aux_pars()["scale"]["Param."]
 

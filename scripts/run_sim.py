@@ -153,11 +153,15 @@ def fit_and_evaluate_replicate(
         # compute empirical quantile (to investigate bias)
         empirical_quantile = (test_y <= latent_pred).mean()
 
+        # compute bias
+        bias = (latent_pred - test_true_latent_quantile).mean()
+
         # store results
         model_results[model_name] = {
             "quantile_loss": qs_loss,
             "interval_loss": interval_loss,
             "rmse": rmse,
+            "bias": bias,
             "empirical_quantile":empirical_quantile,
             "coverage": coverage,
             "width": width,

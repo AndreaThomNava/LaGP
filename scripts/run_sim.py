@@ -74,7 +74,7 @@ def fit_and_evaluate_replicate(
         if re.match(r"^gpboost", model_name):
             approx = gpb_approxs[model_name]
            
-            pred, elapsed_time, hyper_params = model_gpboost(
+            pred, pred_train, elapsed_time, hyper_params = model_gpboost(
                 quantile=target_quantile,
                 train_X=train_X,
                 train_y=train_y,
@@ -89,6 +89,13 @@ def fit_and_evaluate_replicate(
             stddev_pred = np.sqrt(pred["var"])
             low_pred = latent_pred - stddev_pred * t
             up_pred = latent_pred + stddev_pred * t
+
+            # train prediction interval
+            latent_pred_train = pred_train["mu"]
+            stddev_pred_train = np.sqrt(pred_train["var"])  
+            low_pred_train = latent_pred_train - stddev_pred_train * t
+            up_pred_train = latent_pred_train + stddev_pred_train * t
+
 
         elif model_name == "gpytorch":
             pred, elapsed_time, hyper_params = model_gpytorch(
@@ -134,6 +141,7 @@ def fit_and_evaluate_replicate(
 
         # Compute interval score
         len_train = len(train_y)
+        train_true_latent_quantile = true_latent_quantile[:len_train]
         test_true_latent_quantile = true_latent_quantile[len_train:]
         interval_loss = interval_score(
             y=test_true_latent_quantile,
@@ -150,6 +158,9 @@ def fit_and_evaluate_replicate(
             y=test_true_latent_quantile, pred_low=low_pred, pred_up=up_pred
         )
 
+        train_coverage, train_width = coverage_and_width(
+            y=train_true_latent_quantile, pred_low=low_pred_train, pred_up=up_pred_train)
+
         # compute empirical quantile (to investigate bias)
         empirical_quantile = (test_y <= latent_pred).mean()
 
@@ -165,6 +176,8 @@ def fit_and_evaluate_replicate(
             "empirical_quantile":empirical_quantile,
             "coverage": coverage,
             "width": width,
+            "train_coverage": train_coverage,
+            "train_width": train_width,
             "time": elapsed_time,
             "lengthscale": hyper_params["lengthscale"],
             "signal_variance": hyper_params["signal_variance"],

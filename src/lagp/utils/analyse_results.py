@@ -130,6 +130,8 @@ def group_flattened_df(flat_df: pd.DataFrame) -> pd.DataFrame:
         interval_loss_std=('interval_loss', sem),
         coverage_mean=('coverage', 'mean'),
         coverage_std=('coverage', sem),
+        train_coverage_mean=('train_coverage', 'mean'),
+        train_coverage_std=('train_coverage', sem),
         width_mean=('width', 'mean'),
         width_std=('width', sem),
         time_mean=("time", "mean" ),
@@ -490,7 +492,7 @@ def make_plots(df, metrics, configs, version):
             for metric in metrics:
                 plt.figure(figsize=(10, 6))
                 sns.boxplot(data=df_filtered, x="sample_size", y=f"{metric}", hue="model", palette="Set2",showmeans=True)
-                if metric == "coverage":
+                if metric == "coverage" or metric == "train_coverage":
                     plt.axhline(y=alpha, color="red", linestyle="--", linewidth=1, label = f"Nominal Coverage: {alpha}")
                 elif metric == "time":
                       plt.yscale("log")

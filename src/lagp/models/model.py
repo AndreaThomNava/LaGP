@@ -73,6 +73,14 @@ def model_gpboost(
         predict_var=True,
     )
 
+    # in-sample predictions
+    pred_train = gpq.predict(
+        X_pred=np.ones(len(train_X)),
+        gp_coords_pred=train_X,
+        predict_response=False,  # get the latent data
+        predict_var=True,
+    )
+
     end_time = time.time()
     elapsed_time = end_time - start_time
 
@@ -96,7 +104,7 @@ def model_gpboost(
                     }
     
 
-    return pred, elapsed_time, hyper_params
+    return pred, pred_train, elapsed_time, hyper_params
 
 
 def model_gpytorch(

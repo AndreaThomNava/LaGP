@@ -9,7 +9,7 @@ from scipy.stats import norm
 
 from lagp.models.model import (  # Assuming you have these model functions
     model_gpboost, model_gpytorch, model_viva_gp)
-from lagp.utils.generate_data import load_data, obtain_quantile, load_scale_gp
+from lagp.utils.generate_data import load_data, obtain_quantile, load_scale_gp, compute_dict_pars
 from lagp.utils.metrics import (coverage_and_width, interval_score,
                                 quantile_score, compute_rmse)
 
@@ -250,14 +250,25 @@ if __name__ == "__main__":
     )
 
 
-
-
     args = parser.parse_args()
     version = args.version
 
     config_path = os.path.join("configs", args.config)
     with open(config_path, "r") as f:
         configs = yaml.safe_load(f)
+
+    # update parameters!
+    snr = configs["simulation"]["snr"]
+    fixed_snr = configs["simulation"]["fixed_snr"]
+    signal_variance = configs["gp_parameters"]["kernel"]["signal_variance"]
+
+    if fixed_snr:
+        pars = compute_dict_pars(signal_variance=signal_variance,
+                                 snr = snr,
+                                 quantile=configs["simulation"]["pars"]["ald"]["q"])
+        configs["pars"] = pars
+       # mu_dict = compute_u_scale_gp(signal_variance=signal_variance, pars = pars)
+    
 
     models = configs["models"]
     num_replicates = configs["simulation"]["replicates"]

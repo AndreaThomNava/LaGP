@@ -33,6 +33,19 @@ def fit_and_evaluate_replicate(X, y, fold,
     X_train, X_test = X.iloc[train_idx,:], X.iloc[test_idx,:]
     y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
 
+    # Define a tolerance for near-constant features
+    TOL = 1e-8
+    # Drop constant or nearly constant columns in training set
+    is_nonconstant = X_train.std(axis=0) > TOL
+    X_train = X_train.loc[:, is_nonconstant]
+    X_test = X_test.loc[:, is_nonconstant]  # apply the same mask to test
+
+    # Log or print which features were dropped
+    dropped = X.columns[~is_nonconstant]
+    if len(dropped) > 0:
+        print(f"Dropped constant features: {list(dropped)}")
+
+
     # Compute min and max from training data
     train_min = X_train.min(axis=0)
     train_max = X_train.max(axis=0)
@@ -44,6 +57,7 @@ def fit_and_evaluate_replicate(X, y, fold,
     # Apply scaling to training and test data
     train_X_scaled = (X_train - train_min) / train_range
     test_X_scaled = (X_test - train_min) / train_range  # use train stats!
+
 
     delta_logl = configs["delta_logl"]
     n_epochs = configs["n_epochs"]

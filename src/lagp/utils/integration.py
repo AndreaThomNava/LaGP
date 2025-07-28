@@ -99,26 +99,26 @@ def compute_aghq(Y, group_size, num_groups, predicted_re, quantile, scale, re_st
 
 
 def run_simulation(
-    laplace_approximation,
+    laplace_approximations,
     group_size,
     num_groups,
     re_mean,
     re_std,
     scale,
     quantile,
-    min_decreases,
+    min_decrease,
     K,
     B,
     misspecified,
     estimate_scale=True,
     use_pred_var = True
 ):
-    gps = {str(min_dec): [] for min_dec in min_decreases}
-    naives = {str(min_dec): [] for min_dec in min_decreases}
-    aghqs = {str(min_dec): [] for min_dec in min_decreases}
+    gps = {str(min_dec): [] for min_dec in laplace_approximations}
+    naives = {str(min_dec): [] for min_dec in laplace_approximations}
+    aghqs = {str(min_dec): [] for min_dec in laplace_approximations}
 
     for b in range(B):
-        Y, group_effects = simulate_grouped_response(
+        Y, group_effects, density_q = simulate_grouped_response(
             group_size=group_size,
             num_groups=num_groups,
             re_mean=re_mean,
@@ -128,20 +128,12 @@ def run_simulation(
             misspecified=misspecified
         )
 
-        naive = compute_naive_log_marglik(
-            Y=Y,
-            group_size = group_size,
-            num_groups= num_groups,
-            quantile=quantile,
-            scale=scale,
-            re_std=re_std,
-        )
 
-        for min_dec in min_decreases:
+        for approx in laplace_approximations:
             gpq, gpboost_ll, gpboost_ll_current, used_scale = gpboost_nll_min_dec(
                 Y=Y,
-                laplace_approx=laplace_approximation,
-                min_dec=min_dec, 
+                laplace_approx=approx,
+                min_dec=min_decrease, 
                 num_groups= num_groups,
                 group_size = group_size,
                 quantile=quantile,
@@ -165,12 +157,20 @@ def run_simulation(
                 
             )
 
-            gps[str(min_dec)].append(gpboost_ll)
-            naives[str(min_dec)].append(naive)
-            aghqs[str(min_dec)].append(aghq)
+            naive = compute_naive_log_marglik(
+            Y=Y,
+            group_size = group_size,
+            num_groups= num_groups,
+            quantile=quantile,
+            scale=used_scale, # IMPORTANT: use the scale estimated by GPBoost
+            re_std=re_std,
+        )
+
+            gps[str(approx)].append(gpboost_ll_current)
+            naives[str(approx)].append(naive)
+            aghqs[str(approx)].append(aghq)
 
     return gps, naives, aghqs
-
 
 
 

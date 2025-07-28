@@ -586,7 +586,7 @@ def make_plots_real(df, metrics, version):
         plt.figure(figsize=(10, 6))
         sns.boxplot(data=df, x="dataset", y=f"{metric}", hue="model", palette="Set2", showmeans=True)
         # Add titles and labels
-        if metric == "time":
+        if metric in ["time","quantile_loss"]:
             plt.yscale("log")
         plt.title(f"{metric} by Dataset.", fontsize=16, c = "black")
         plt.xlabel("Dataset", fontsize=12)

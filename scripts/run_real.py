@@ -61,7 +61,7 @@ def fit_and_evaluate_replicate(X, y, fold,
          # Matches models starting with 'gpboost'
         if re.match(r"^gpboost", model_name):
             approx = gpb_approxs[model_name]
-            pred, elapsed_time, hyper_params = model_gpboost(
+            pred, pred_train, elapsed_time, hyper_params = model_gpboost(
                 quantile=target_quantile,
                 train_X=train_X_scaled,
                 train_y=y_train,
@@ -111,10 +111,14 @@ def fit_and_evaluate_replicate(X, y, fold,
         # Compute quantile score
         qs_loss = quantile_score(y = y_test, preds=latent_pred, quantile=target_quantile)
 
-       
+       # compute empirical quantile
+        empirical_quantile = np.mean(y_test <= latent_pred)
+
+
         # store results
         model_results[model_name] = {
             "quantile_loss": qs_loss,
+            "empirical_quantile": empirical_quantile,
             "time": elapsed_time,
             "lengthscale": hyper_params["lengthscale"],
             "signal_variance": hyper_params["signal_variance"],
@@ -133,6 +137,9 @@ def fit_models_on_all_datasets_parallel(configs, models):
     # Loop over datasets
     for df_name in configs["datasets"]:
         print(f"Dataset: {df_name}")
+
+        # Create splits for the dataset 
+        save_cv_splits_preprocessed(df_name, n_splits=n_splits, dir="data/real_data", seed=42)
         X, y = load_X_y_preprocessed(dataset_name=df_name, dir = DIR)
         folds = load_cv_splits(dataset_name=df_name, dir = DIR, n_splits = n_splits)
         # Store results for this configuration
@@ -172,7 +179,17 @@ if __name__ == "__main__":
         default="config_run_real.yaml",
         help="Path to the YAML config file",
     )
+    parser.add_argument(
+        "--version",
+        type=str,
+        default="001",
+        help="version of experiment",
+    )
+
+
     args = parser.parse_args()
+    version = args.version
+    
     config_path = os.path.join("configs", args.config)
     with open(config_path, "r") as f:
         configs = yaml.safe_load(f)
@@ -189,7 +206,7 @@ if __name__ == "__main__":
 
     # Save the results
     # Ensure the results directory exists
-    OUTPUT_DIR = "results/real_data"
+    OUTPUT_DIR = f"results/real_data/{version}"
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     # Combine the results and config into one dictionary

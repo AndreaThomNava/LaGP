@@ -20,6 +20,7 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH, version):
 
     metrics = [
         ("quantile_loss_mean", "quantile_loss_std", "Quantile Score"),  # 3rd element is the name/label
+        ("true_pinball_loss_mean", "true_pinball_loss_std", "True Pinball Score"),
         ("interval_loss_mean", "interval_loss_std", "Interval Score"),
         ("rmse_mean", "rmse_std", "RMSE"), 
         ("bias_mean", "bias_std", "bias"),
@@ -28,8 +29,9 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH, version):
         ("time_mean", "time_std", "Time")
     ]
     # Define metrics and optimality
-    metric_criteria = {"Quantile Score": "min", "Interval Score": "min", "Coverage": "check_coverage", "Time": "min",
+    metric_criteria = {"Quantile Score": "min", "True Pinball Score": "min", "Interval Score": "min", "Coverage": "check_coverage", "Time": "min",
                        "RMSE": "min", "bias": "min", "train_coverage": "check_coverage", "train_width": "min"}
+                       
 
 
     df = make_flattened_df(results = res)
@@ -44,7 +46,7 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH, version):
 
     # make and save plots
     
-    metrics_for_plotting = ["quantile_loss", "rmse", "empirical_quantile", "interval_loss", "coverage", "train_coverage", "bias", "width", "time"] # df.columns[5:]
+    metrics_for_plotting = ["quantile_loss", "true_pinball_loss", "rmse", "empirical_quantile", "interval_loss", "coverage", "train_coverage", "bias", "width", "time"] # df.columns[5:]
     make_plots(df = df, metrics = metrics_for_plotting, configs=configs, version=version)
     make_plots_hypers(df = df, configs=configs, metrics=["signal_variance", "lengthscale"], version = version)
    

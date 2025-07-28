@@ -94,6 +94,8 @@ def group_flattened_df_real(flat_df: pd.DataFrame) -> pd.DataFrame:
     grouped_df = grouped.agg(
         quantile_loss_mean=('quantile_loss', 'mean'),
         quantile_loss_std=('quantile_loss', 'std'),
+        empitrical_quantile=('empirical_quantile', 'mean'),
+        empirical_quantile_std=('empirical_quantile', 'std'),
         time_mean=("time", "mean" ),
         time_std = ("time", "std")
     ).reset_index()
@@ -122,6 +124,8 @@ def group_flattened_df(flat_df: pd.DataFrame) -> pd.DataFrame:
     grouped_df = grouped.agg(
         quantile_loss_mean=('quantile_loss', 'mean'),
         quantile_loss_std=('quantile_loss', sem),
+        true_pinball_loss_mean =('true_pinball_loss', 'mean'),
+        true_pinball_loss_std=('true_pinball_loss', sem),
         rmse_mean=('rmse', 'mean'),
         rmse_std=('rmse', sem),
         bias_mean = ("bias", "mean"),
@@ -564,7 +568,7 @@ def make_plots_hypers(df, configs, metrics, version):
 
 
     
-def make_plots_real(df, metrics):
+def make_plots_real(df, metrics, version):
     """
     Make plots about results.
 
@@ -574,7 +578,7 @@ def make_plots_real(df, metrics):
     # Example for plotting with sample_size on x-axis and color by method
     # sns.set(style="whitegrid")  
 
-    OUTPUT_DIR = Path("results/real_data/images")
+    OUTPUT_DIR = Path(f"results/real_data/{version}/images")
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     

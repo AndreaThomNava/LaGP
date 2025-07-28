@@ -75,7 +75,7 @@ def gen_data(name_config_file: str):
 
             signal_variance = gp_config["kernel"]["signal_variance"]
             base_kernel = gpy.kernels.MaternKernel(nu=nu)
-            base_kernel.lengthscale = lengthscale * np.sqrt(dim) * 2.448/2.74 # for an effective range in higher dim, with nu = 1.5
+            base_kernel.lengthscale = lengthscale * np.sqrt(dim) # * 2.448/2.74 # for an effective range in higher dim, with nu = 1.5
             kernel = gpy.kernels.ScaleKernel(base_kernel)
             kernel.outputscale = torch.tensor(np.sqrt(signal_variance)) #torch.tensor(signal_variance)
 

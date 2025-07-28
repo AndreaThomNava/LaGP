@@ -1,7 +1,7 @@
 library(RandomFields)
 library(reticulate)
 library(yaml)
-use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
+#use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
 
 set.seed(2)
 
@@ -20,7 +20,17 @@ rho <- gp_parameters$kernel$lengthscale
 nu <- gp_parameters$kernel$nu
 
 
+# disables internal spatial conforming heuristics
+# RFoptions(spConform = TRUE)
+#RFoptions(spConform = FALSE, pcholesky.ignore = TRUE, modus_operandi = "no", messages = FALSE)
+
+
+# ns <- 2000
+#rho <- 0.01
+# sigma_2 <- 1
+# dims <- 3
 for (d in dims) {
+  print(d)
   if (d > 2){
     rho_d <- rho * sqrt(d/2)
   } else {
@@ -30,18 +40,33 @@ for (d in dims) {
     for (b in 1:B) {
       
       # --- Generate coordinates ---
-      set.seed(1000 * n + 100 * d + b)
-      coords <- matrix(runif(n * d), ncol = d)
+      set.seed(n + 100 * d + b)
+      
+      if (d == 3) {
+        # Create an approximately cubic grid with ~n points:
+        side_len <- ceiling(n^(1/3))
+        grid_pts <- seq(0, 1, length.out = side_len)
+        coords <- as.matrix(expand.grid(grid_pts, grid_pts, grid_pts))
+        # If grid has more points than n, subset
+        if (nrow(coords) > n) {
+          coords <- coords[1:n, , drop=FALSE]
+        }
+      } else {
+        coords <- matrix(runif(n * d), ncol = d)
+      }
+     # coords <- matrix(runif(n * d), ncol = d)
       
       # --- Latent GP (f) ---
       RFmodel_f <- RMmatern(var = sigma2, notinvnu = TRUE, scale = rho_d, nu = nu)
-      sim_f <- RFsimulate(RFmodel_f, x = coords)
-      sim_f <- RFspDataFrame2conventional(sim_f)
+      sim_f1 <- RFsimulate(RFmodel_f, x = coords)
+      #f <- as.numeric(sim_f)
+      sim_f <- RFspDataFrame2conventional(sim_f1)
       f <- sim_f$data
       
-      # --- Heteroscedastic GP (g) ---
+      # --- Heteroscedastic GP (g)---
       RFmodel_g <- RMmatern(var = sigma2, notinvnu = TRUE, scale = rho_d, nu = nu)  # You can change var here
       sim_g <- RFsimulate(RFmodel_g, x = coords)
+      #g <- as.numeric(sim_g)
       sim_g <- RFspDataFrame2conventional(sim_g)
       g <- sim_g$data
       

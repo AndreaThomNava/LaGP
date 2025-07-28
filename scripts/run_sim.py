@@ -164,12 +164,18 @@ def fit_and_evaluate_replicate(
         # compute empirical quantile (to investigate bias)
         empirical_quantile = (test_y <= latent_pred).mean()
 
+        # pinball loss if using the true quantile
+        true_pinball_loss = quantile_score(
+            y=test_y, preds=test_true_latent_quantile, quantile=target_quantile
+        )
+
         # compute bias
         bias = (latent_pred - test_true_latent_quantile).mean()
 
         # store results
         model_results[model_name] = {
             "quantile_loss": qs_loss,
+            "true_pinball_loss": true_pinball_loss,
             "interval_loss": interval_loss,
             "rmse": rmse,
             "bias": bias,

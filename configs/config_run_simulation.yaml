@@ -1,17 +1,17 @@
 simulation:
   seed: 43
   grid_lims: [0, 1]
-  sample_sizes: [1000, 10000] #, 100000] #, 5000, 10000, 20000] #, 5000, 10000] #, 10000] #, 5000, 10000]  # Different sample sizes for datasets
-  dimensions: [1, 2, 5]  # 1D, 2D, or 3D datasets
+  sample_sizes: [10000] #, 100000] #, 5000, 10000, 20000] #, 5000, 10000] #, 10000] #, 5000, 10000]  # Different sample sizes for datasets
+  dimensions: [3]  # 1D, 2D, or 3D datasets
   likelihoods: 
      - gaussian
-   # - t
+     - t
    # - chi
      - ald
-     - ald_heteroscedastic # testing heteroscedasticity
+     # - ald_heteroscedastic # testing heteroscedasticity
   
   # Simulation Settings
-  snr: 10.0                # Desired signal-to-noise ratio
+  snr: 5.0                # Desired signal-to-noise ratio
   fixed_snr: True          # True = homoscedastic noise with this SNR; False = heteroscedastic
   pars : {
     "gaussian": {"scale": 0.31}, # sqrt(0.31) -> 0.1
@@ -27,7 +27,7 @@ gp_parameters:
   kernel:
     type: matern
     nu: 1.5
-    lengthscale: 0.25
+    lengthscale: 0.05
     signal_variance: 1.0
   # You can add more GP parameters as needed
 
@@ -49,16 +49,17 @@ alpha: 0.9
 train_split: 0.75
 
 # for python
-models: ["gpboost_normal", "gpboost_cc", "gpboost_fisher", "gpboost_lls", "gpboost_lls_v2", "gpytorch"] #,
+models: ["gpboost_normal", "gpboost_fisher", "gpytorch"] # , "gpboost_groups", "gpboost_lls"] #, "gpboost_cc", "gpboost_fisher", "gpboost_lls", "gpboost_lls_v2", "gpytorch"] #,
 # hyper-params --> useful for producing later results
-models_with_hyperparams:  ["gpboost_normal", "gpboost_cc", "gpboost_fisher", "gpboost_lls", "gpboost_lls_v2", "gpytorch"] #, "gpboost_cc"] #["gpboost_cc", "gpboost_lls", "gpboost_fisher", "gpboost_normal"] #"gpboost_cc_var_corr", "gpytorch", "VIVA"]
+models_with_hyperparams:  ["gpboost_normal", "gpboost_cc", "gpboost_fisher", "gpboost_lls", "gpboost_lls_v2", "gpytorch", "gpboost_groups"] #, "gpboost_cc"] #["gpboost_cc", "gpboost_lls", "gpboost_fisher", "gpboost_normal"] #"gpboost_cc_var_corr", "gpytorch", "VIVA"]
 
 gpb_approxs: {"gpboost_fisher": "asymmetric_laplace_fisher_mode_finding", # use continue as well, second order helps if not local!
            "gpboost_lls": "asymmetric_laplace_lls_laplace_fisher_mode_finding",
             "gpboost_cc": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
             "gpboost_cc_var_corr": "asymmetric_laplace_constant_curvature_fisher_mode_finding_var_cor_pred",
             "gpboost_normal": "gaussian",
-            "gpboost_lls_v2": "asymmetric_laplace_lls_laplace_v2_fisher_mode_finding"}
+            "gpboost_lls_v2": "asymmetric_laplace_lls_laplace_v2_fisher_mode_finding",
+            "gpboost_groups": asymmetric_laplace_lls_laplace_groups_fisher_mode_finding}
 
 
 
@@ -69,11 +70,12 @@ lr: 0.01
 
 # fix dicts
 name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpytorch": "VI", "qgam":"GAM", "gpboost_normal": "gpbN",
-            "gpboost_cc_var_corr": "CC corr", "vecchia_mcmc": "BSGP", "VIVA":"VIVA", "gpboost_fisher":"FL", "gpboost_lls": "LLSV2"}
+            "gpboost_cc_var_corr": "CC corr", "vecchia_mcmc": "BSGP", "VIVA":"VIVA",
+             "gpboost_fisher":"FL", "gpboost_lls_v2": "LLSV2", "gpboost_groups": "Groups"}
 likelihood_dict : {"gaussian":"N", "ald": "ALD", "t":"t", "chi":"chi", "ald_heteroscedastic": HetALD}
 
 # what I want to plot/make latex tables for
-all_models: ["gpboost_normal", "gpboost_cc", "gpboost_fisher", "gpboost_lls", "gpboost_lls_v2", "gpytorch"] #, "gpboost_cc"] # ["gpboost_cc", "gpboost_lls", "gpboost_fisher", "gpboost_normal"] #gpboost_cc_var_corr", "gpytorch", "qgam", "vecchia_mcmc", "VIVA"] # ["gpboost_lls", "gpboost_cc", "gpytorch", "qgam"]
+all_models: ["gpboost_normal", "gpboost_cc", "gpboost_fisher", "gpboost_lls", "gpboost_lls_v2", "gpytorch", "gpboost_groups"] #, "gpboost_cc"] # ["gpboost_cc", "gpboost_lls", "gpboost_fisher", "gpboost_normal"] #gpboost_cc_var_corr", "gpytorch", "qgam", "vecchia_mcmc", "VIVA"] # ["gpboost_lls", "gpboost_cc", "gpytorch", "qgam"]
 
 
 

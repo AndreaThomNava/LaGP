@@ -55,7 +55,7 @@ def model_gpboost(
     
     params = {
         "estimate_aux_pars": True,
-        "init_aux_pars": np.array([0.1]),
+        "init_aux_pars": np.array([np.std(train_y)]),
         "trace": False,
     }
 

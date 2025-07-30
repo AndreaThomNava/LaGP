@@ -56,7 +56,7 @@ def model_gpboost(
     params = {
         "estimate_aux_pars": True,
         "init_aux_pars": np.array([np.std(train_y)]),
-        "trace": False,
+        "trace": True,
     }
 
     # fit
@@ -74,7 +74,7 @@ def model_gpboost(
     )
 
     # in-sample predictions
-    pred_train = gpq.predict(
+    pred_train =    gpq.predict(
         X_pred=np.ones(len(train_X)),
         gp_coords_pred=train_X,
         predict_response=False,  # get the latent data

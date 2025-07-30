@@ -27,7 +27,10 @@ def fit_and_evaluate_replicate(X, y, fold,
     Output:
         - metrics: dictionary with model names as keys and metrics as values
     """
-
+    # standardize the response
+    X = X[:10000]
+    y = y[:10000]
+    y = (y - y.mean()) / y.std()    
     train_idx = fold["train_idx"]
     test_idx = fold["test_idx"]
     X_train, X_test = X.iloc[train_idx,:], X.iloc[test_idx,:]

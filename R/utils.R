@@ -35,6 +35,33 @@ load_config <- function(config_path) {
   config <- yaml::read_yaml(config_path)
   return(config)
 }
+  
+compute_dict_pars <- function(signal_variance, snr, quantile) {
+  target_variance <- signal_variance / snr
+  
+  # Gaussian
+  scale_gaussian <- sqrt(target_variance)
+  
+  # ALD
+  scale_ald <- sqrt(target_variance * ((quantile^2) * (1 - quantile)^2 / (1 - 2 * quantile + 2 * quantile^2)))
+  
+  # t with df = 3
+  scale_t <- sqrt(0.5 * target_variance)
+  
+  # Chi (placeholder)
+  scale_chi <- 1
+  
+  pars <- list(
+    gaussian = list(scale = scale_gaussian),
+    ald = list(q = quantile, scale = scale_ald),
+    t = list(df = 3, scale = scale_t),
+    chi = list(df = 1, scale = scale_chi)
+  )
+  
+  return(pars)
+}
+  
+
 
 # load data and train and test split
 load_data <- function(likelihood, sample_size, input_dim, replicate, train_split, file_path = NULL) {

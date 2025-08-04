@@ -11,6 +11,62 @@ import viva
 from viva import VIVACpp as VIVA, my_train_cpp as my_train
 from lagp.utils.gpytorch_utils import (AsymmetricLaplaceLikelihood,
                                        GPRegressionModel, AsymmetricLaplaceLikelihood_DKLGP)
+import lightgbm as lgb
+
+def model_boosting_l1(
+    quantile: float,
+    train_X: np.ndarray,
+    train_y: np.ndarray,
+    test_X: np.ndarray,
+    test_y: np.ndarray,
+) -> dict:
+    """
+    Fit a LightGBM model with L1 loss (quantile=0.5) and predict on the test set.
+
+    Input:
+        - train_X: Feature matrix for training data
+        - train_y: Target values for training data
+        - test_X: Feature matrix for test data
+        - test_y: Target values for test data
+
+    Output:
+        - pred: Predicted values for test data
+    """
+
+    start_time = time.time()
+
+    # Setup dataset
+    dtrain = lgb.Dataset(train_X, label=train_y)
+
+    # Define model parameters
+    params = {
+        "objective": "quantile",
+        "alpha": quantile,
+        "verbosity": -1,
+    }
+
+    # Fit model
+    model = lgb.train(
+        params=params,
+        train_set=dtrain,
+        num_boost_round=100,
+    )
+
+    # Predict
+    pred = model.predict(test_X)
+    pred_train = model.predict(train_X)
+
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+
+    # "Hyperparameters" for consistency — mimic GPBoost
+    hyper_params = {
+        "lengthscale": None,
+        "signal_variance": None,
+        "noise_variance": None,
+    }
+
+    return pred, pred_train, elapsed_time, hyper_params
 
 
 def model_gpboost(
@@ -58,7 +114,13 @@ def model_gpboost(
         "init_aux_pars": np.array([np.std(train_y)]),
         "trace": True,
     }
-
+    gpq.set_optim_params({
+        "cg_preconditioner_type": "vadu",
+       # "delta_rel_conv": 1e-8,
+        "cg_max_num_it": 1500,
+        "cg_max_num_it_tridiag" : 1500,
+    }
+    )
     # fit
     if approx != "gaussian":
         gpq.fit(X=np.ones(N), y=train_y, params=params)

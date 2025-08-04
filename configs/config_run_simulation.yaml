@@ -1,11 +1,11 @@
 simulation:
   seed: 43
   grid_lims: [0, 1]
-  sample_sizes: [10000] #, 100000] #, 5000, 10000, 20000] #, 5000, 10000] #, 10000] #, 5000, 10000]  # Different sample sizes for datasets
-  dimensions: [3]  # 1D, 2D, or 3D datasets
+  sample_sizes: [1000] #, 100000] #, 5000, 10000, 20000] #, 5000, 10000] #, 10000] #, 5000, 10000]  # Different sample sizes for datasets
+  dimensions: [2]  # 1D, 2D, or 3D datasets
   likelihoods: 
      - gaussian
-     - t
+    # - t
    # - chi
      - ald
      # - ald_heteroscedastic # testing heteroscedasticity
@@ -59,7 +59,7 @@ gpb_approxs: {"gpboost_fisher": "asymmetric_laplace_fisher_mode_finding", # use 
             "gpboost_cc_var_corr": "asymmetric_laplace_constant_curvature_fisher_mode_finding_var_cor_pred",
             "gpboost_normal": "gaussian",
             "gpboost_lls_v2": "asymmetric_laplace_lls_laplace_v2_fisher_mode_finding",
-            "gpboost_groups": asymmetric_laplace_lls_laplace_groups_fisher_mode_finding}
+            "gpboost_groups": "asymmetric_laplace_lls_laplace_groups_fisher_mode_finding"}
 
 
 

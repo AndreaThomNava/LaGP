@@ -14,6 +14,7 @@ from lagp.utils.generate_data import (
     compute_dict_pars,
     compute_u_scale_gp,
     load_latent_from_file,
+    obtain_quantile
 )
 
 
@@ -125,7 +126,9 @@ def gen_data(name_config_file: str):
                     g = np.exp(g) # ensure positivity
                     # Simulate the response for this likelihood. If heteroscedastic then pass also g !
                     y = simulate_response(f, noise=noise, pars=pars, g=g if is_heteroscedastic else None)
-
+                    #q = obtain_quantile(
+                    #    f=f, noise=noise, pars=pars, target_quantile=target_quantile, g = g if is_heteroscedastic else None
+                    #)
                     # Save the data
                     output_file = os.path.join(
                         likelihood_dir, f"data_replicate_{replicate + 1}.npz"

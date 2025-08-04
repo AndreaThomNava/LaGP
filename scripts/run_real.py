@@ -8,7 +8,7 @@ import yaml
 from scipy.stats import norm
 
 from lagp.models.model import (  # Assuming you have these model functions
-    model_gpboost, model_gpytorch, model_viva_gp)
+    model_gpboost, model_gpytorch, model_viva_gp, model_boosting_l1)
 from lagp.utils.generate_data import  load_X_y_preprocessed, save_cv_splits, load_cv_splits, load_X_y, save_cv_splits_preprocessed
 from lagp.utils.metrics import quantile_score
 
@@ -122,8 +122,15 @@ def fit_and_evaluate_replicate(X, y, fold,
                 classify=False,
             )
 
-
-
+        elif model_name == "boosting":
+            latent_pred, pred_train, elapsed_time, hyper_params= model_boosting_l1(
+                quantile=target_quantile,
+                train_X=train_X_scaled,
+                train_y=y_train,
+                test_X=test_X_scaled,
+                test_y=y_test,
+            )
+            
         # Compute quantile score
         qs_loss = quantile_score(y = y_test, preds=latent_pred, quantile=target_quantile)
 

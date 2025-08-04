@@ -7,12 +7,6 @@ import numpy as np
 import yaml
 from scipy.stats import norm
 import sys
-# Remove old repo path if present
-old_path = r"C:\Users\JumpStart\Documents\projects\LaGP\src"r"C:\Users\JumpStart\Documents\projects\myrepo-mm"
-if old_path in sys.path:
-    sys.path.remove(old_path)
-# Add your worktree path explicitly at front
-sys.path.insert(0, r"C:\Users\JumpStart\Documents\projects\LaGP\src")
 
 from lagp.models.model import (  # Assuming you have these model functions
     model_gpboost, model_gpytorch, model_viva_gp)

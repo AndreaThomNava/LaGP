@@ -167,8 +167,19 @@ fit_models_on_all_datasets_parallel <- function(configs, models, num_replicates 
   return(results)
 }
 
-
 configs_sim <- load_config("configs/config_run_simulation.yaml")
+
+# update them!
+# Parameter update if fixed SNR is set
+if (configs_sim$simulation$fixed_snr) {
+  signal_variance <- configs_sim$gp_parameters$kernel$signal_variance
+  snr <- configs_sim$simulation$snr
+  quantile <- configs_sim$simulation$pars$ald$q
+  
+  updated_pars <- compute_dict_pars(signal_variance, snr, quantile)
+  configs_sim$pars <- updated_pars
+}
+
 models <- list("qgam") #, "vecchia_mcmc") #, "vecchia_mcmc")
 for (model_name in models){
   print(models)

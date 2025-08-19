@@ -116,7 +116,7 @@ def model_gpboost(
     }
     gpq.set_optim_params({
         "cg_preconditioner_type": "vadu",
-        "delta_rel_conv": 1e-8,
+        #"delta_rel_conv": 1e-8,
         "cg_max_num_it": 1500,
         "cg_max_num_it_tridiag" : 1500,
     }

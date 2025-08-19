@@ -363,11 +363,13 @@ def load_X_y(dataset_name, dir):
 
 def load_X_y_preprocessed(dataset_name, dir):
     path = os.path.join(dir, f"{dataset_name}.txt")
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"Dataset '{dataset_name}' not found at {path}")
 
     if dataset_name in ["protein", "elevators"]:
         df = pd.read_csv(path, sep=" ", header=None)
+    
+    elif dataset_name in ["laegern", "house", "modis", "heaton", "satellite"]:
+        path = os.path.join(dir, f"{dataset_name}.csv")
+        df = pd.read_csv(path)
     else:
         df = pd.read_csv(path, sep=" ")
 

@@ -116,7 +116,7 @@ def model_gpboost(
     }
     gpq.set_optim_params({
         "cg_preconditioner_type": "vadu",
-       # "delta_rel_conv": 1e-8,
+        "delta_rel_conv": 1e-8,
         "cg_max_num_it": 1500,
         "cg_max_num_it_tridiag" : 1500,
     }
@@ -246,6 +246,7 @@ def model_gpytorch(
     likelihood.eval()
     with torch.no_grad():
         pred = model(test_X_tensor)
+        train_pred = model(train_X_tensor)
         # predictions = pred.mean  # Mode or median of asymmetric Laplace
     end_time = time.time()
     elapsed_time = end_time - start_time
@@ -259,7 +260,7 @@ def model_gpytorch(
                     "noise_variance": noise_variance,
                     }
 
-    return pred, elapsed_time, hyper_params
+    return pred, elapsed_time, hyper_params, train_pred
 
 
 def model_viva_gp(

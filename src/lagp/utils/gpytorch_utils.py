@@ -66,7 +66,7 @@ class GPRegressionModel(gpy.models.ApproximateGP):
         )
         super().__init__(variational_strategy)
         
-        self.mean_module = gpy.means.ZeroMean()
+        self.mean_module = gpy.means.ConstantMean() # gpy.means.ZeroMean()
         self.covar_module = gpy.kernels.ScaleKernel(
             gpy.kernels.MaternKernel(nu = 1.5, ard_num_dims=num_features) # ard
         )

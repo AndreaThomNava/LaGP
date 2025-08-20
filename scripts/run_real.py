@@ -6,6 +6,7 @@ import re
 import numpy as np
 import yaml
 from scipy.stats import norm
+import matplotlib.pyplot as plt
 
 from lagp.models.model import (  # Assuming you have these model functions
     model_gpboost, model_gpytorch, model_viva_gp, model_boosting_l1)
@@ -14,7 +15,7 @@ from lagp.utils.metrics import quantile_score
 
 
 def fit_and_evaluate_replicate(X, y, fold,
-    configs, models
+    configs, models, version
 ):
     """
     Fit the models on a single replicate and compute the evaluation metrics.
@@ -92,7 +93,7 @@ def fit_and_evaluate_replicate(X, y, fold,
            
 
         elif model_name == "gpytorch":
-            pred, elapsed_time, hyper_params = model_gpytorch(
+            pred, elapsed_time, hyper_params, pred_train = model_gpytorch(
                 quantile=target_quantile,
                 train_X=train_X_scaled,
                 train_y=y_train,
@@ -131,6 +132,24 @@ def fit_and_evaluate_replicate(X, y, fold,
                 test_y=y_test,
             )
             
+
+        # if X is 2d -> plot countor and save figure
+        if X.shape[1] == 2:
+            plt.figure(figsize=(10, 8))
+            scatter = plt.scatter(X_test.iloc[:, 0], X_test.iloc[:, 1], c=latent_pred, s=50, cmap='viridis', alpha=0.8)
+            plt.colorbar(scatter, label='Predicted Quantile')
+            plt.xlabel('X coordinate')
+            plt.ylabel('Y coordinate')
+            plt.title('Predicted Quantile (No Interpolation)')
+            plt.grid(True, alpha=0.3)
+
+            plt.tight_layout()
+            # Save plots
+            filename = f"{model_name}"
+            for ext in ["png", "pdf"]:
+                plt.savefig(f"results/real_data/{version}" / f"{filename}_contour.{ext}", bbox_inches="tight", dpi=300)
+            plt.close()
+          
         # Compute quantile score
         qs_loss = quantile_score(y = y_test, preds=latent_pred, quantile=target_quantile)
 
@@ -151,7 +170,7 @@ def fit_and_evaluate_replicate(X, y, fold,
     return model_results
 
 
-def fit_models_on_all_datasets_parallel(configs, models):
+def fit_models_on_all_datasets_parallel(configs, models, version):
     
     results = {}
     n_splits = configs["n_splits"]
@@ -177,6 +196,7 @@ def fit_models_on_all_datasets_parallel(configs, models):
                     X, y, folds[replicate],
                     configs,
                     models,
+                    version
                 ): replicate
                 for replicate  in range(n_splits) #n_splits#
             }
@@ -224,7 +244,7 @@ if __name__ == "__main__":
         
     # fit models
     results = fit_models_on_all_datasets_parallel(
-        configs, models
+        configs, models, version
     )
 
     # Save the results

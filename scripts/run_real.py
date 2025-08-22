@@ -7,6 +7,7 @@ import numpy as np
 import yaml
 from scipy.stats import norm
 import matplotlib.pyplot as plt
+import torch
 
 from lagp.models.model import (  # Assuming you have these model functions
     model_gpboost, model_gpytorch, model_viva_gp, model_boosting_l1)
@@ -28,6 +29,10 @@ def fit_and_evaluate_replicate(X, y, fold,
     Output:
         - metrics: dictionary with model names as keys and metrics as values
     """
+
+    torch.manual_seed(42)
+    np.random.seed(42)
+
     # standardize the response
 
     y = (y - y.mean()) / y.std()    

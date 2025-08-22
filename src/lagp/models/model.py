@@ -123,7 +123,7 @@ def model_gpboost(
     )
     # fit
     if approx != "gaussian":
-        gpq.fit(X=np.ones(N), y=train_y, params=params)
+        gpq.fit(X=np.ones(N), y=train_y, params=params)            
     else:
         gpq.fit(X=np.ones(N), y=train_y)
 

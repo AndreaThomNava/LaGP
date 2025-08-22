@@ -125,7 +125,19 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
        # coverage <- coverage_and_width_results[1]
        # width <- coverage_and_width_results[2]
         
+      } else if (model_name == "bayesqr") {
+        print("Fitting BayesQR (MCMC quantile regression)")
+        
+        res <- model_bayesqr(train_X = train_X, train_y = train_y,
+                             group_train = group_train,
+                             test_X = test_X, group_test = group_test,
+                             target_quantile = target_quantile)
+        
+        latent_pred <- res$predictions
+        hyper_params <- res$hyper_params
+        fit_time <- res$fit_time
       }
+      
       
       if (!is.null(latent_pred)) {
         qs_loss <- quantile_score(test_y, latent_pred, target_quantile)
@@ -196,7 +208,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models, num_replicates 
 
 
 configs_sim <- load_config("configs/config_test.yaml")
-models <- list("lqmm", "brms") #, "vecchia_mcmc") #, "vecchia_mcmc")
+models <- list("bayesQR") #,lqmm brms "vecchia_mcmc") #, "vecchia_mcmc")
 for (model_name in models){
   print(models)
 }

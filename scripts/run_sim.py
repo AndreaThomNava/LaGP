@@ -9,7 +9,7 @@ from scipy.stats import norm
 
 from lagp.models.model import (  # Assuming you have these model functions
     model_gpboost, model_gpytorch, model_viva_gp)
-from lagp.utils.generate_data import load_data, obtain_quantile, load_scale_gp
+from lagp.utils.generate_data import load_data, obtain_quantile, load_scale_gp, compute_dict_pars
 from lagp.utils.metrics import (coverage_and_width, interval_score,
                                 quantile_score, align_re, compute_rmse)
 
@@ -206,6 +206,18 @@ if __name__ == "__main__":
     config_path = os.path.join("configs", args.config)
     with open(config_path, "r") as f:
         configs = yaml.safe_load(f)
+
+
+    # Generate noise parameters if fixed_snr is True
+    if configs["data_generation"].get("fixed_snr", True):
+        pars = compute_dict_pars(
+            signal_variance=configs["data_generation"]["signal_variance"],
+            snr=configs["data_generation"]["snr"],
+            quantile=configs["data_generation"]["quantile"],
+        )
+        # Merge noise pars into data generation params
+        configs["data_generation"]["pars"].update(pars)
+    
 
     models = configs["models"]
     num_replicates = configs["replicate"]

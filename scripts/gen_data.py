@@ -4,8 +4,8 @@ import yaml
 import numpy as np
 from pathlib import Path
 from sklearn.model_selection import train_test_split, GroupShuffleSplit
+from lagp.utils.generate_data import compute_dict_pars, make_latents, simulate_response, train_test_split_mixed_data
 
-from lagp.utils.generate_data import make_latents, simulate_response, train_test_split_mixed_data, compute_dict_pars
 
 def gen_mixed_data_from_config(config_file: str):
     # Base directories (modify as needed)

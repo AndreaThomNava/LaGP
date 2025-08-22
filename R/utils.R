@@ -359,6 +359,72 @@ model_brms_quantile <- function(train_X, train_y, group_train,
   ))
 }
 
+###### BayesQR ########
+model_bayesqr_quantile <- function(train_X, train_y, group_train,
+                                   test_X, group_test,
+                                   target_quantile = 0.5,
+                                   ndraw = 5000, keep = 1) {
+  
+  # --- Prepare predictor matrix ---
+  predictor_names <- c("Intercept", paste0("X", 1:(ncol(train_X) - 1)))
+  colnames(train_X) <- predictor_names
+  colnames(test_X) <- predictor_names
+  data_train <- as.data.frame(train_X)
+  data_test <- as.data.frame(test_X)
+  
+  # --- Grouping ---
+  if (is.null(dim(group_train))) {
+    group_train <- data.frame(group1 = factor(group_train))
+    group_test <- data.frame(group1 = factor(group_test, levels = levels(group_train$group1)))
+  } else {
+    group_train <- as.data.frame(group_train)
+    group_test <- as.data.frame(group_test)
+    group_train[] <- lapply(group_train, factor)
+    for (v in names(group_train)) {
+      group_test[[v]] <- factor(group_test[[v]], levels = levels(group_train[[v]]))
+    }
+  }
+  
+  group_vars <- names(group_train)
+  
+  # --- Add group dummies to design matrix ---
+  group_dummies_train <- model.matrix(~ . -1, data = group_train)
+  group_dummies_test <- model.matrix(~ . -1, data = group_test)
+  
+  X_train <- cbind(data_train, group_dummies_train)
+  X_test <- cbind(data_test, group_dummies_test)
+  
+  # --- Fit BayesQR model ---
+  fit_time <- system.time({
+    fit <- BayesQR::BayesQR(
+      y = train_y,
+      X = X_train,
+      quantile = target_quantile,
+      ndraw = ndraw,
+      keep = keep,
+      burnin = ndraw %/% 2  # Default
+    )
+    
+    # Posterior mean prediction
+    beta_post_mean <- colMeans(fit$betadraw)
+    preds <- as.numeric(as.matrix(X_test) %*% beta_post_mean)
+    
+    # Posterior std deviation of predictions
+    preds_samples <- fit$betadraw %*% t(as.matrix(X_test))
+    preds_se <- apply(preds_samples, 2, sd)
+  })[["elapsed"]]
+  
+  return(list(
+    predictions = preds,
+    se = preds_se,
+    fit_time = fit_time,
+    model = fit
+  ))
+}
+
+
+
+
 
 
 #### UTILS FOR VECCHIA ####

@@ -7,8 +7,8 @@ source("R/utils.R")
 
 fit_and_evaluate_replicate <- function(X, y, fold, configs, models) {
  
-  train_idx <- unlist(fold$train_idx)
-  test_idx <- unlist(fold$test_idx)
+  train_idx <- unlist(fold$train_idx)[1:10000]
+  test_idx <- unlist(fold$test_idx)[1:1000]
   
   X_train <- X[train_idx, , drop = FALSE]
   X_test  <- X[test_idx, , drop = FALSE]
@@ -78,6 +78,7 @@ fit_and_evaluate_replicate <- function(X, y, fold, configs, models) {
   }
   
   return(model_results)
+}
 
 fit_models_on_all_datasets_parallel <- function(configs, models) {
   
@@ -123,7 +124,8 @@ for (model_name in models){
 results <- fit_models_on_all_datasets_parallel(configs = configs, models = models)
 
 # Save the results
-OUTPUT_DIR <- "results/real_data"
+version <- "001"
+OUTPUT_DIR <- paste0("results/real_data/", version)
 dir.create(OUTPUT_DIR, showWarnings = FALSE)
 
 # Combine results and config into one list
@@ -142,16 +144,3 @@ output_file <- file.path(OUTPUT_DIR, "real_data_results_R.rds")
 saveRDS(all_results, output_file)
 
 cat("Results and config saved to", output_file, "\n")
-
-
-
-
-
-
-
-
-
-
-
-
-

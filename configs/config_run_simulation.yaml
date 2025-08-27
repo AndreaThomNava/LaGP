@@ -27,7 +27,7 @@ gp_parameters:
   kernel:
     type: matern
     nu: 1.5
-    lengthscale: 0.5
+    lengthscale: 0.25
     signal_variance: 1.0
   # You can add more GP parameters as needed
 

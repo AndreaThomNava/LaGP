@@ -155,13 +155,16 @@ load_X_y <- function(dataset_name, dir) {
 
 load_X_y_preprocessed <- function(dataset_name, dir) {
   path <- file.path(dir, paste0(dataset_name, ".txt"))
-  if (!file.exists(path)) {
-    stop(sprintf("Dataset '%s' not found at %s", dataset_name, path))
-  }
-  
+ 
   if (dataset_name %in% c("protein", "elevators")) {
     df <- read.table(path, sep = " ", header = FALSE)
   }
+  
+  else if (dataset_name %in% c("laegern", "house", "modis", "heaton", "satellite")) {
+    path <- file.path(dir, paste0(dataset_name, ".csv"))
+    df <- read.csv(path)
+  }
+  
   else {
     df <- read.table(path, sep = " ", header = TRUE)
   }

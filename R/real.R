@@ -10,10 +10,27 @@ fit_and_evaluate_replicate <- function(X, y, fold, configs, models) {
   train_idx <- unlist(fold$train_idx)[1:10000]
   test_idx <- unlist(fold$test_idx)[1:1000]
   
+  y <- (y - mean(y)) / sd(y)   
   X_train <- X[train_idx, , drop = FALSE]
   X_test  <- X[test_idx, , drop = FALSE]
   y_train <- y[train_idx]
   y_test  <- y[test_idx]
+  
+  # Define tolerance
+  TOL <- 1e-8
+  
+  # Identify non-constant columns in training set
+  is_nonconstant <- apply(X_train, 2, sd) > TOL
+  
+  # Filter both training and test sets
+  X_train <- X_train[, is_nonconstant]
+  X_test <- X_test[, is_nonconstant]
+  
+  # Log dropped features
+  dropped <- colnames(X)[!is_nonconstant]
+  if (length(dropped) > 0) {
+    cat("Dropped constant features:", paste(dropped, collapse=", "), "\n")
+  }
 
   # Compute min and max for each column of the training set
   train_min <- apply(X_train, 2, min)

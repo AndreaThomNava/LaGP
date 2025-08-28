@@ -152,7 +152,7 @@ def fit_and_evaluate_replicate(X, y, fold,
             # Save plots
             filename = f"{model_name}"
             for ext in ["png", "pdf"]:
-                plt.savefig(f"results/real_data/{version}" / f"{filename}_contour.{ext}", bbox_inches="tight", dpi=300)
+                plt.savefig(f"results/real_data/{version}/images/{filename}_contour.{ext}", bbox_inches="tight", dpi=300)
             plt.close()
           
         # Compute quantile score

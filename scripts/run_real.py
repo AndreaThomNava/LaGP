@@ -16,7 +16,7 @@ from lagp.utils.metrics import quantile_score
 
 
 def fit_and_evaluate_replicate(X, y, fold,
-    configs, models, version
+    configs, models, version, df_name
 ):
     """
     Fit the models on a single replicate and compute the evaluation metrics.
@@ -152,7 +152,7 @@ def fit_and_evaluate_replicate(X, y, fold,
             # Save plots
             filename = f"{model_name}"
             for ext in ["png", "pdf"]:
-                plt.savefig(f"results/real_data/{version}/images/{filename}_contour.{ext}", bbox_inches="tight", dpi=300)
+                plt.savefig(f"results/real_data/{version}/images/{filename}_contour_{df_name}.{ext}", bbox_inches="tight", dpi=300)
             plt.close()
           
         # Compute quantile score
@@ -201,7 +201,8 @@ def fit_models_on_all_datasets_parallel(configs, models, version):
                     X, y, folds[replicate],
                     configs,
                     models,
-                    version
+                    version,
+                    df_name,
                 ): replicate
                 for replicate  in range(n_splits) #n_splits#
             }

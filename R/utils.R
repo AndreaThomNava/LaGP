@@ -269,6 +269,48 @@ model_qgam <- function(train_X, train_y, test_X, target_quantile = 0.5, smooth_t
 }
 
 
+model_qgam_interactions <- function(train_X, train_y, test_X, target_quantile = 0.5, smooth_term = 20) {
+  # Function to fit the QGAM model with interactions and predict on the test set
+  
+  # Dynamically create the training data frame (with y as the response variable)
+  train_data <- data.frame(y = train_y)
+  # Create a data frame for the test data
+  test_data <- as.data.frame(test_X)  # Directly convert test_X into a data frame
+  # Rename the columns in the test data
+  colnames(test_data) <- paste0("X", 1:ncol(test_data))
+  
+  # Add each column of X as separate predictors in the data frame
+  for (i in 1:ncol(train_X)) {
+    train_data[[paste0("X", i)]] <- train_X[, i]
+  }
+  
+  # Create formula with individual smooth terms AND interaction
+  individual_terms <- sapply(1:ncol(train_X), function(i) {
+    paste0("s(X", i, ", k = smooth_term, bs = 'tp')")
+  })
+  
+  # Add 2D interaction term using te() (tensor product smooth)
+  interaction_term <- "te(X1, X2, k = smooth_term, bs = 'tp')"
+  
+  # Combine individual terms and interaction
+  formula <- as.formula(paste("y ~", paste(c(individual_terms, interaction_term), collapse = " + ")))
+  
+  print(paste0("formula qgam with interactions: ", deparse(formula)))
+  
+  # Fit the QGAM model
+  fit_time <- system.time({
+    fit <- qgam(formula, data = train_data, qu = target_quantile)
+    # Make predictions on the test set
+    pred <- predict(fit, newdata = test_data, se = TRUE)
+  })[["elapsed"]]
+  
+  # Return predictions along with standard errors
+  return(list(
+    predictions = pred$fit,
+    se = pred$se.fit,
+    fit_time = fit_time))
+}
+
 #### UTILS FOR VECCHIA ####
 # 2) Vecchia adjacency function (works with 1D and 2D inputs)
 vecchia_adj <- function(X, num_neighbors) {

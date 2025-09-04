@@ -74,6 +74,13 @@ fit_and_evaluate_replicate <- function(X, y, fold, configs, models) {
         fit_time <- pred$fit_time
       }
       
+      else if (model_name == "qgam_interactions") {
+        print("Fitting qgam with interactions")
+        pred <- model_qgam_interactions(train_X_scaled, y_train, test_X_scaled, target_quantile)
+        latent_pred <- pred$predictions
+        fit_time <- pred$fit_time
+      }
+      
       if (!is.null(latent_pred)) {
         qs_loss <- quantile_score(y = y_test, preds = latent_pred, quantile = target_quantile)
         print(paste("QS loss:", qs_loss))
@@ -134,7 +141,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models) {
 }
 
 configs <- load_config("configs/config_run_real.yaml")
-models <- list("qgam")
+models <- list("qgam", "qgam_interactions")
 for (model_name in models){
   print(models)
 }

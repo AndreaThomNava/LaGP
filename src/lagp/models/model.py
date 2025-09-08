@@ -115,8 +115,9 @@ def model_gpboost(
         "trace": True,
     }
     gpq.set_optim_params({
+        "optimizer_cov": "gradient_descent",
         "cg_preconditioner_type": "vadu",
-        #"delta_rel_conv": 1e-8,
+         "delta_rel_conv": 1e-9,
         "cg_max_num_it": 1500,
         "cg_max_num_it_tridiag" : 1500,
     }

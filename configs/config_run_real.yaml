@@ -20,8 +20,8 @@ alpha: 0.9
 
 n_splits: 5
 
-datasets: ["house"] # , "power"] #, "power", "houses", "elevators", "protein"]
-models: ["boosting", "gpboost_fisher", "gpytorch"] #, "gpboost_lls", "gpytorch"], gpboost_cc
+datasets: ["laegern"] # , "power"] #, "power", "houses", "elevators", "protein"]
+models: ["boosting"] #, "gpboost_fisher", "gpytorch"] #, "gpboost_lls", "gpytorch"], gpboost_cc
 gpb_approxs: {"gpboost_lls": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
             "gpboost_cc": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
             "gpboost_fisher": "asymmetric_laplace_fisher_mode_finding"}

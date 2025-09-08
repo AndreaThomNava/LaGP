@@ -290,7 +290,7 @@ model_qgam_interactions <- function(train_X, train_y, test_X, target_quantile = 
   })
   
   # Add 2D interaction term using te() (tensor product smooth)
-  interaction_term <- "te(X1, X2, k = smooth_term, bs = 'tp')"
+  interaction_term <- "ti(X1, X2, k = smooth_term, bs = 'tp')"
   
   # Combine individual terms and interaction
   formula <- as.formula(paste("y ~", paste(c(individual_terms, interaction_term), collapse = " + ")))

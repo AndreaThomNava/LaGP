@@ -56,7 +56,6 @@ class GPRegressionModel(gpy.models.ApproximateGP):
         # self.inducing_points = torch.nn.Parameter(torch.randn(num_inducing, num_features))
         init_inducing = train_x[torch.randperm(train_x.size(0))[:num_inducing]]
         inducing_points = torch.nn.Parameter(init_inducing.clone())
-
         
         variational_strategy = gpy.variational.VariationalStrategy(
             self,

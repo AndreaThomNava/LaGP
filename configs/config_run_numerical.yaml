@@ -12,7 +12,7 @@ approx_dict : {"asymmetric_laplace_constant_curvature_fisher_mode_finding": "CC"
                "asymmetric_laplace_fisher_mode_finding":"Fisher-Laplace"}
 B: 50
 integration_nodes: 100
-misspecified: False
+misspecified: True
 use_pred_var : False
-estimate_scale : False # does it make sense to estimate the scale parameter in what we want to show?
+estimate_scale : True # does it make sense to estimate the scale parameter in what we want to show?
 

@@ -406,15 +406,17 @@ def load_scale_gp(likelihood, sample_size, input_dim, replicate, file_path=None)
 
 def prepare_real_data(dataset_name, dir="data/real_data_mm", subsample: bool = False):
 
-    my_data = pd.read_csv(os.path.join(dir, f"{dataset_name}.csv"))
-
+    if dataset_name == "cars_crossed":
+        my_data = pd.read_csv(os.path.join(dir, f"{dataset_name.split("_")[0]}.csv"))
+    else:
+        my_data = pd.read_csv(os.path.join(dir, f"{dataset_name}.csv"))
+    
     if subsample: 
         # Subsample to 1000 rows for faster processing
         my_data = my_data.sample(n=1000, random_state=42)
         
            
     if dataset_name == "cars":
-        # Categorical variables
         cat_vars = ["model_id"] #, "location_id"]
         group_data_df = my_data[cat_vars]
 
@@ -425,10 +427,50 @@ def prepare_real_data(dataset_name, dir="data/real_data_mm", subsample: bool = F
         group_data_np = group_data.to_numpy()
 
         # Drop target and specified dummy columns
+        included_cols = ["year", "odometer"]
+        feat_cols = [col for col in my_data.columns if col in included_cols]
+        X = my_data[feat_cols].to_numpy()
+        # Add intercept term
+        intercept = np.ones((X.shape[0], 1))
+        X = np.hstack([intercept, X])        
+        # Response
+        Y = np.log(my_data["price"].to_numpy())
+
+    if dataset_name == "cars_crossed":
+        cat_vars = ["model_id", "location_id"] 
+        group_data_df = my_data[cat_vars]
+
+        # Convert categorical variables to numeric factor-like codes
+        group_data = group_data_df.apply(lambda col: col.astype("category").cat.codes)
+
+        # If you need it as a NumPy array (like the R matrix)
+        group_data_np = group_data.to_numpy()
+
+        # Drop target and specified dummy columns
+        included_cols = ["year", "odometer"]
+        feat_cols = [col for col in my_data.columns if col in included_cols]
+        X = my_data[feat_cols].to_numpy()
+        # Add intercept term
+        intercept = np.ones((X.shape[0], 1))
+        X = np.hstack([intercept, X])        
+        # Response
+        Y = np.log(my_data["price"].to_numpy())
+
+
+    elif dataset_name == "labor":
+        # Categorical variables
+        cat_vars = ["subject"]
+        group_data_df = my_data[cat_vars]
+
+        # Convert categorical variables to numeric factor-like codes
+        group_data = group_data_df.apply(lambda col: col.astype("category").cat.codes)
+
+        # If you need it as a NumPy array (like the R matrix)
+        group_data_np = group_data.to_numpy()
+
+        # Drop target and specified dummy columns
         excluded_cols = [
-            "price", "model_id", "location_id",
-            "manufacturerbmw", "conditionexcellent", "fueldiesel", "title_statusclean",
-            "transmissionautomatic", "drive4wd", "sizecompact", "typebus", "paint_colorblack"
+            "pain", "subject"
         ]
         feat_cols = [col for col in my_data.columns if col not in excluded_cols]
         X = my_data[feat_cols].to_numpy()
@@ -436,7 +478,32 @@ def prepare_real_data(dataset_name, dir="data/real_data_mm", subsample: bool = F
         intercept = np.ones((X.shape[0], 1))
         X = np.hstack([intercept, X])        
         # Response
-        Y = np.log(my_data["price"].to_numpy())
+        Y = my_data["pain"].to_numpy()
+
+    elif dataset_name == "Orthodont":
+        # Categorical variables
+        cat_vars = ["Subject"]
+        group_data_df = my_data[cat_vars]
+
+        # Convert categorical variables to numeric factor-like codes
+        group_data = group_data_df.apply(lambda col: col.astype("category").cat.codes)
+
+        # If you need it as a NumPy array (like the R matrix)
+        group_data_np = group_data.to_numpy()
+
+        # Drop target and specified dummy columns
+        excluded_cols = [
+            "distance", "Subject"
+        ]
+        feat_cols = [col for col in my_data.columns if col not in excluded_cols]
+        X = my_data[feat_cols]
+        X = pd.get_dummies(X, drop_first=True, dtype=int)
+        X = X.to_numpy()
+        # Add intercept term
+        intercept = np.ones((X.shape[0], 1))
+        X = np.hstack([intercept, X])        
+        # Response
+        Y = my_data["distance"].to_numpy()
 
 
     np.savez_compressed(

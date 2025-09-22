@@ -48,7 +48,7 @@ def main():
                         default = "configs/config_test.yaml",
                         type=str, help="Path to experiment config.")
     
-    parser.add_argument('version', nargs='?',
+    parser.add_argument('--version', nargs='?',
                         default = "001",
                         type=str, help="version number.")
     

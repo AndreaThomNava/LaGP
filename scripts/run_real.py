@@ -27,15 +27,17 @@ def fit_and_evaluate_replicate(X, group_data, Y, fold,
     Output:
         - metrics: dictionary with model names as keys and metrics as values
     """
+    Y = (Y - np.mean(Y)) / np.std(Y)
+    train_idx = fold["train_idx"] #[:1000]
+    test_idx = fold["test_idx"]# [:1000]
+    X_train = X[train_idx]
+    y_train = Y[train_idx]  
 
-    X_train = X[fold["train_idx"]]
-    y_train = Y[fold["train_idx"]]  
+    X_test = X[test_idx]    
+    y_test = Y[test_idx]
 
-    X_test = X[fold["test_idx"]]    
-    y_test = Y[fold["test_idx"]]
-
-    group_train = group_data[fold["train_idx"]]
-    group_test = group_data[fold["test_idx"]]
+    group_train = group_data[train_idx]
+    group_test = group_data[test_idx]
 
     # Compute min and max from training data
     train_min = X_train.min(axis=0)
@@ -43,6 +45,7 @@ def fit_and_evaluate_replicate(X, group_data, Y, fold,
 
     # Avoid division by zero in case some feature is constant
     train_range = train_max - train_min
+    train_min[train_range == 0] =  0.0  # Add this line
     train_range[train_range == 0] = 1.0
 
     # Apply scaling to training and test data
@@ -63,14 +66,15 @@ def fit_and_evaluate_replicate(X, group_data, Y, fold,
             approx = gpb_approxs[model_name]
             pred, res, elapsed_time, hyper_params = model_gpboost(
                 quantile=target_quantile,
-                train_X=X_train,
+                train_X=train_X_scaled,
                 group_train=group_train,
                 train_y=y_train,
-                test_X=X_test,
+                test_X=test_X_scaled,
                 group_test=group_test,
                 test_y=y_test,
                 approx=approx,
                 delta_logl=delta_logl,
+                estimate_hyper=configs["estimate_hyper"],
             )
 
 
@@ -104,6 +108,8 @@ def fit_models_on_all_datasets_parallel(configs, models):
     # Loop over datasets
     for df_name in configs["datasets"]:
         print(f"Dataset: {df_name}")
+        # Create splits for the dataset 
+        save_cv_splits_preprocessed(df_name, n_splits=n_splits, dir="data/real_data_mm", seed=42)
         X, group_data, y = load_X_y_preprocessed(dataset_name=df_name, dir = DIR)
         folds = load_cv_splits(dataset_name=df_name, dir = DIR, n_splits = n_splits)
         # Store results for this configuration

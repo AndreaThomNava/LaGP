@@ -2,6 +2,131 @@
 
 source("R/utils.R")
 
+
+# load data
+df_name = "cars_crossed"
+DIR = "data/real_data_mm/"
+data <- load_X_y_preprocessed(dataset_name = df_name, dir = DIR)
+X <- data$X
+group_data <- data$group_data
+y <- data$Y
+n_splits <- 2
+folds <- load_cv_splits(dataset_name = df_name, dir = DIR,
+                        n_splits = n_splits)
+train_idx <- unlist(fold$train_idx)[1:5000]
+test_idx <- unlist(fold$test_idx)[1:5000]
+
+train_X <- X[train_idx, , drop = FALSE]
+test_X  <- X[test_idx, , drop = FALSE]
+group_train <- group_data[train_idx, , drop = FALSE]
+group_test <- group_data[test_idx, ,drop = FALSE]
+# scale y
+y <- (y - mean(y)) / sd(y)
+
+train_y <- y[train_idx]
+test_y  <- y[test_idx]
+# try model.matrix
+n_predictors <- ncol(train_X) - 1  # Number of non-intercept predictors
+
+if (n_predictors > 0) {
+  predictor_names <- c("intercept", paste0("X", 1:n_predictors))
+} else {
+  predictor_names <- "intercept"
+}
+colnames(train_X) <- predictor_names
+colnames(test_X) <- predictor_names
+data_train <- as.data.frame(train_X)
+data_test <- as.data.frame(test_X)
+
+# --- FIX: Handle arrays properly by converting to vectors first ---
+if (is.array(group_train) && length(dim(group_train)) == 1) {
+  # Convert 1D array to vector
+  group_train <- as.vector(group_train)
+}
+if (is.array(group_test) && length(dim(group_test)) == 1) {
+  # Convert 1D array to vector  
+  group_test <- as.vector(group_test)
+}
+
+# --- Grouping ---
+if (is.null(dim(group_train))) {
+  group_train <- data.frame(group1 = factor(group_train))
+  group_test <- data.frame(group1 = factor(group_test, levels = levels(group_train$group1)))
+} else {
+  group_train <- as.data.frame(group_train)
+  group_test <- as.data.frame(group_test)
+  group_train[] <- lapply(group_train, factor)
+  for (v in names(group_train)) {
+    group_test[[v]] <- factor(group_test[[v]], levels = levels(group_train[[v]]))
+  }
+}
+
+# Remove rows with NA groups from test data
+complete_rows <- complete.cases(group_test)
+data_test <- data_test[complete_rows, , drop = FALSE]
+group_test <- group_test[complete_rows, , drop = FALSE]
+
+group_vars <- names(group_train)
+
+# --- Add group dummies to design matrix ---
+group_dummies_train <- model.matrix(~ ., data = group_train)
+group_dummies_test <- model.matrix(~ ., data = group_test)
+
+# Remove the intercept column from group dummies to avoid collinearity
+group_dummies_train <- group_dummies_train[, -1, drop = FALSE]
+group_dummies_test <- group_dummies_test[, -1, drop = FALSE]
+
+
+# Single QR decomposition
+combined_matrix <- cbind(as.matrix(data_train), group_dummies_train)
+qr_decomp <- qr(combined_matrix)
+print(qr_decomp$rank)
+if (qr_decomp$rank < ncol(combined_matrix)) {
+  print("Removing linearly dependent columns")
+  keep_cols <- qr_decomp$pivot[1:qr_decomp$rank]
+  X_train <- combined_matrix[, keep_cols, drop = FALSE]
+  # Apply same column selection to test data
+  X_test <- cbind(as.matrix(data_test), group_dummies_test)[, keep_cols, drop = FALSE]
+} else {
+  X_train <- combined_matrix
+  X_test <- cbind(as.matrix(data_test), group_dummies_test)
+}
+
+# --- Fit BayesQR model ---
+# After creating X_train and X_test
+print("Before fitting - dimensions:")
+print(paste("X_train:", paste(dim(X_train), collapse="x")))
+print(paste("X_test:", paste(dim(X_test), collapse="x")))
+
+# Prepare data for formula interface
+X_train$y <- train_y
+
+# Create formula
+predictor_vars <- setdiff(names(X_train), "y")
+formula_str <- paste("y ~", paste(predictor_vars, collapse = " + "), "- 1")  # -1 to remove default intercept since we have our own
+ndraw = 500
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### LOAD CONFIGS ###
 config_path <- "configs/config_data_generation.yaml"
 configs <- load_config(config_path)

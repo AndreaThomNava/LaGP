@@ -23,7 +23,7 @@ def model_gpboost(
     test_y: np.ndarray,
     approx: str,
     delta_logl: float,
-    estimate_hyper: bool,
+    estimate_hyper: bool = True,
 ) -> dict:
     """
     Fit the GPBoost model and predict on the test set.
@@ -38,14 +38,16 @@ def model_gpboost(
         - pred: Predicted values for test data
     """
 
-    
-    
     start_time = time.time()
-    
+    # determine if crossed random effects
+    n_re_groups = group_train.shape[1] if group_train.ndim > 1 else 1
+    crossed = n_re_groups > 1
+
     gpq = gpb.GPModel(
         group_data=group_train,
         likelihood=approx,
         likelihood_additional_param=quantile if approx != "gaussian" else 1.,
+        matrix_inversion_method = "iterative" if crossed else "cholesky",
         cover_tree_radius=delta_logl,
         num_parallel_threads=2,
         )

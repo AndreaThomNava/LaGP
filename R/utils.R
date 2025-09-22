@@ -4,6 +4,7 @@ library(gptoolsStan)
 library(brms)
 library(lqmm)
 library(reticulate)
+library(bayesQR)
 
 os <- import("os")
 np <- import("numpy")
@@ -216,6 +217,30 @@ obtain_quantile <- function(eps, noise, pars, target_quantile, g = NULL) {
   return(eps + delta)
 }
 
+compute_dict_pars <- function(signal_variance, snr, quantile) {
+  
+  target_variance <- signal_variance / snr
+  
+  # gaussian
+  scale_gaussian <- sqrt(target_variance)
+  
+  # ald
+  scale_ald <- sqrt(target_variance * (quantile^2 * (1-quantile)^2 / (1-2*quantile + 2*quantile^2)))
+  
+  # student t with 3 dfs
+  scale_t <- sqrt(0.5 * target_variance)
+  
+  # chi ?
+  
+  pars <- list(
+    gaussian = list(scale = scale_gaussian),
+    ald = list(q = quantile, scale = scale_ald),
+    t = list(df = 3, scale = scale_t),
+    chi = list(df = 1, scale = 1)  # fixed to 1 for now
+  )
+  
+  return(pars)
+}
 
 
 
@@ -226,8 +251,14 @@ obtain_quantile <- function(eps, noise, pars, target_quantile, g = NULL) {
 model_lqmm <- function(train_X, train_y, group_train, 
                        test_X, group_test, target_quantile = 0.5) {
   
+  n_predictors <- ncol(train_X) - 1  # Number of non-intercept predictors
   
-  predictor_names <- c("intercept", paste0("X", 1:(ncol(train_X) - 1)))
+  if (n_predictors > 0) {
+    predictor_names <- c("intercept", paste0("X", 1:n_predictors))
+  } else {
+    predictor_names <- "intercept"
+  }
+  #predictor_names <- c("intercept", paste0("X", 1:(ncol(train_X) - 1)))
   colnames(train_X) <- predictor_names
   colnames(test_X) <- predictor_names
   
@@ -237,6 +268,27 @@ model_lqmm <- function(train_X, train_y, group_train,
   
   data_test <- data.frame(test_X)
   data_test$group <- factor(group_test, levels = levels(data$group))
+  # Check if any NAs were created
+  print(paste("NAs were created: ", sum(is.na(data_test$group))))
+  
+  # Remove rows with NA groups from test data
+  complete_rows <- complete.cases(data_test$group)
+  if (sum(!complete_rows) > 0) {
+    print(paste("Removing", sum(!complete_rows), "rows with NA groups"))
+    data_test <- data_test[complete_rows, , drop = FALSE]
+    
+    # Handle group_test based on its structure
+    if (is.null(dim(group_test))) {
+      # group_test is a vector
+      group_test <- group_test[complete_rows]
+    } else {
+      # group_test is a matrix/data.frame
+      group_test <- group_test[complete_rows, , drop = FALSE]
+    }
+  }
+  
+  # Verify NAs are gone
+  print(paste("NAs remaining: ", sum(is.na(data_test$group))))
   
   formula_fixed <- as.formula(paste("y ~ -1 +", paste(predictor_names, collapse = " + ")))
   
@@ -254,6 +306,7 @@ model_lqmm <- function(train_X, train_y, group_train,
    
     #fit.boot <- boot(fit.lqmm, R = 50, startQR = TRUE)
        )
+    print("fitting succesfull")
     
     X_test <- as.matrix(data_test[, predictor_names])
     fixed_pred <- X_test %*% fit.lqmm$theta_x
@@ -288,42 +341,97 @@ model_lqmm <- function(train_X, train_y, group_train,
   ))
 }
 
+#### BRMS and BAYESQR WITH BETTER GROUPS HANDLING ###
 
-#### BRMS ####
-model_brms_quantile <- function(train_X, train_y, group_train,
+model_brms_quantile_v2 <- function(train_X, train_y, group_train,
                                 test_X, group_test,
                                 target_quantile = 0.5) {
   
-  # Prepare predictors
-  predictor_names <- c("Intercept", paste0("X", 1:(ncol(train_X) - 1)))
+  n_predictors <- ncol(train_X) - 1
+  
+  if (n_predictors > 0) {
+    predictor_names <- c("Intercept", paste0("X", 1:n_predictors))
+  } else {
+    predictor_names <- "Intercept"
+  }
   colnames(train_X) <- predictor_names
   data_train <- data.frame(train_X)
   data_train$y <- train_y
   
-  # Wrap grouping variables in data frames if needed
-  if (is.null(dim(group_train))) {
-    group_train <- data.frame(group1 = group_train)
-    group_test <- data.frame(group1 = group_test)
-  } else {
-    group_train <- as.data.frame(group_train)
-    group_test <- as.data.frame(group_test)
+  # FIX: Handle arrays properly by converting to vectors first
+  if (is.array(group_train) && length(dim(group_train)) == 1) {
+    # Convert 1D array to vector
+    group_train <- as.vector(group_train)
+  }
+  if (is.array(group_test) && length(dim(group_test)) == 1) {
+    # Convert 1D array to vector  
+    group_test <- as.vector(group_test)
   }
   
-  group_vars <- names(group_train)
+  # Now handle as before, but with proper vector handling
+  if (is.null(dim(group_train))) {
+    # Single grouping variable as vector
+    group_train_df <- data.frame(group1 = group_train)
+    group_test_df <- data.frame(group1 = group_test)
+  } else {
+    # Multiple grouping variables as data frame
+    group_train_df <- as.data.frame(group_train)
+    group_test_df <- as.data.frame(group_test)
+    # Ensure same column names
+    colnames(group_test_df) <- colnames(group_train_df)
+  }
   
-  # Add grouping variables to training and test data
+  group_vars <- names(group_train_df)
+  
+  # Add grouping variables to training data
   for (v in group_vars) {
-    data_train[[v]] <- factor(group_train[[v]])
+    data_train[[v]] <- factor(group_train_df[[v]])
   }
   
   # Prepare test data
   colnames(test_X) <- predictor_names
   data_test <- data.frame(test_X)
+  
+  # Add grouping variables to test data with careful handling
   for (v in group_vars) {
-    data_test[[v]] <- factor(group_test[[v]], levels = levels(data_train[[v]]))
+    train_levels <- levels(data_train[[v]])
+    test_values <- group_test_df[[v]]
+    
+    # Check for any issues with test values
+    if (length(test_values) != nrow(data_test)) {
+      stop(paste("Length mismatch: test_values has", length(test_values), 
+                 "elements but test data has", nrow(data_test), "rows"))
+    }
+    
+    # Check for NA/NaN values
+    if (any(is.na(test_values)) || any(is.nan(test_values))) {
+      warning(paste("Found NA/NaN values in test grouping variable:", v))
+      # You might want to handle this by removing those rows or imputing
+    }
+    
+    # Check for unseen levels
+    test_values_clean <- test_values[!is.na(test_values) & !is.nan(test_values)]
+    unseen_levels <- setdiff(unique(test_values_clean), train_levels)
+    if (length(unseen_levels) > 0) {
+      cat("Unseen levels in test data:", paste(head(unseen_levels, 5), collapse = ", "), "\n")
+    }
+    
+    # Create factor with training levels
+    data_test[[v]] <- factor(test_values, levels = train_levels)
+    
+    # Report NA creation
+    na_count <- sum(is.na(data_test[[v]]))
+    if (na_count > 0) {
+      cat("Variable", v, "created", na_count, "NAs out of", length(test_values), "values\n")
+    }
   }
   
-  # Build random effects part of the formula
+  # Check final data integrity
+  if (any(sapply(data_train, function(x) any(is.na(x) | is.nan(x))))) {
+    stop("Training data contains NA/NaN values")
+  }
+  
+  # Build formula
   random_effects <- paste0("(1 | ", group_vars, ")", collapse = " + ")
   formula_text <- paste("y ~ -1 +", paste(predictor_names, collapse = " + "), "+", random_effects)
   formula_fixed <- bf(as.formula(formula_text), quantile = target_quantile)
@@ -334,20 +442,28 @@ model_brms_quantile <- function(train_X, train_y, group_train,
       formula = formula_fixed,
       data = data_train,
       family = asym_laplace(),
-      chains = 2, iter = 2000, refresh = 0,
+      chains = 2, iter = 10000, refresh = 0,
       control = list(adapt_delta = 0.95),
       seed = 42
     )
-    pred <- fitted(fit, newdata = data_test, re_formula = NULL)
+    
+    # Handle prediction with potential NA values in test data
+    has_na_groups <- any(sapply(data_test[group_vars], function(x) any(is.na(x))))
+    
+    if (has_na_groups) {
+      warning("Test data has NA values in grouping variables. Using population-level predictions.")
+      pred <- fitted(fit, newdata = data_test, re_formula = NA)
+    } else {
+      pred <- fitted(fit, newdata = data_test, re_formula = NULL, allow_new_levels = TRUE)
+    }
+    
   })[["elapsed"]]
   
   # Extract variance components
   vc <- VarCorr(fit)
-  cov_pars <- lapply(group_vars, function(g) vc[[g]]$sd[, "Estimate"])
-  cov_pars <- lapply(cov_pars, function(x) x^2)
+  cov_pars <- lapply(group_vars, function(g) vc[[g]]$sd[, "Estimate"]^2)
   names(cov_pars) <- group_vars
-  noise_variance <- vc$residual__$sd[, "Estimate"]
-  noise_variance <- noise_variance^2
+  noise_variance <- vc$residual__$sd[, "Estimate"]^2
   hyper_params <- c(cov_pars, list(noise_variance = noise_variance))
   
   return(list(
@@ -359,18 +475,33 @@ model_brms_quantile <- function(train_X, train_y, group_train,
   ))
 }
 
-###### BayesQR ########
-model_bayesqr_quantile <- function(train_X, train_y, group_train,
-                                   test_X, group_test,
-                                   target_quantile = 0.5,
-                                   ndraw = 5000, keep = 1) {
+model_bayesqr_v2 <- function(train_X, train_y, group_train,
+                          test_X, group_test,
+                          target_quantile = 0.5,
+                          ndraw = 5000, keep = 1) {
   
   # --- Prepare predictor matrix ---
-  predictor_names <- c("Intercept", paste0("X", 1:(ncol(train_X) - 1)))
+  n_predictors <- ncol(train_X) - 1  # Number of non-intercept predictors
+  
+  if (n_predictors > 0) {
+    predictor_names <- c("intercept", paste0("X", 1:n_predictors))
+  } else {
+    predictor_names <- "intercept"
+  }
   colnames(train_X) <- predictor_names
   colnames(test_X) <- predictor_names
   data_train <- as.data.frame(train_X)
   data_test <- as.data.frame(test_X)
+  
+  # --- FIX: Handle arrays properly by converting to vectors first ---
+  if (is.array(group_train) && length(dim(group_train)) == 1) {
+    # Convert 1D array to vector
+    group_train <- as.vector(group_train)
+  }
+  if (is.array(group_test) && length(dim(group_test)) == 1) {
+    # Convert 1D array to vector  
+    group_test <- as.vector(group_test)
+  }
   
   # --- Grouping ---
   if (is.null(dim(group_train))) {
@@ -385,33 +516,89 @@ model_bayesqr_quantile <- function(train_X, train_y, group_train,
     }
   }
   
+  # Remove rows with NA groups from test data
+  complete_rows <- complete.cases(group_test)
+  data_test <- data_test[complete_rows, , drop = FALSE]
+  group_test <- group_test[complete_rows, , drop = FALSE]
+  
   group_vars <- names(group_train)
   
   # --- Add group dummies to design matrix ---
-  group_dummies_train <- model.matrix(~ . -1, data = group_train)
-  group_dummies_test <- model.matrix(~ . -1, data = group_test)
+  group_dummies_train <- model.matrix(~ ., data = group_train)
+  group_dummies_test <- model.matrix(~ ., data = group_test)
   
-  X_train <- cbind(data_train, group_dummies_train)
-  X_test <- cbind(data_test, group_dummies_test)
+  # Remove the intercept column from group dummies to avoid collinearity
+  group_dummies_train <- group_dummies_train[, -1, drop = FALSE]
+  group_dummies_test <- group_dummies_test[, -1, drop = FALSE]
+  
+
+  # Single QR decomposition
+  combined_matrix <- cbind(as.matrix(data_train), group_dummies_train)
+  #qr_decomp <- qr(combined_matrix)
+  #print(qr_decomp$rank)
+  #if (qr_decomp$rank < ncol(combined_matrix)) {
+   # print("Removing linearly dependent columns")
+  #  keep_cols <- qr_decomp$pivot[1:qr_decomp$rank]
+  #  X_train <- combined_matrix[, keep_cols, drop = FALSE]
+    # Apply same column selection to test data
+  #  X_test <- cbind(as.matrix(data_test), group_dummies_test)[, keep_cols, drop = FALSE]
+  #} else {
+  X_train <- combined_matrix
+  X_test <- cbind(as.matrix(data_test), group_dummies_test)
+  #}
   
   # --- Fit BayesQR model ---
+  # After creating X_train and X_test
+  print("Before fitting - dimensions:")
+  print(paste("X_train:", paste(dim(X_train), collapse="x")))
+  print(paste("X_test:", paste(dim(X_test), collapse="x")))
+  
+  # Prepare data for formula interface
+  X_train$y <- train_y
+  
+  # Create formula
+  predictor_vars <- setdiff(names(X_train), "y")
+  formula_str <- paste("y ~", paste(predictor_vars, collapse = " + "), "- 1")  # -1 to remove default intercept since we have our own
+  ndraw = 2000
+  
   fit_time <- system.time({
-    fit <- BayesQR::BayesQR(
-      y = train_y,
-      X = X_train,
-      quantile = target_quantile,
-      ndraw = ndraw,
-      keep = keep,
-      burnin = ndraw %/% 2  # Default
-    )
-    
-    # Posterior mean prediction
-    beta_post_mean <- colMeans(fit$betadraw)
-    preds <- as.numeric(as.matrix(X_test) %*% beta_post_mean)
-    
-    # Posterior std deviation of predictions
-    preds_samples <- fit$betadraw %*% t(as.matrix(X_test))
-    preds_se <- apply(preds_samples, 2, sd)
+      
+      fit <- bayesQR(
+        formula = as.formula(formula_str),
+        data = X_train,
+        normal.approx = TRUE, 
+        quantile = target_quantile,
+        ndraw = ndraw
+      )
+      print("bayesQR completed successfully!")
+      # Get summary with burnin to access betadraw
+      burnin <- ndraw %/% 2
+      print(paste("burnin value:", burnin))
+      print("About to call summary...")
+      tryCatch({
+        fit_summary <- summary(fit, burnin = burnin)
+        print("2 - summary completed")
+      }, error = function(e) {
+        print(paste("summary() failed:", e$message))
+        
+        # Debug the fit object
+        print("Checking fit object structure:")
+        print(names(fit))
+        
+        return(list(error = "summary failed"))
+      })
+      beta_draws <- fit_summary[[1]]$betadraw
+      print("2")
+      # Posterior mean prediction
+      beta_post_mean <- rowMeans(beta_draws)  # Note: rowMeans because betadraw is parameters x draws
+      X_test_matrix <- as.matrix(X_test)
+      print("3")
+      preds <- as.numeric(X_test_matrix %*% beta_post_mean)
+      print("4")
+      # Posterior std deviation of predictions
+      preds_samples <- t(beta_draws) %*% t(X_test_matrix)  # transpose beta_draws to get draws x parameters
+      print("5")
+      preds_se <- apply(preds_samples, 2, sd)
   })[["elapsed"]]
   
   return(list(
@@ -421,9 +608,6 @@ model_bayesqr_quantile <- function(train_X, train_y, group_train,
     model = fit
   ))
 }
-
-
-
 
 
 

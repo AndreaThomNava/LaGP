@@ -28,7 +28,7 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH, OUTPUT_DIR):
     # Define metrics and optimality
     metric_criteria = {"Quantile Score": "min", "Interval Score": "min", "Coverage": "check_coverage", "Time": "min",
                        "RMSE": "min"}
-
+    
 
     df = make_flattened_df(results = res)
     summary_df = group_flattened_df(flat_df=df)
@@ -41,7 +41,7 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH, OUTPUT_DIR):
     latex_table = make_latex_table(config=configs, summary_df=summary_df, metrics = metrics, metric_criteria= metric_criteria)
 
     # make and save plots
-    metrics_for_plotting = ["quantile_loss","time", "rmse", "coverage"] # "interval_loss", "coverage", "width", "time"] # df.columns[5:]
+    metrics_for_plotting = ["quantile_loss","time", "rmse"] #, "rmse", "coverage"] # "interval_loss", "coverage", "width", "time"] # df.columns[5:]
     make_plots(df = df, metrics = metrics_for_plotting, configs=configs, OUTPUT_DIR=OUTPUT_DIR)
     metric_for_plotting_hypers = [col for col in df.columns if col.startswith("re_var_")]
     metric_for_plotting_hypers.append("noise_variance")
@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--results_name", type = str,
-                        default = "simulation_results_python.pkl",
+                        default = "simulation_results.pkl",
                         help="Name of the results.pkl file")
     parser.add_argument("--configs", type = str,
                         default = "configs/config_test.yaml",

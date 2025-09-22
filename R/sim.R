@@ -95,6 +95,7 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
     tryCatch({
       if (model_name == "lqmm") {
         print("Fitting lqmm")
+        
         res <- model_lqmm(train_X = train_X, train_y = train_y,
                           group_train = group_train, test_X = test_X, group_test = group_test,
                           target_quantile = target_quantile)
@@ -105,7 +106,8 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
         
       } else if (model_name == "brms") {
         print("BRMS: Sampling via MCMC")
-        pred <- model_brms_quantile(train_X = train_X, train_y = train_y,
+        #check_data_structure(train_X, train_y, group_train, test_X, group_test)
+        pred <- model_brms_quantile_v2(train_X = train_X, train_y = train_y,
                                     group_train = group_train, test_X = test_X, group_test = group_test,
                                     target_quantile = target_quantile)
         
@@ -128,7 +130,7 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
       } else if (model_name == "bayesqr") {
         print("Fitting BayesQR (MCMC quantile regression)")
         
-        res <- model_bayesqr(train_X = train_X, train_y = train_y,
+        res <- model_bayesqr_v2(train_X = train_X, train_y = train_y,
                              group_train = group_train,
                              test_X = test_X, group_test = group_test,
                              target_quantile = target_quantile)
@@ -208,16 +210,37 @@ fit_models_on_all_datasets_parallel <- function(configs, models, num_replicates 
 
 
 configs_sim <- load_config("configs/config_test.yaml")
-models <- list("bayesQR") #,lqmm brms "vecchia_mcmc") #, "vecchia_mcmc")
+
+# update them!
+# Parameter update if fixed SNR is set
+if (configs_sim[["data_generation"]][["fixed_snr"]] %||% TRUE) {
+  pars <- compute_dict_pars(
+    signal_variance = configs_sim[["data_generation"]][["signal_variance"]],
+    snr = configs_sim[["data_generation"]][["snr"]], 
+    quantile = configs_sim[["data_generation"]][["quantile"]]
+  )
+  
+  # Update/merge pars (equivalent to Python's .update())
+  configs_sim[["data_generation"]][["pars"]] <- modifyList(
+    configs_sim[["data_generation"]][["pars"]], 
+    pars
+  )
+}
+
+models <- list("lqmm", "bayesqr", "brms") #,lqmm brms "vecchia_mcmc") #, "vecchia_mcmc")
 for (model_name in models){
   print(models)
 }
+
 num_replicates <- configs_sim$replicate
 results <- fit_models_on_all_datasets_parallel(configs = configs_sim, models = models,
                                                num_replicates = num_replicates)
+### select version
+
+version <- "101"
 
 # Save the results
-OUTPUT_DIR <- file.path("results", "simulation_mm", configs_sim$randeff)
+OUTPUT_DIR <- file.path("results", "simulation_mm", configs_sim$randeff, version)
 dir.create(OUTPUT_DIR, showWarnings = FALSE)
 
 # Combine results and config into one list

@@ -7,13 +7,16 @@ source("R/utils.R")
 
 fit_and_evaluate_replicate <- function(X, group_data, y, fold, configs, models) {
  
-  train_idx <- unlist(fold$train_idx)
-  test_idx <- unlist(fold$test_idx)
+  train_idx <- unlist(fold$train_idx)[1:1000]
+  test_idx <- unlist(fold$test_idx)[1:1000]
   
   train_X <- X[train_idx, , drop = FALSE]
   test_X  <- X[test_idx, , drop = FALSE]
   group_train <- group_data[train_idx, , drop = FALSE]
   group_test <- group_data[test_idx, ,drop = FALSE]
+  # scale y
+  y <- (y - mean(y)) / sd(y)
+  
   train_y <- y[train_idx]
   test_y  <- y[test_idx]
 
@@ -23,10 +26,11 @@ fit_and_evaluate_replicate <- function(X, group_data, y, fold, configs, models) 
   
   # Compute range
   train_range <- train_max - train_min
-  
+ 
   # Avoid division by zero for constant columns
+  train_min[train_range == 0] <- 0.0  # Add this line
   train_range[train_range == 0] <- 1.0
-  
+
   # Center and scale training data
   train_X_scaled <- (train_X - matrix(train_min, nrow = nrow(train_X), ncol = ncol(train_X), byrow = TRUE)) /
     matrix(train_range, nrow = nrow(train_X), ncol = ncol(train_X), byrow = TRUE)
@@ -35,7 +39,6 @@ fit_and_evaluate_replicate <- function(X, group_data, y, fold, configs, models) 
   test_X_scaled <- (test_X - matrix(train_min, nrow = nrow(test_X), ncol = ncol(test_X), byrow = TRUE)) /
     matrix(train_range, nrow = nrow(test_X), ncol = ncol(test_X), byrow = TRUE)
   
-
   delta_logl <- configs$delta_logl
   target_quantile <- configs$target_quantile
   
@@ -61,8 +64,8 @@ fit_and_evaluate_replicate <- function(X, group_data, y, fold, configs, models) 
     tryCatch({
       if (model_name == "lqmm") {
         print("Fitting lqmm")
-        res <- model_lqmm(train_X = train_X, train_y = train_y,
-                          group_train = group_train, test_X = test_X, group_test = group_test,
+        res <- model_lqmm(train_X = train_X_scaled, train_y = train_y,
+                          group_train = group_train, test_X = test_X_scaled, group_test = group_test,
                           target_quantile = target_quantile)
         
         latent_pred <- res$predictions
@@ -71,14 +74,25 @@ fit_and_evaluate_replicate <- function(X, group_data, y, fold, configs, models) 
         
       } else if (model_name == "brms") {
         print("BRMS: Sampling via MCMC")
-        pred <- model_brms_quantile(train_X = train_X, train_y = train_y,
-                                    group_train = group_train, test_X = test_X, group_test = group_test,
+        pred <- model_brms_quantile_v2(train_X = train_X_scaled, train_y = train_y,
+                                    group_train = group_train, test_X = test_X_scaled, group_test = group_test,
                                     target_quantile = target_quantile)
         
         print("sampled successfully")
         latent_pred <- pred$predictions
         hyper_params <- pred$hyper_params
         fit_time <- pred$fit_time
+      } else if (model_name == "bayesqr") {
+        print("Fitting BayesQR (MCMC quantile regression)")
+        
+        res <- model_bayesqr_v2(train_X = train_X_scaled, train_y = train_y,
+                                group_train = group_train,
+                                test_X = test_X_scaled, group_test = group_test,
+                                target_quantile = target_quantile)
+        
+        latent_pred <- res$predictions
+        hyper_params <- res$hyper_params
+        fit_time <- res$fit_time
       }
       
       if (!is.null(latent_pred)) {
@@ -148,14 +162,14 @@ fit_models_on_all_datasets_parallel <- function(configs, models) {
 }
 
 configs <- load_config("configs/config_mm_real.yaml")
-models <- list("brms") # brms lqmm
+models <- list("bayesqr")#, "bayesqr") #, "bayesqr")#, "brms") #, "bayesqr") # brms lqmm
 for (model_name in models){
   print(models)
 }
 results <- fit_models_on_all_datasets_parallel(configs = configs, models = models)
 
 # Save the results
-version <- "001"
+version <- "103"
 OUTPUT_DIR <- paste0("results/real_data_mm/", version)
 dir.create(OUTPUT_DIR, showWarnings = FALSE)
 

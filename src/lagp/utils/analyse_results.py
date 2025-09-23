@@ -465,8 +465,6 @@ def make_latex_table_hyperparams(config, summary_df):
     return latex_table
 
 
-
-
 def make_plots(df, metrics, configs, version):
     """
     Make plots about results.
@@ -474,48 +472,109 @@ def make_plots(df, metrics, configs, version):
     - for each likelihood and dimension combination, show effect of sample size on the metrics (quantile loss, interval score & coverage)
     """
 
-    # Example for plotting with sample_size on x-axis and color by method
-    # sns.set(style="whitegrid")  
-
+    # Set up plotting style and output directory
+    plt.style.use('seaborn-v0_8-whitegrid')
     OUTPUT_DIR = Path(f"results/simulation/{version}/images")
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+    # Get unique values for iteration
     dims = df["dim"].unique()
     likelihoods = df["likelihood"].unique()
 
+    # Extract configuration parameters
     alpha = configs["alpha"]
-    target_quantile =  configs["target_quantile"]
+    target_quantile = configs["target_quantile"]
+    model_mapping = configs.get("name_dict", None)
+
+    # Professional color palettes
+    palette = ['#0173B2', '#DE8F05', '#CC78BC', '#029E73', '#D55E00', '#56B4E9']
+    EXTENDED_PALETTE = [
+        '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', 
+        '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
+        '#aec7e8', '#ffbb78', '#98df8a', '#ff9896', '#c5b0d5'
+    ]
 
     for likelihood in likelihoods:
         for dim in dims:
-
+            # Filter data for current likelihood and dimension
             df_filtered = df[df["dim"] == dim]
             df_filtered = df_filtered[df_filtered["likelihood"] == likelihood]
-            # Assuming 'model_method' is the column representing different methods
+            
+            # Map model names if mapping exists
+            if model_mapping:
+                df_filtered = df_filtered.copy()
+                df_filtered["model_display"] = df_filtered["model"].map(
+                    lambda x: model_mapping.get(x, x)
+                )
+                hue_col = "model_display"
+            else:
+                hue_col = "model"
             
             for metric in metrics:
-                plt.figure(figsize=(10, 6))
-                sns.boxplot(data=df_filtered, x="sample_size", y=f"{metric}", hue="model", palette="Set2",showmeans=True)
-                if metric == "coverage" or metric == "train_coverage":
-                    plt.axhline(y=alpha, color="red", linestyle="--", linewidth=1, label = f"Nominal Coverage: {alpha}")
-                elif metric == "time":
-                      plt.yscale("log")
-                elif metric == "empirical_quantile":
-                    plt.axhline(y = target_quantile)
+                # Create figure with professional styling
+                fig, ax = plt.subplots(figsize=(12, 7))
                 
-                # Add titles and labels
-                plt.title(f"{metric.replace("_", " ").title()} by Sample Size. Likelihood: {likelihood}. Dim: {dim}", fontsize=16, c = "black")
-                plt.xlabel("Sample Size", fontsize=12)
-                plt.ylabel(f"{metric.replace("_", " ").title()}", fontsize=12)
-                plt.legend(title="Model", title_fontsize="13", fontsize="11", labelcolor = "black")
+                # Create boxplot with enhanced styling
+                sns.boxplot(data=df_filtered, x="sample_size", y=f"{metric}", 
+                           hue=hue_col, palette=EXTENDED_PALETTE,
+                           showmeans=True, ax=ax,
+                           meanprops={
+                               'marker': 'D',           # Diamond shape
+                               'markerfacecolor': 'white',
+                               'markeredgecolor': 'black',
+                               'markersize': 6,
+                               'markeredgewidth': 2.5
+                           })
+                
+                # Add reference lines based on metric type
+                if metric == "coverage" or metric == "train_coverage":
+                    ax.axhline(y=alpha, color="red", linestyle="--", linewidth=1, 
+                              label=f"Nominal Coverage: {alpha}")
+                elif metric == "time":
+                    ax.set_yscale("log")
+                elif metric == "empirical_quantile":
+                    ax.axhline(y=target_quantile, color="red", linestyle="--", linewidth=1,
+                              label=f"Target Quantile: {target_quantile}")
+                
+                # Enhanced title and labels with professional formatting
+                ax.set_title(f"{metric.replace('_', ' ').title()} by Sample Size\n"
+                            f"Likelihood: {likelihood}, Dimension: {dim}", 
+                            fontsize=20, fontweight='bold', pad=20)
+                ax.set_xlabel("Sample Size", fontsize=18, fontweight='bold')
+                ax.set_ylabel(f"{metric.replace('_', ' ').title()}", fontsize=18, fontweight='bold')
+                
+                # Increase tick label sizes
+                ax.tick_params(axis='both', which='major', labelsize=14)
+                ax.tick_params(axis='both', which='minor', labelsize=14)
+                
+                # Position legend below plot with professional styling
+                handles, labels = ax.get_legend_handles_labels()
+                legend = ax.legend(handles, labels,
+                                  title="Model",
+                                  loc='upper center',
+                                  bbox_to_anchor=(0.5, -0.12),
+                                  ncol=min(len(labels), 4),  # Max 4 columns
+                                  fontsize=16,
+                                  title_fontsize=18,
+                                  frameon=True,
+                                  fancybox=True,
+                                  shadow=True)
+                legend.get_title().set_fontweight('bold')
+                
+                # Adjust layout for legend
                 plt.tight_layout()
-                # Save plots
+                plt.subplots_adjust(bottom=0.2)
+                
+                # Save plots in multiple formats
                 filename = f"{metric}_{likelihood}_{dim}"
                 for ext in ["png", "pdf"]:
-                    plt.savefig(OUTPUT_DIR / f"{filename}.{ext}", bbox_inches="tight", dpi=300)
-
+                    plt.savefig(OUTPUT_DIR / f"{filename}.{ext}", 
+                               bbox_inches="tight", dpi=300)
                 plt.close()
-                
+
+
+
+
 def make_plots_hypers(df, configs, metrics, version):
     """
     Make plots about results.
@@ -523,84 +582,208 @@ def make_plots_hypers(df, configs, metrics, version):
     - for each likelihood and dimension combination, show effect of sample size on the metrics (quantile loss, interval score & coverage)
     """
 
-    # Example for plotting with sample_size on x-axis and color by method
-    # sns.set(style="whitegrid")  
-
+    # Set up plotting style and output directory
+    plt.style.use('seaborn-v0_8-whitegrid')
     OUTPUT_DIR = Path(f"results/simulation/{version}/images")
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    
+    # Extract configuration parameters
     models_with_hyperparams = configs["models_with_hyperparams"]
     signal_variance = configs["gp_parameters"]["kernel"]["signal_variance"]
     lengthscale = configs["gp_parameters"]["kernel"]["lengthscale"]
+    model_mapping = configs.get("name_dict", None)
+    
     true_pars = {"signal_variance": signal_variance,
                  "lengthscale": lengthscale}
-    # keep only if model has estimated the hyper-parameters
+    
+    # Keep only models that have estimated hyperparameters
     df = df[df['model'].isin(models_with_hyperparams)]
    
+    # Get unique values for iteration
     dims = df["dim"].unique()
     likelihoods = df["likelihood"].unique()
 
+    # Professional color palettes
+    palette = ['#0173B2', '#DE8F05', '#CC78BC', '#029E73', '#D55E00', '#56B4E9']
+    EXTENDED_PALETTE = [
+        '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', 
+        '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
+        '#aec7e8', '#ffbb78', '#98df8a', '#ff9896', '#c5b0d5'
+    ]
+
     for likelihood in likelihoods:
         for dim in dims:
-
+            # Filter data for current likelihood and dimension
             df_filtered = df[df["dim"] == dim]
             df_filtered = df_filtered[df_filtered["likelihood"] == likelihood]
-            # Assuming 'model_method' is the column representing different methods
+            
+            # Map model names if mapping exists
+            if model_mapping:
+                df_filtered = df_filtered.copy()
+                df_filtered["model_display"] = df_filtered["model"].map(
+                    lambda x: model_mapping.get(x, x)
+                )
+                hue_col = "model_display"
+            else:
+                hue_col = "model"
 
+            # Calculate effective range for current dimension
             effective_range = lengthscale * np.sqrt(dim/2) if dim > 2 else lengthscale
             true_pars["lengthscale"] = effective_range
+            
             for metric in metrics:
-                plt.figure(figsize=(10, 6))
-                sns.boxplot(data=df_filtered, x="sample_size", y=metric, hue="model", palette="Set2", showmeans=True)
-                # Add titles and labels
-                plt.title(f"{metric} by Sample Size. Likelihood: {likelihood}. Dim: {dim}", fontsize=16, c = "black")
-                plt.axhline(y=true_pars[metric], color="red", linestyle="--", linewidth=1, label = f"True {metric}")
-                plt.xlabel("Sample Size", fontsize=12)
-                plt.ylabel(f"{metric.replace("_", " ").title()}", fontsize=12)
-                plt.legend(title="Model", title_fontsize="13", fontsize="11", labelcolor = "black")
+                # Create figure with professional styling
+                fig, ax = plt.subplots(figsize=(12, 7))
+                
+                # Create boxplot with enhanced styling
+                sns.boxplot(data=df_filtered, x="sample_size", y=metric, 
+                           hue=hue_col, palette=EXTENDED_PALETTE,
+                           showmeans=True, ax=ax,
+                           meanprops={
+                               'marker': 'D',           # Diamond shape
+                               'markerfacecolor': 'white',
+                               'markeredgecolor': 'black',
+                               'markersize': 6,
+                               'markeredgewidth': 2.5
+                           })
+                
+                # Add reference line for true parameter value
+                ax.axhline(y=true_pars[metric], color="red", linestyle="--", 
+                          linewidth=2, label=f"True {metric.replace('_', ' ').title()}")
+                
+                # Enhanced title and labels with professional formatting
+                ax.set_title(f"{metric.replace('_', ' ').title()} by Sample Size\n"
+                            f"Likelihood: {likelihood}, Dimension: {dim}", 
+                            fontsize=20, fontweight='bold', pad=20)
+                ax.set_xlabel("Sample Size", fontsize=18, fontweight='bold')
+                ax.set_ylabel(f"{metric.replace('_', ' ').title()}", fontsize=18, fontweight='bold')
+                
+                # Increase tick label sizes
+                ax.tick_params(axis='both', which='major', labelsize=14)
+                ax.tick_params(axis='both', which='minor', labelsize=14)
+                
+                # Position legend below plot with professional styling
+                handles, labels = ax.get_legend_handles_labels()
+                legend = ax.legend(handles, labels,
+                                  title="Model",
+                                  loc='upper center',
+                                  bbox_to_anchor=(0.5, -0.12),
+                                  ncol=min(len(labels), 4),  # Max 4 columns
+                                  fontsize=16,
+                                  title_fontsize=18,
+                                  frameon=True,
+                                  fancybox=True,
+                                  shadow=True)
+                legend.get_title().set_fontweight('bold')
+                
+                # Adjust layout for legend
                 plt.tight_layout()
-                # Save plots
+                plt.subplots_adjust(bottom=0.2)
+                
+                # Save plots in multiple formats
                 filename = f"{metric}_{likelihood}_{dim}"
                 for ext in ["png", "pdf"]:
-                    plt.savefig(OUTPUT_DIR / f"{filename}.{ext}", bbox_inches="tight", dpi=300)
-
+                    plt.savefig(OUTPUT_DIR / f"{filename}.{ext}", 
+                               bbox_inches="tight", dpi=300)
                 plt.close()
-                
 
 
     
-def make_plots_real(df, metrics, version):
+def make_plots_real(df, metrics, version, configs=None):
     """
     Make plots about results.
 
     - for each dataset, show effect of sample size on the metrics (quantile loss & time)
     """
 
-    # Example for plotting with sample_size on x-axis and color by method
-    # sns.set(style="whitegrid")  
-
+    # Set up plotting style and output directory
+    plt.style.use('seaborn-v0_8-whitegrid')
     OUTPUT_DIR = Path(f"results/real_data/{version}/images")
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    
+    # Extract configuration parameters if available
+    model_mapping = configs.get("name_dict", None) if configs else None
+    models_to_plot = configs.get("all_models", None) if configs else None
+    if models_to_plot:
+        df = df[df['model'].isin(models_to_plot)]
+    # Professional color palettes
+    palette = ['#0173B2', '#DE8F05', '#CC78BC', '#029E73', '#D55E00', '#56B4E9']
+    EXTENDED_PALETTE = [
+        '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', 
+        '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
+        '#aec7e8', '#ffbb78', '#98df8a', '#ff9896', '#c5b0d5'
+    ]
+
+    # Map model names if mapping exists
+    df_plot = df.copy()
+    print(df_plot.columns)
+    if model_mapping:
+        df_plot["model_display"] = df_plot["model"].map(
+            lambda x: model_mapping.get(x, x)
+        )
+        hue_col = "model_display"
+    else:
+        hue_col = "model"
+    print(df_plot["model_display"].unique())
     for metric in metrics:
-        plt.figure(figsize=(10, 6))
-        sns.boxplot(data=df, x="dataset", y=f"{metric}", hue="model", palette="Set2", showmeans=True)
-        # Add titles and labels
-        if metric in ["time","quantile_loss"]:
-            plt.yscale("log")
-        plt.title(f"{metric} by Dataset.", fontsize=16, c = "black")
-        plt.xlabel("Dataset", fontsize=12)
-        plt.ylabel(f"{metric.replace("_", " ").title()}", fontsize=12)
-        plt.legend(title="Model", title_fontsize="13", fontsize="11", labelcolor = "black")
+        # Create figure with professional styling
+        fig, ax = plt.subplots(figsize=(12, 7))
+        
+        # Create boxplot with enhanced styling
+        sns.boxplot(data=df_plot, x="dataset", y=f"{metric}", 
+                   hue=hue_col, palette=EXTENDED_PALETTE,
+                   showmeans=True, ax=ax,
+                   meanprops={
+                       'marker': 'D',           # Diamond shape
+                       'markerfacecolor': 'white',
+                       'markeredgecolor': 'black',
+                       'markersize': 6,
+                       'markeredgewidth': 2.5
+                   })
+        
+        # Set log scale for specific metrics
+        if metric in ["time", "quantile_loss"]:
+            ax.set_yscale("log")
+        
+        # Enhanced title and labels with professional formatting
+        ax.set_title(f"{metric.replace('_', ' ').title()} by Dataset", 
+                    fontsize=20, fontweight='bold', pad=20)
+        ax.set_xlabel("Dataset", fontsize=18, fontweight='bold')
+        ax.set_ylabel(f"{metric.replace('_', ' ').title()}", fontsize=18, fontweight='bold')
+        
+        # Increase tick label sizes
+        ax.tick_params(axis='both', which='major', labelsize=14)
+        ax.tick_params(axis='both', which='minor', labelsize=14)
+        
+        # Rotate x-axis labels if there are many datasets
+        if len(df_plot["dataset"].unique()) > 4:
+            plt.xticks(rotation=45, ha='right')
+        
+        # Position legend below plot with professional styling
+        handles, labels = ax.get_legend_handles_labels()
+        legend = ax.legend(handles, labels,
+                          title="Model",
+                          loc='upper center',
+                          bbox_to_anchor=(0.5, -0.12),
+                          ncol=min(len(labels), 4),  # Max 4 columns
+                          fontsize=16,
+                          title_fontsize=18,
+                          frameon=True,
+                          fancybox=True,
+                          shadow=True)
+        legend.get_title().set_fontweight('bold')
+        
+        # Adjust layout for legend and rotated labels
         plt.tight_layout()
-        # Save plots
+        if len(df_plot["dataset"].unique()) > 4:
+            plt.subplots_adjust(bottom=0.25)  # More space for rotated labels
+        else:
+            plt.subplots_adjust(bottom=0.2)
+        
+        # Save plots in multiple formats
         filename = f"{metric}"
         for ext in ["png", "pdf"]:
-            plt.savefig(OUTPUT_DIR / f"{filename}.{ext}", bbox_inches="tight", dpi=300)
-
+            plt.savefig(OUTPUT_DIR / f"{filename}.{ext}", 
+                       bbox_inches="tight", dpi=300)
         plt.close()
-            
-
-
-
 

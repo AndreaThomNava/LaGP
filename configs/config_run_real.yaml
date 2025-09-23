@@ -33,6 +33,6 @@ n_epochs : 100
 lr: 0.01
 
 # for later, plotting
-all_models:  ["gpboost_fisher", "gpboost_cc", "gpytorch", "qgam"] # "gpboost_lls", 
-name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpytorch": "VI", "qgam":"GAM",
+all_models:  ["gpboost_fisher", "gpboost_cc", "gpytorch", "qgam", "qgam_interactions"] # "gpboost_lls", 
+name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpytorch": "VI", "qgam":"GAM","qgam_interactions":"GAM int",
             "gpboost_fisher":"FL", "boosting": "Boosting"}

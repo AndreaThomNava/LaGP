@@ -32,7 +32,7 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH, version):
 
     # make and save plots
     metrics_for_plotting = ["quantile_loss", "empirical_quantile", "time"]
-    make_plots_real(df = df, metrics = metrics_for_plotting, version = version)
+    make_plots_real(df = df, metrics = metrics_for_plotting, version = version, configs=configs)
    
     return latex_table
 

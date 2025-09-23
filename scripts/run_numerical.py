@@ -58,7 +58,7 @@ def main(config, version):
     OUTPUT_DIR = Path(f"results/numerical/{version}")
     # Ensure the directory exists
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    with open(f"{OUTPUT_DIR}/results_numerical", "wb") as f:
+    with open(f"{OUTPUT_DIR}/results_numerical.pkl", "wb") as f:
         pickle.dump(results, f)
 
 

@@ -123,10 +123,6 @@ ndraw = 500
 
 
 
-
-
-
-
 ### LOAD CONFIGS ###
 config_path <- "configs/config_data_generation.yaml"
 configs <- load_config(config_path)

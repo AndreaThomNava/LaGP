@@ -2,7 +2,7 @@
 
 data_generation:
   n_groups: [100] #, 500] # [200,  1000]
-  group_size: [100] #, 1000] #, 100, 500, 1000]
+  group_size: [100, 1000, 2000] #, 1000] #, 100, 500, 1000]
   
   n_groups_2 : 100 # how many levels for the second random effect -->  group_size > n_groups_2
                     # N/n_group_2, should be an integer
@@ -43,17 +43,12 @@ data_generation:
 
 ##### for running simulation ########
   
-models:  ["gpboost_normal", "gpboost_cc", "gpboost_lls",  "gpboost_fisher",
-            "gpboost_lls_v2"] # , "gpboost_lls_v2_freq", "gpboost_cc_var_corr", "gpboost_lls_groups", "gpboost_lls_v2_groups"] # "gpboost_cc", "gpboost_lls",
+models:  ["gpboost_cc", "gpboost_lls_groups",  "gpboost_fisher",
+            "gpboost_lls_v2_groups"] # , "gpboost_lls_v2_freq", "gpboost_cc_var_corr", "gpboost_lls_groups", "gpboost_lls_v2_groups"] # "gpboost_cc", "gpboost_lls",
 
-# models:  ["gpboost_cc", "gpboost_lls", "gpboost_fisher", "gpboost_lls_v2", 
-#             "gpboost_cc_f", "gpboost_lls_f", "gpboost_fisher_f", "gpboost_lls_v2_f",
-#             "gpboost_cc_fc", "gpboost_lls_fc", "gpboost_fisher_fc", "gpboost_lls_v2_fc"]
-            
-
-replicate: 5
+replicate: 10
 n_groups: [100] # [200,  1000]
-group_size: [100] #, 1000]
+group_size: [100, 1000, 2000] #, 1000]
 likelihood: ["gaussian", "ald"] #, "gaussian"]
 randeff: "One_random_effect"
 estimate_hyper: True
@@ -68,7 +63,8 @@ gpb_approxs: {"gpboost_fisher": "asymmetric_laplace",
             "gpboost_lls": "asymmetric_laplace_lls_laplace",
             "gpboost_lls_f": "asymmetric_laplace_lls_laplace_fisher_mode_finding",
             "gpboost_lls_fc": "asymmetric_laplace_lls_laplace_fisher_mode_finding_continue",
-            "gpboost_cc": "asymmetric_laplace_constant_curvature",
+            "gpboost_cc": "asymmetric_laplace_constant_curvature_fisher_mode_finding_continue",
+            "gpboost_cc_groups": "asymmetric_laplace_constant_curvature_groups_fisher_mode_finding",
             "gpboost_lls_groups": "asymmetric_laplace_lls_laplace_groups_fisher_mode_finding",
             "gpboost_cc_f": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
             "gpboost_cc_fc": "asymmetric_laplace_constant_curvature_fisher_mode_finding_continue",
@@ -84,22 +80,22 @@ gpb_approxs: {"gpboost_fisher": "asymmetric_laplace",
 
 
 ##### for the analysis of the results ######
-all_models : ["gpboost_normal", "gpboost_cc", "gpboost_lls", "gpboost_lls_v2",
-               "gpboost_fisher"] # ["gpboost_cc", "gpboost_lls", "gpboost_normal"] #, "gpboost_cc_var_corr", "lqmm", "brms"]
+all_models : ["gpboost_cc", "gpboost_lls", "gpboost_lls_v2", "gpboost_lls_groups", "gpboost_lls_v2_groups",
+               "gpboost_fisher", "lqmm", "bayesqr", "brms"] # ["gpboost_cc", "gpboost_lls", "gpboost_normal"] #, "gpboost_cc_var_corr", "lqmm", "brms"]
 
             
 
-models_with_hyperparams: ["gpboost_normal", "gpboost_cc", "gpboost_lls", "gpboost_lls_v2",
-               "gpboost_fisher", "lqmm"] #, "gpboost_lls_freq", "gpboost_lls_groups", "gpboost_lls_v2_groups"] #["gpboost_cc", "gpboost_lls", "gpboost_normal"] #,"gpboost_cc_var_corr","lqmm", "brms"]
-
+models_with_hyperparams: ["gpboost_cc", "gpboost_lls", "gpboost_lls_v2", "gpboost_lls_groups", "gpboost_lls_v2_groups",
+               "gpboost_fisher", "lqmm", "bayesqr", "brms"] 
 
             
 name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpboost_cc_var_corr": "CC corr",
-           "brms": "BRMS", "lqmm":"LQMM", "gpboost_normal": "gpbN", "gpboost_fisher": GPFisher, 
+           "brms": "BRMS", "lqmm":"LQMM", "gpboost_normal": "gpbN", "gpboost_fisher": Fisher, 
            "gpboost_lls_v2": "LLSV2", "gpboost_lls_freq": "LLSsand",
            "gpboost_cc_f":"CCf","gpboost_cc_fc":"CCfc","gpboost_lls_f":"LLSf",
            "gpboost_lls_fc":"LLSfc","gpboost_fisher_f":"Fisherf","gpboost_fisher_fc":"Fisherfc",
-           "gpboost_lls_v2_f":"LLSV2f","gpboost_lls_v2_fc":"LLSV2fc", "gpboost_lls_groups": "LLSG", "gpboost_lls_v2_groups": "LLS2G"}
+           "gpboost_lls_v2_f":"LLSV2f","gpboost_lls_v2_fc":"LLSV2fc", "gpboost_lls_groups": "LLSG", "gpboost_lls_v2_groups": "LLS2G",
+           "bayesqr": "BayesQR"}
            
 likelihood_dict : {"gaussian":"N", "ald": "ALD", "t":"t", "chi":"chi", "ald_heteroscedastic": HetALD}
 

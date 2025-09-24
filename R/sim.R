@@ -227,7 +227,7 @@ if (configs_sim[["data_generation"]][["fixed_snr"]] %||% TRUE) {
   )
 }
 
-models <- list("lqmm", "bayesqr", "brms") #,lqmm brms "vecchia_mcmc") #, "vecchia_mcmc")
+models <- list("lqmm", "bayesqr") #, "brms") 
 for (model_name in models){
   print(models)
 }
@@ -237,7 +237,7 @@ results <- fit_models_on_all_datasets_parallel(configs = configs_sim, models = m
                                                num_replicates = num_replicates)
 ### select version
 
-version <- "101"
+version <- "1"
 
 # Save the results
 OUTPUT_DIR <- file.path("results", "simulation_mm", configs_sim$randeff, version)

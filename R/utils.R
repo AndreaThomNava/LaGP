@@ -442,7 +442,7 @@ model_brms_quantile_v2 <- function(train_X, train_y, group_train,
       formula = formula_fixed,
       data = data_train,
       family = asym_laplace(),
-      chains = 2, iter = 10000, refresh = 0,
+      chains = 2, iter = 2000, refresh = 0,
       control = list(adapt_delta = 0.95),
       seed = 42
     )
@@ -543,7 +543,7 @@ model_bayesqr_v2 <- function(train_X, train_y, group_train,
     # Apply same column selection to test data
   #  X_test <- cbind(as.matrix(data_test), group_dummies_test)[, keep_cols, drop = FALSE]
   #} else {
-  X_train <- combined_matrix
+  X_train <- as.data.frame(combined_matrix)
   X_test <- cbind(as.matrix(data_test), group_dummies_test)
   #}
   
@@ -588,16 +588,16 @@ model_bayesqr_v2 <- function(train_X, train_y, group_train,
         return(list(error = "summary failed"))
       })
       beta_draws <- fit_summary[[1]]$betadraw
-      print("2")
+  
       # Posterior mean prediction
       beta_post_mean <- rowMeans(beta_draws)  # Note: rowMeans because betadraw is parameters x draws
       X_test_matrix <- as.matrix(X_test)
-      print("3")
+      
       preds <- as.numeric(X_test_matrix %*% beta_post_mean)
-      print("4")
+     
       # Posterior std deviation of predictions
       preds_samples <- t(beta_draws) %*% t(X_test_matrix)  # transpose beta_draws to get draws x parameters
-      print("5")
+      
       preds_se <- apply(preds_samples, 2, sd)
   })[["elapsed"]]
   

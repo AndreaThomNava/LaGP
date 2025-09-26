@@ -349,6 +349,11 @@ def model_viva_gp(
                     "signal_variance":signal_variance,
                     "noise_variance": noise_variance,
                     }
+    
+    n_train = len(train_y)  
+    print("VIVA pred len:", len(mu))
+    print(len(train_y))
+    print("train shape", mu[:n_train].shape)
 
     return mu[-n_test:], sd[-n_test:], elapsed_time, hyper_params
 

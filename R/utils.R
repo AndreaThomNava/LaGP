@@ -231,7 +231,7 @@ obtain_quantile <- function(f, noise, pars, target_quantile, g = NULL) {
 
 ## QGAM (Fasiolo) ##
 
-model_qgam <- function(train_X, train_y, test_X, target_quantile = 0.5, smooth_term = 20) {
+model_qgam <- function(train_X, train_y, test_X, target_quantile = 0.5, smooth_term = 10) {
   # Function to fit the QGAM model and predict on the test set
 
   # Dynamically create the training data frame (with y as the response variable)
@@ -269,7 +269,7 @@ model_qgam <- function(train_X, train_y, test_X, target_quantile = 0.5, smooth_t
 }
 
 
-model_qgam_interactions <- function(train_X, train_y, test_X, target_quantile = 0.5, smooth_term = 20) {
+model_qgam_interactions <- function(train_X, train_y, test_X, target_quantile = 0.5, smooth_term = 10) {
   # Function to fit the QGAM model with interactions and predict on the test set
   
   # Dynamically create the training data frame (with y as the response variable)
@@ -290,7 +290,7 @@ model_qgam_interactions <- function(train_X, train_y, test_X, target_quantile = 
   })
   
   # Add 2D interaction term using te() (tensor product smooth)
-  interaction_term <- "ti(X1, X2, k = smooth_term, bs = 'tp')"
+  interaction_term <- "ti(X1, X2, k = c(5,5), bs = 'tp')"
   
   # Combine individual terms and interaction
   formula <- as.formula(paste("y ~", paste(c(individual_terms, interaction_term), collapse = " + ")))

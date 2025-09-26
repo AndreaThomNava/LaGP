@@ -94,12 +94,12 @@ def fit_and_evaluate_replicate(
             # train prediction interval
             latent_pred_train = pred_train["mu"]
             stddev_pred_train = np.sqrt(pred_train["var"])  
-            low_pred_train = latent_pred_train - stddev_pred_train * t
-            up_pred_train = latent_pred_train + stddev_pred_train * t
+            #low_pred_train = latent_pred_train - stddev_pred_train * t
+            #up_pred_train = latent_pred_train + stddev_pred_train * t
 
 
         elif model_name == "gpytorch":
-            pred, elapsed_time, hyper_params = model_gpytorch(
+            pred, elapsed_time, hyper_params, train_pred = model_gpytorch(
                 quantile=target_quantile,
                 train_X=train_X,
                 train_y=train_y,
@@ -112,8 +112,10 @@ def fit_and_evaluate_replicate(
             )
 
             latent_pred = pred.mean.numpy()
-
             stddev_pred = pred.stddev.numpy()
+            latent_pred_train = train_pred.mean.numpy()
+            stddev_pred_train = train_pred.stddev.numpy()
+
             low_pred = latent_pred - stddev_pred * t
             up_pred = latent_pred + stddev_pred * t
 
@@ -135,7 +137,9 @@ def fit_and_evaluate_replicate(
             low_pred = latent_pred - latend_std * t
             up_pred = latent_pred + latend_std * t
 
-
+            # how to extract from VIVA?
+            latent_pred_train = np.nan
+            stddev_pred_train = np.nan
 
         # Compute quantile score
         qs_loss = quantile_score(y=test_y, preds=latent_pred, quantile=target_quantile)
@@ -151,6 +155,11 @@ def fit_and_evaluate_replicate(
             alpha=alpha,
         )
 
+        # train prediction interval
+        low_pred_train = latent_pred_train - stddev_pred_train * t
+        up_pred_train = latent_pred_train + stddev_pred_train * t
+
+
         # RMSE
         rmse= compute_rmse(f_true=test_true_latent_quantile, f_pred=latent_pred)
 
@@ -159,8 +168,11 @@ def fit_and_evaluate_replicate(
             y=test_true_latent_quantile, pred_low=low_pred, pred_up=up_pred
         )
 
-        train_coverage, train_width = coverage_and_width(
-            y=train_true_latent_quantile, pred_low=low_pred_train, pred_up=up_pred_train)
+        if model_name != "VIVA":
+            train_coverage, train_width = coverage_and_width(
+                y=train_true_latent_quantile, pred_low=low_pred_train, pred_up=up_pred_train)
+        else:
+            train_coverage, train_width = np.nan, np.nan
 
         # compute empirical quantile (to investigate bias)
         empirical_quantile = (test_y <= latent_pred).mean()

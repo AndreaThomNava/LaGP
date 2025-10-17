@@ -95,22 +95,31 @@ def compute_bias_mse(true_param: np.ndarray, estimates: np.ndarray):
     return {"bias": bias, "mse": mse}
 
 
-def align_re(group_train, group_test, re, test_true_latent_quantile, pred_std):
+def align_re(group_train, group_test, re, test_true_latent_quantile, pred_std, true_var, group_size):
 
     group_train_df = pd.DataFrame({"group_id":group_train})
     group_test_df = pd.DataFrame({"group_id":group_test})
 
     predicted_re = pd.DataFrame({"pred_re": re["Group_1"]})
-    predicted_var = pd.DataFrame({"pred_std": pred_std})
+    predicted_var = pd.DataFrame({"true_var": true_var})
+    
+    true_var = pd.DataFrame({"pred_std": pred_std})
+
 
     train_re = pd.concat([group_train_df, predicted_re], axis = 1)
     test_re = pd.concat([group_test_df, pd.DataFrame({"true_re": test_true_latent_quantile})],axis = 1)
     test_re = pd.concat([test_re, predicted_var],axis = 1)
 
+    
+    test_re = pd.concat([test_re, true_var],axis = 1)
+
     # align by merging on id
     merged = test_re.merge(train_re, on = "group_id", how= "inner").drop_duplicates(subset="group_id")
+    
+    # Divide true_var by group size
+    merged["true_var"] = merged["true_var"] / (group_size - merged.groupby("group_id")["group_id"].transform("size"))
 
-    return merged["true_re"], merged["pred_re"], merged["pred_std"]
+    return merged["true_re"], merged["pred_re"], merged["pred_std"], merged["true_var"]
 
 
 

@@ -9,7 +9,7 @@ from scipy.stats import norm
 
 from lagp.models.model import (  # Assuming you have these model functions
     model_gpboost, model_gpytorch, model_viva_gp)
-from lagp.utils.generate_data import load_data, obtain_quantile, load_scale_gp, compute_dict_pars
+from lagp.utils.generate_data import load_data, obtain_quantile, load_scale_gp, compute_dict_pars, get_true_curvature
 from lagp.utils.metrics import (coverage_and_width, interval_score,
                                 quantile_score, align_re, compute_rmse)
 
@@ -69,6 +69,12 @@ def fit_and_evaluate_replicate(
     normv = norm()
     t = normv.ppf(1 - (1 - alpha) / 2)
 
+    # true asympt curvature
+    true_curvature = get_true_curvature(f = eps_test, true_quantile = test_true_latent_quantile,
+                                        noise = noise, pars = configs["data_generation"]["pars"])
+    print(" --------- true curvature ----------", true_curvature)
+    print("likelihood:", noise)
+    true_var = target_quantile*(1-target_quantile) / true_curvature**2
     model_results = {}
     for model_name in models:
         # Fit the model and make predictions
@@ -99,9 +105,15 @@ def fit_and_evaluate_replicate(
 
             if randeff == "One_random_effect":
                 # matches predicted random effects from training groups to test groups
-                true_re, pred_re, stddev_pred = align_re(group_train, group_test, res, test_true_latent_quantile, stddev_pred)
+                true_re, pred_re, stddev_pred, true_var_aligned = align_re(group_train, group_test, res, 
+                                                                           test_true_latent_quantile, 
+                                                                           stddev_pred, true_var, group_size)
                 low_pred = pred_re - stddev_pred * t
                 up_pred = pred_re + stddev_pred * t
+
+                # using true sandwhich variance
+                low_true = pred_re - np.sqrt(true_var_aligned) * t
+                up_true = pred_re + np.sqrt(true_var_aligned) * t
 
             
         # Compute quantile score
@@ -119,10 +131,18 @@ def fit_and_evaluate_replicate(
             # compute coverage and width
             coverage, width = coverage_and_width(
             y=true_re, pred_low=low_pred, pred_up=up_pred)
-        
+
+            # compute coverage and width
+            coverage_true, width_true = coverage_and_width(
+            y=true_re, pred_low=low_true, pred_up=up_true)
+            print("coverage true: ", coverage_true)
+            print("curvature var:", np.sqrt(true_var_aligned[0]))
+            print("model", model_name)
+            print("estimated var: ", stddev_pred[0])
+
         else:
             interval_loss = np.nan
-            coverage, width, rmse = np.nan, np.nan, np.nan
+            coverage, width, rmse, coverage_true = np.nan, np.nan, np.nan, np.nan
 
 
 
@@ -133,6 +153,7 @@ def fit_and_evaluate_replicate(
             "interval_loss": interval_loss,
             "rmse": rmse,
             "coverage": coverage,
+            "coverage_true": coverage_true,
             "width": width,
             "time": elapsed_time,
             "hyper_params": hyper_params

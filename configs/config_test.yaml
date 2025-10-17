@@ -43,12 +43,12 @@ data_generation:
 
 ##### for running simulation ########
   
-models:  ["gpboost_cc", "gpboost_lls_groups",  "gpboost_fisher",
-            "gpboost_lls_v2_groups"] # , "gpboost_lls_v2_freq", "gpboost_cc_var_corr", "gpboost_lls_groups", "gpboost_lls_v2_groups"] # "gpboost_cc", "gpboost_lls",
+models:  ["gpboost_cc",  "gpboost_lls", "gpboost_fisher", "gpboost_lls_v2"] #"gpboost_lls",  "gpboost_fisher", "gpboost_lls_v2",
+          # , "gpboost_lls_freq", "gpboost_lls_v2_freq"] # , "gpboost_lls_v2_freq", "gpboost_cc_var_corr", "gpboost_lls_groups", "gpboost_lls_v2_groups"] # "gpboost_cc", "gpboost_lls",
 
 replicate: 10
 n_groups: [100] # [200,  1000]
-group_size: [100, 1000, 2000] #, 1000]
+group_size: [100, 1000, 2000] #[100, 1000, 2000] #, 1000]
 likelihood: ["gaussian", "ald"] #, "gaussian"]
 randeff: "One_random_effect"
 estimate_hyper: True
@@ -68,7 +68,7 @@ gpb_approxs: {"gpboost_fisher": "asymmetric_laplace",
             "gpboost_lls_groups": "asymmetric_laplace_lls_laplace_groups_fisher_mode_finding",
             "gpboost_cc_f": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
             "gpboost_cc_fc": "asymmetric_laplace_constant_curvature_fisher_mode_finding_continue",
-            "gpboost_cc_var_corr": "asymmetric_laplace_constant_curvature_var_cor_pred_freq_asym",
+            "gpboost_cc_freq": "asymmetric_laplace_constant_curvature_var_cor_pred_freq_asym",
             "gpboost_normal": "gaussian",
             "gpboost_lls_v2": "asymmetric_laplace_lls_laplace_v2",
             "gpboost_lls_v2_f": "asymmetric_laplace_lls_laplace_v2_fisher_mode_finding",
@@ -89,7 +89,7 @@ models_with_hyperparams: ["gpboost_cc", "gpboost_lls", "gpboost_lls_v2", "gpboos
                "gpboost_fisher", "lqmm", "bayesqr", "brms"] 
 
             
-name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpboost_cc_var_corr": "CC corr",
+name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpboost_cc_freq": "CC corr",
            "brms": "BRMS", "lqmm":"LQMM", "gpboost_normal": "gpbN", "gpboost_fisher": Fisher, 
            "gpboost_lls_v2": "LLSV2", "gpboost_lls_freq": "LLSsand",
            "gpboost_cc_f":"CCf","gpboost_cc_fc":"CCfc","gpboost_lls_f":"LLSf",
@@ -97,8 +97,4 @@ name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpboost_cc_var_corr": "C
            "gpboost_lls_v2_f":"LLSV2f","gpboost_lls_v2_fc":"LLSV2fc", "gpboost_lls_groups": "LLSG", "gpboost_lls_v2_groups": "LLS2G",
            "bayesqr": "BayesQR"}
            
-likelihood_dict : {"gaussian":"N", "ald": "ALD", "t":"t", "chi":"chi", "ald_heteroscedastic": HetALD}
-
-
-
-
+likelihood_dict : {"gaussian":"N", "ald": "ALD", "t":"t", "chi":"chi", "ald_heteroscedastic": "HetALD"}

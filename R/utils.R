@@ -436,28 +436,62 @@ model_brms_quantile_v2 <- function(train_X, train_y, group_train,
   formula_text <- paste("y ~ -1 +", paste(predictor_names, collapse = " + "), "+", random_effects)
   formula_fixed <- bf(as.formula(formula_text), quantile = target_quantile)
   
-  # Fit model and predict
-  fit_time <- system.time({
-    fit <- brm(
-      formula = formula_fixed,
-      data = data_train,
-      family = asym_laplace(),
-      chains = 2, iter = 2000, refresh = 0,
-      control = list(adapt_delta = 0.95),
-      seed = 42
-    )
+  # Fit model and predict with timeout
+  fit_time_start <- Sys.time()
+  timeout_seconds <- 3600 #00  # 1 hour
+  
+  # Try to fit with timeout
+  fit_result <- tryCatch({
+    # Use R.utils::withTimeout or base R with alarm
+    R.utils::withTimeout({
+      fit <- brm(
+        formula = formula_fixed,
+        data = data_train,
+        family = asym_laplace(),
+        chains = 2, iter = 2000, refresh = 0,
+        control = list(adapt_delta = 0.95),
+        seed = 42
+      )
+      
+      # Handle prediction
+      has_na_groups <- any(sapply(data_test[group_vars], function(x) any(is.na(x))))
+      
+      if (has_na_groups) {
+        warning("Test data has NA values in grouping variables. Using population-level predictions.")
+        pred <- fitted(fit, newdata = data_test, re_formula = NA)
+      } else {
+        pred <- fitted(fit, newdata = data_test, re_formula = NULL, allow_new_levels = TRUE)
+      }
+      
+      list(fit = fit, pred = pred, success = TRUE)
+    }, timeout = timeout_seconds, onTimeout = "error")
     
-    # Handle prediction with potential NA values in test data
-    has_na_groups <- any(sapply(data_test[group_vars], function(x) any(is.na(x))))
-    
-    if (has_na_groups) {
-      warning("Test data has NA values in grouping variables. Using population-level predictions.")
-      pred <- fitted(fit, newdata = data_test, re_formula = NA)
-    } else {
-      pred <- fitted(fit, newdata = data_test, re_formula = NULL, allow_new_levels = TRUE)
-    }
-    
-  })[["elapsed"]]
+  }, TimeoutException = function(e) {
+    warning(paste("brms fitting timed out after", timeout_seconds, "seconds"))
+    list(success = FALSE)
+  }, error = function(e) {
+    warning(paste("brms fitting failed:", e$message))
+    list(success = FALSE)
+  })
+  
+  fit_time <- as.numeric(difftime(Sys.time(), fit_time_start, units = "secs"))
+  
+  # Return NAs if failed
+  if (!fit_result$success) {
+    n_test <- nrow(data_test)
+    return(list(
+      predictions = rep(NA_real_, n_test),
+      se = rep(NA_real_, n_test),
+      fit_time = fit_time,
+      hyper_params = list(noise_variance = NA_real_),
+      model = NULL,
+      status = "timeout_or_error"
+    ))
+  }
+  
+  # Extract results if successful
+  fit <- fit_result$fit
+  pred <- fit_result$pred
   
   # Extract variance components
   vc <- VarCorr(fit)
@@ -471,9 +505,12 @@ model_brms_quantile_v2 <- function(train_X, train_y, group_train,
     se = pred[, "Est.Error"],
     fit_time = fit_time,
     hyper_params = hyper_params,
-    model = fit
+    model = fit,
+    status = "success"
   ))
+  
 }
+  
 
 model_bayesqr_v2 <- function(train_X, train_y, group_train,
                           test_X, group_test,

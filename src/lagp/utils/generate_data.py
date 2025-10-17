@@ -228,6 +228,26 @@ def obtain_quantile(
     return eps + delta
     
 
+def get_true_curvature(f, true_quantile, noise, pars, g = None):
+    
+
+    if noise == "gaussian":
+        scale = g if g is not None else pars["gaussian"]["scale"]
+        density = norm.pdf(loc = f, scale = scale, x = true_quantile) 
+
+    elif noise == "ald":
+        q = pars["ald"]["q"]
+        scale = g if g is not None else pars["ald"]["scale"]
+        # Quantile function of ALD with scale=1, then multiply
+        density = np.repeat(pdf_asym_laplace(y = [true_quantile[0]], b = [true_quantile[0]], q = q, scale = scale, log = False), len(f) )
+
+    else:
+        raise ValueError(f"Unsupported noise model: {noise}")
+
+    return density
+
+
+
 def compute_dict_pars(signal_variance, snr, quantile):
     """
     Assumes GP signal variance to be signal_variance. Hence target variance is signal_variance/snr.

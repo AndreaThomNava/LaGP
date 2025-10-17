@@ -41,7 +41,7 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH, OUTPUT_DIR):
     latex_table = make_latex_table(config=configs, summary_df=summary_df, metrics = metrics, metric_criteria= metric_criteria)
 
     # make and save plots
-    metrics_for_plotting = ["quantile_loss","time", "rmse"] #, "rmse", "coverage"] # "interval_loss", "coverage", "width", "time"] # df.columns[5:]
+    metrics_for_plotting = ["quantile_loss","time", "rmse", "coverage", "coverage_true"] #, "rmse", "coverage"] # "interval_loss", "coverage", "width", "time"] # df.columns[5:]
     make_plots(df = df, metrics = metrics_for_plotting, configs=configs, OUTPUT_DIR=OUTPUT_DIR)
     metric_for_plotting_hypers = [col for col in df.columns if col.startswith("re_var_")]
     metric_for_plotting_hypers.append("noise_variance")

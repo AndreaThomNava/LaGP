@@ -192,7 +192,7 @@ def make_latex_table(config, summary_df, metrics, metric_criteria):
     
     """
     
-    alpha = config["alpha"]
+    target_coverage = config["target_coverage"]
     models = config["all_models"] # eventually qgam
     name_dict = config["name_dict"]
     noise_dict = config["likelihood_dict"]
@@ -246,7 +246,7 @@ def make_latex_table(config, summary_df, metrics, metric_criteria):
             if metric_criteria[label] == "min":
                 idx = np.argmin(group[mean_col])
             elif metric_criteria[label] == "check_coverage":
-                idx = np.argmin(np.abs(group[mean_col] - alpha))
+                idx = np.argmin(np.abs(group[mean_col] - target_coverage))
             else:
                 idx = np.argmax(group[mean_col])
 
@@ -482,7 +482,7 @@ def make_plots(df, metrics, configs, version):
     likelihoods = df["likelihood"].unique()
 
     # Extract configuration parameters
-    alpha = configs["alpha"]
+    target_coverage = configs["target_coverage"]
     target_quantile = configs["target_quantile"]
     model_mapping = configs.get("name_dict", None)
 
@@ -528,8 +528,8 @@ def make_plots(df, metrics, configs, version):
                 
                 # Add reference lines based on metric type
                 if metric == "coverage" or metric == "train_coverage":
-                    ax.axhline(y=alpha, color="red", linestyle="--", linewidth=1, 
-                              label=f"Nominal Coverage: {alpha}")
+                    ax.axhline(y=target_coverage, color="red", linestyle="--", linewidth=1, 
+                              label=f"Nominal Coverage: {target_coverage}")
                 elif metric == "time":
                     ax.set_yscale("log")
                 elif metric == "empirical_quantile":

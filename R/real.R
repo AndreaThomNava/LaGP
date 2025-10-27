@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 library(parallel)
 library(reticulate)
-# use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
+use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
 library(yaml)
 source("R/utils.R")
 
@@ -148,7 +148,7 @@ for (model_name in models){
 results <- fit_models_on_all_datasets_parallel(configs = configs, models = models)
 
 # Save the results
-version <- "001"
+version <- "paper"
 OUTPUT_DIR <- paste0("results/real_data/", version)
 dir.create(OUTPUT_DIR, showWarnings = FALSE)
 

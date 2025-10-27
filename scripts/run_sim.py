@@ -9,7 +9,7 @@ from scipy.stats import norm
 import sys
 
 from lagp.models.model import (  # Assuming you have these model functions
-    model_gpboost, model_gpytorch, model_viva_gp)
+    model_gpboost, model_gpytorch, model_viva_gp, model_gpboost_cv, model_gpboost_twostage)
 from lagp.utils.generate_data import load_data, obtain_quantile, load_scale_gp, compute_dict_pars
 from lagp.utils.metrics import (coverage_and_width, interval_score,
                                 quantile_score, compute_rmse)
@@ -35,7 +35,7 @@ def fit_and_evaluate_replicate(
     input_dim = replicate_config["input_dim"]
     
     delta_logl = configs["delta_logl"]
-    alpha = configs["alpha"]
+    target_coverage = configs["target_coverage"]
     train_split = configs["train_split"]
     n_epochs = configs["n_epochs"]
     lr = configs["lr"]
@@ -64,7 +64,8 @@ def fit_and_evaluate_replicate(
     )
     # needed for prediction intervals
     normv = norm()
-    t = normv.ppf(1 - (1 - alpha) / 2)
+    alpha = 1 - target_coverage
+    t = normv.ppf(1 - alpha/ 2)
 
     model_results = {}
     for model_name in models:
@@ -75,17 +76,47 @@ def fit_and_evaluate_replicate(
         if re.match(r"^gpboost", model_name):
             approx = gpb_approxs[model_name]
            
-            pred, pred_train, elapsed_time, hyper_params = model_gpboost(
-                quantile=target_quantile,
-                train_X=train_X,
-                train_y=train_y,
-                test_X=test_X,
-                test_y=test_y,
-                approx=approx,
-                delta_logl=delta_logl,
-                n_vecchia= threshold_approx,
-            )
+            if model_name.endswith("_cv"):
+                pred, pred_train, elapsed_time, hyper_params = model_gpboost_cv(
+                    quantile=target_quantile,
+                    train_X=train_X,
+                    train_y=train_y,
+                    test_X=test_X,
+                    test_y=test_y,
+                    approx=approx,
+                    n_vecchia=threshold_approx,
+                    n_folds=2,  # Can make this configurable
+                    delta_logl_grid=np.array([0.1, 1.0, 10.0, 100.0]),  # Can make this configurable
+                )
 
+            elif model_name.endswith("_twostage"):
+                print("using two-stage GPBoost!")
+                pred, pred_train, elapsed_time, hyper_params = model_gpboost_twostage(
+                    quantile=target_quantile,
+                    train_X=train_X,
+                    train_y=train_y,
+                    test_X=test_X,
+                    test_y=test_y,
+                    approx=approx,
+                    delta_logl=delta_logl,
+                    n_vecchia=threshold_approx,
+                    target_coverage=target_coverage,
+                    max_iter=10
+                )
+
+            else:
+                pred, pred_train, elapsed_time, hyper_params = model_gpboost(
+                    quantile=target_quantile,
+                    train_X=train_X,
+                    train_y=train_y,
+                    test_X=test_X,
+                    test_y=test_y,
+                    approx=approx,
+                    delta_logl=delta_logl,
+                    n_vecchia=threshold_approx,
+                )
+                # prediction interval
+            
             latent_pred = pred["mu"]
             stddev_pred = np.sqrt(pred["var"])
             low_pred = latent_pred - stddev_pred * t
@@ -152,7 +183,7 @@ def fit_and_evaluate_replicate(
             y=test_true_latent_quantile,
             pred_low=low_pred,
             pred_up=up_pred,
-            alpha=alpha,
+            alpha=target_coverage,
         )
 
         # train prediction interval

@@ -94,8 +94,8 @@ def group_flattened_df_real(flat_df: pd.DataFrame) -> pd.DataFrame:
     grouped_df = grouped.agg(
         quantile_loss_mean=('quantile_loss', 'mean'),
         quantile_loss_std=('quantile_loss', 'std'),
-        empitrical_quantile=('empirical_quantile', 'mean'),
-        empirical_quantile_std=('empirical_quantile', 'std'),
+     #   empitrical_quantile=('empirical_quantile', 'mean'),
+     #   empirical_quantile_std=('empirical_quantile', 'std'),
         time_mean=("time", "mean" ),
         time_std = ("time", "std")
     ).reset_index()

@@ -141,7 +141,7 @@ def fit_and_evaluate_replicate(X, y, fold,
         # if X is 2d -> plot countor and save figure
         if X.shape[1] == 2:
             plt.figure(figsize=(10, 8))
-            scatter = plt.scatter(X_test.iloc[:, 0], X_test.iloc[:, 1], c=latent_pred, s=50, cmap='viridis', alpha=0.8)
+            scatter = plt.scatter(X_test.iloc[:, 1], X_test.iloc[:, 0], c=latent_pred, s=50, cmap='viridis', alpha=0.8)
             plt.colorbar(scatter, label='Predicted Quantile')
             plt.xlabel('X coordinate')
             plt.ylabel('Y coordinate')

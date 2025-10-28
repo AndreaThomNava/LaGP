@@ -2,7 +2,7 @@
 
 data_generation:
   n_groups: [100] #, 500] # [200,  1000]
-  group_size: [100, 1000, 2000] #, 1000] #, 100, 500, 1000]
+  group_size: [10, 100, 1000] #, 1000] #, 100, 500, 1000]
   
   n_groups_2 : 100 # how many levels for the second random effect -->  group_size > n_groups_2
                     # N/n_group_2, should be an integer
@@ -48,7 +48,7 @@ models:  ["gpboost_cc",  "gpboost_lls", "gpboost_fisher", "gpboost_lls_v2"] #"gp
 
 replicate: 10
 n_groups: [100] # [200,  1000]
-group_size: [100, 1000, 2000] #[100, 1000, 2000] #, 1000]
+group_size: [10, 100, 1000] #[100, 1000, 2000] #, 1000]
 likelihood: ["gaussian", "ald"] #, "gaussian"]
 randeff: "One_random_effect"
 estimate_hyper: True

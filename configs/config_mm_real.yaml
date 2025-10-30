@@ -1,6 +1,6 @@
 target_quantile: 0.8
 
-delta_logl: 1
+delta_logl: 10
 models:  ["gpboost_cc", "gpboost_lls", "gpboost_lls_v2", "gpboost_fisher"] #, "gpb
 
 estimate_hyper: True
@@ -14,7 +14,7 @@ gpb_approxs: {"gpboost_fisher": "asymmetric_laplace",
 
 
 
-datasets: ["cars_crossed"] # ["Orthodont", "labor", "cars"] # ["Orthodont", "labor"] 
+datasets: ["Orthodont", "labor", "cars"] # ["Orthodont", "labor"] cars_crossed
 
 n_splits: 2
 
@@ -22,4 +22,4 @@ n_splits: 2
 #### ANALYSIS ###
 all_models: ["gpboost_normal", "gpboost_cc", "gpboost_lls", "gpboost_lls_v2", "gpboost_fisher", "lqmm", "brms", "bayesqr"]  # also eventually Qgam
 name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpboost_cc_var_corr": "CC corr", "brms": "BRMS", "lqmm":"LQMM", "gpboost_normal": "gpbN", 
-              "gpboost_fisher": GPFisher, "bayesqr": "BayesQR", "gpboost_lls_v2": "LLSV2"} 
+              "gpboost_fisher": "GPFisher", "bayesqr": "BayesQR", "gpboost_lls_v2": "LLSV2"} 

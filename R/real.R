@@ -1,14 +1,14 @@
 #!/usr/bin/env Rscript
 library(parallel)
 library(reticulate)
-# use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
+use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
 library(yaml)
 source("R/utils.R")
 
 fit_and_evaluate_replicate <- function(X, group_data, y, fold, configs, models) {
  
-  train_idx <- unlist(fold$train_idx)[1:1000]
-  test_idx <- unlist(fold$test_idx)[1:1000]
+  train_idx <- unlist(fold$train_idx)#[1:1000]
+  test_idx <- unlist(fold$test_idx)#[1:1000]
   
   train_X <- X[train_idx, , drop = FALSE]
   test_X  <- X[test_idx, , drop = FALSE]
@@ -162,14 +162,14 @@ fit_models_on_all_datasets_parallel <- function(configs, models) {
 }
 
 configs <- load_config("configs/config_mm_real.yaml")
-models <- list("bayesqr")#, "bayesqr") #, "bayesqr")#, "brms") #, "bayesqr") # brms lqmm
+models <- list("lqmm", "bayesqr", "brms")#, "bayesqr") #, "bayesqr")#, "brms") #, "bayesqr") # brms lqmm
 for (model_name in models){
   print(models)
 }
 results <- fit_models_on_all_datasets_parallel(configs = configs, models = models)
 
 # Save the results
-version <- "103"
+version <- "paper_real"
 OUTPUT_DIR <- paste0("results/real_data_mm/", version)
 dir.create(OUTPUT_DIR, showWarnings = FALSE)
 

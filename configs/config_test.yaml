@@ -2,7 +2,10 @@
 
 data_generation:
   n_groups: [100] #, 500] # [200,  1000]
-  group_size: [10,100,  1000] #, 1000] #, 100, 500, 1000]
+<<<<<<< HEAD
+=======
+  group_size: [10, 100, 1000] #, 1000] #, 100, 500, 1000]
+>>>>>>> 1bf570e4258dd1a52e004588b9ae7e7f19fe47ee
   
   n_groups_2 : 100 # how many levels for the second random effect -->  group_size > n_groups_2
                     # N/n_group_2, should be an integer

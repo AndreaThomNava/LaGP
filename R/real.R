@@ -7,8 +7,8 @@ source("R/utils.R")
 
 fit_and_evaluate_replicate <- function(X, y, fold, configs, models) {
  
-  train_idx <- unlist(fold$train_idx)[1:10000]
-  test_idx <- unlist(fold$test_idx)[1:1000]
+  train_idx <- unlist(fold$train_idx)#[1:10000]
+  test_idx <- unlist(fold$test_idx)#[1:1000]
   
  
   X_train <- X[train_idx, , drop = FALSE]

@@ -10,11 +10,17 @@ fit_and_evaluate_replicate <- function(X, y, fold, configs, models) {
   train_idx <- unlist(fold$train_idx)[1:10000]
   test_idx <- unlist(fold$test_idx)[1:1000]
   
-  y <- (y - mean(y)) / sd(y)   
+ 
   X_train <- X[train_idx, , drop = FALSE]
   X_test  <- X[test_idx, , drop = FALSE]
   y_train <- y[train_idx]
   y_test  <- y[test_idx]
+
+  # Standardize using only training data
+  y_mean <- mean(y_train)
+  y_sd <- sd(y_train)
+  y_train <- (y_train - y_mean) / y_sd
+  y_test <- (y_test - y_mean) / y_sd
   
   # Define tolerance
   TOL <- 1e-8

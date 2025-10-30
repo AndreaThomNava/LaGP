@@ -4,6 +4,7 @@ import os
 import pickle
 import re
 import numpy as np
+import pandas as pd
 import yaml
 from scipy.stats import norm
 import matplotlib.pyplot as plt
@@ -35,11 +36,17 @@ def fit_and_evaluate_replicate(X, y, fold,
 
     # standardize the response
 
-    y = (y - y.mean()) / y.std()    
-    train_idx = fold["train_idx"][:10000]
+    train_idx = fold["train_idx"][:1000]
     test_idx = fold["test_idx"][:1000]
     X_train, X_test = X.iloc[train_idx,:], X.iloc[test_idx,:]
     y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
+
+    # Standardize using only training statistics
+    y_mean = y_train.mean()
+    y_std = y_train.std()
+    y_train = (y_train - y_mean) / y_std
+    y_test = (y_test - y_mean) / y_std  # Use train stats
+
 
     # Define a tolerance for near-constant features
     TOL = 1e-8
@@ -95,6 +102,7 @@ def fit_and_evaluate_replicate(X, y, fold,
             )
 
             latent_pred = pred["mu"]
+            latent_pred_train = pred_train["mu"]
            
 
         elif model_name == "gpytorch":
@@ -140,6 +148,9 @@ def fit_and_evaluate_replicate(X, y, fold,
 
         # if X is 2d -> plot countor and save figure
         if X.shape[1] == 2:
+
+            OUTPUT_DIR_IMAGES = f"results/real_data/{version}/images"
+            os.makedirs(OUTPUT_DIR_IMAGES, exist_ok=True)
             plt.figure(figsize=(10, 8))
             scatter = plt.scatter(X_test.iloc[:, 0], X_test.iloc[:, 1], c=latent_pred, s=50, cmap='viridis', alpha=0.8)
             plt.colorbar(scatter, label='Predicted Quantile')
@@ -154,7 +165,24 @@ def fit_and_evaluate_replicate(X, y, fold,
             for ext in ["png", "pdf"]:
                 plt.savefig(f"results/real_data/{version}/images/{filename}_contour_{df_name}.{ext}", bbox_inches="tight", dpi=300)
             plt.close()
-          
+
+            # Save predictions for later plotting
+        if X.shape[1] == 2:
+            pred_data = pd.DataFrame({
+                "x1_train": X_train.iloc[:, 0],
+                "x2_train": X_train.iloc[:, 1],
+                'y_train': y_mean + y_std * y_train,
+                "y_pred_train": y_mean + y_std * pred_train,
+                'x1': X_test.iloc[:, 0],
+                'x2': X_test.iloc[:, 1],
+                'y_pred': y_mean + y_std * latent_pred,
+              #  'y_std': stddev_pred,
+                'y_test': y_mean + y_std *  y_test,
+            })
+            
+            filename = f"{model_name}_predictions_{df_name}.csv"
+            pred_data.to_csv(f"results/real_data/{version}/{filename}", index=False)
+                
         # Compute quantile score
         qs_loss = quantile_score(y = y_test, preds=latent_pred, quantile=target_quantile)
 
@@ -194,7 +222,7 @@ def fit_models_on_all_datasets_parallel(configs, models, version):
         results[config_key] = {}
 
         # Use ProcessPoolExecutor to parallelize across replicates
-        with concurrent.futures.ProcessPoolExecutor(max_workers=n_splits) as executor:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
             future_to_replicate = {
                 executor.submit(
                     fit_and_evaluate_replicate,
@@ -247,16 +275,15 @@ if __name__ == "__main__":
     df_names = configs["datasets"]
     n_splits = configs["n_splits"]
 
-        
+    # Ensure the results directory exists
+    OUTPUT_DIR = f"results/real_data/{version}"
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
     # fit models
     results = fit_models_on_all_datasets_parallel(
         configs, models, version
     )
 
     # Save the results
-    # Ensure the results directory exists
-    OUTPUT_DIR = f"results/real_data/{version}"
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     # Combine the results and config into one dictionary
     all_results = {

@@ -86,7 +86,7 @@ def fit_and_evaluate_replicate(
                     approx=approx,
                     n_vecchia=threshold_approx,
                     n_folds=2,  # Can make this configurable
-                    delta_logl_grid=np.array([0.1, 1.0, 10.0, 100.0]),  # Can make this configurable
+                    delta_logl_grid=np.array([0.1, 1.0, 10.0]),  # Can make this configurable
                 )
 
             elif model_name.endswith("_twostage"):
@@ -258,7 +258,7 @@ def fit_models_on_all_datasets_parallel(configs, models, num_replicates=10):
                 print(config_key)
                 # Use ProcessPoolExecutor to parallelize across replicates
                 print(os.cpu_count())
-                with concurrent.futures.ProcessPoolExecutor(max_workers = num_replicates) as executor:
+                with concurrent.futures.ProcessPoolExecutor(max_workers = 1) as executor:
                     future_to_replicate = {
                         executor.submit(
                             fit_and_evaluate_replicate,

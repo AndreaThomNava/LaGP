@@ -537,11 +537,11 @@ def make_plots(df, metrics, configs, version):
                               label=f"Target Quantile: {target_quantile}")
                 
                 # Enhanced title and labels with professional formatting
-                ax.set_title(f"{metric.replace('_', ' ').title()} by Sample Size\n"
-                            f"Likelihood: {likelihood}, Dimension: {dim}", 
-                            fontsize=20, fontweight='bold', pad=20)
-                ax.set_xlabel("Sample Size", fontsize=18, fontweight='bold')
-                ax.set_ylabel(f"{metric.replace('_', ' ').title()}", fontsize=18, fontweight='bold')
+                ax.set_title(f"{metric.replace('_', ' ').title()}\n"
+                    f"Likelihood: {likelihood}, Dimension: {dim}", 
+                    fontsize=18, pad=20)
+                ax.set_xlabel("Sample Size", fontsize=16)
+                ax.set_ylabel(f"{metric.replace('_', ' ').title()}", fontsize=14)
                 
                 # Increase tick label sizes
                 ax.tick_params(axis='both', which='major', labelsize=14)
@@ -554,12 +554,12 @@ def make_plots(df, metrics, configs, version):
                                   loc='upper center',
                                   bbox_to_anchor=(0.5, -0.12),
                                   ncol=min(len(labels), 4),  # Max 4 columns
-                                  fontsize=16,
-                                  title_fontsize=18,
+                                  fontsize=14,
+                                  title_fontsize=16,
                                   frameon=True,
                                   fancybox=True,
                                   shadow=True)
-                legend.get_title().set_fontweight('bold')
+                #legend.get_title().set_fontweight('bold')
                 
                 # Adjust layout for legend
                 plt.tight_layout()

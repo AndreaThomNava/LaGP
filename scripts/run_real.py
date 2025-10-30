@@ -152,7 +152,7 @@ def fit_and_evaluate_replicate(X, y, fold,
             OUTPUT_DIR_IMAGES = f"results/real_data/{version}/images"
             os.makedirs(OUTPUT_DIR_IMAGES, exist_ok=True)
             plt.figure(figsize=(10, 8))
-            scatter = plt.scatter(X_test.iloc[:, 0], X_test.iloc[:, 1], c=latent_pred, s=50, cmap='viridis', alpha=0.8)
+            scatter = plt.scatter(X_test.iloc[:, 1], X_test.iloc[:, 0], c=latent_pred, s=50, cmap='viridis', alpha=0.8)
             plt.colorbar(scatter, label='Predicted Quantile')
             plt.xlabel('X coordinate')
             plt.ylabel('Y coordinate')

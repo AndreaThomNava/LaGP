@@ -1,11 +1,17 @@
 simulation:
   seed: 43
   grid_lims: [0, 1]
+<<<<<<< HEAD
+  sample_sizes: [20000] #, 5000] #, 100000] #, 5000, 10000, 20000] #, 5000, 10000] #, 10000] #, 5000, 10000]  # Different sample sizes for datasets
+  dimensions: [2,5]  # 1D, 2D, or 3D datasets
+=======
   sample_sizes: [5000] #, 5000] #, 5000] #, 100000] #, 5000, 10000, 20000] #, 5000, 10000] #, 10000] #, 5000, 10000]  # Different sample sizes for datasets
   dimensions: [2] #, 5] #,5]  # 1D, 2D, or 3D datasets
+>>>>>>> 0340d35f25562f7ecc8a6ac07e2fae0513f53710
   likelihoods: 
      - gaussian
-    # - t
+     - t
+     - gaussian_heteroscedastic
    # - chi
     # - ald
      # - ald_heteroscedastic # testing heteroscedasticity
@@ -49,8 +55,14 @@ target_coverage: 0.9
 train_split: 0.75
 
 # for python
-models: ["gpboost_fisher", "gpboost_fisher_twostage"] # ["gpboost_cc", "gpboost_cc_cv"] #"VIVA", "gpboost_fisher", "gpytorch"] # , "gpboost_groups", "gpboost_lls"] #, "gpboost_cc", "gpboost_fisher", "gpboost_lls", "gpboost_lls_v2", "gpytorch"] #,
+
+models: ["VIVA", "gpboost_fisher", "gpytorch"] #, "gpboost_cc", "gpboost_lls", "gpboost_lls_v2"] # , "gpboost_groups", "gpboost_lls"] #, "gpboost_cc", "gpboost_fisher", "gpboost_lls", "gpboost_lls_v2", "gpytorch"] #,
+# hyper-params --> useful for producing later results
+models_with_hyperparams:  ["gpboost_normal", "gpboost_cc", "gpboost_fisher", "gpboost_lls", "gpboost_lls_v2", "gpytorch", "gpboost_groups",
+                  "VIVA"] #, "gpboost_cc"] #["gpboost_cc", "gpboost_lls", "gpboost_fisher", "gpboost_normal"] #"gpboost_cc_var_corr", "gpytorch", "VIVA"]
+
   # gboost_fisher_twostage
+>>>>>>> 0340d35f25562f7ecc8a6ac07e2fae0513f53710
 gpb_approxs: {"gpboost_fisher": "asymmetric_laplace_fisher_mode_finding", # use continue as well, second order helps if not local!
            "gpboost_lls": "asymmetric_laplace_lls_laplace_fisher_mode_finding",
             "gpboost_cc": "asymmetric_laplace_constant_curvature_fisher_mode_finding",

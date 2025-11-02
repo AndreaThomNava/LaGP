@@ -18,7 +18,7 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH, version):
     with open(CONFIGS_PATH, "r") as f:
         configs = yaml.safe_load(f) 
 
-    metrics = [
+    metrics1 = [
         ("quantile_loss_mean", "quantile_loss_std", "Quantile Score"),  # 3rd element is the name/label
         ("true_pinball_loss_mean", "true_pinball_loss_std", "True Pinball Score"),
         ("interval_loss_mean", "interval_loss_std", "Interval Score"),
@@ -27,6 +27,9 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH, version):
         ("coverage_mean", "coverage_std", "Coverage"),
         ("train_coverage_mean", "train_coverage_std", "train_coverage"),
         ("time_mean", "time_std", "Time")
+    ]
+    metrics = [
+         ("rmse_mean", "rmse_std", "RMSE"), 
     ]
     # Define metrics and optimality
     metric_criteria = {"Quantile Score": "min", "True Pinball Score": "min", "Interval Score": "min", "Coverage": "check_coverage", "Time": "min",
@@ -57,7 +60,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--results_name", type = str,
-                        default = "simulation_results_python.pkl",
+                        default = "simulation_results.pkl",
                         help="Name of the results.pkl file")
     parser.add_argument("--configs", type = str,
                         default = "config_run_simulation.yaml",

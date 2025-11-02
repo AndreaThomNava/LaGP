@@ -176,7 +176,6 @@ def df_mse_hyper(flat_df, configs):
     return grouped_df
 
 
-
 def make_latex_table(config, summary_df, metrics, metric_criteria):
     """
     Make a latex table out of the summarized results.
@@ -189,58 +188,55 @@ def make_latex_table(config, summary_df, metrics, metric_criteria):
 
     Output:
         - latex_table: (str)
-    
     """
     
     target_coverage = config["target_coverage"]
-    models = config["all_models"] # eventually qgam
+    models = config["all_models"]
     name_dict = config["name_dict"]
     noise_dict = config["likelihood_dict"]
-
-    # Optional font size
-    fontsize = r"\small"  # you can change to \footnotesize, \small, etc.
-
-    # Column format
+    
     n_models = len(models)
     n_metrics = len(metrics)
-    col_format = "lll|" + "c" * (n_metrics * n_models)
-    col_format = "|l|l|l" + "|Y" * (n_metrics * n_models) + "|"
-
-    # Multi-column headers for metrics
-    metric_headers = [fr"\multicolumn{{{n_models}}}{{c|}}{{\textbf{{\scriptsize {label}}}}}" for _, _, label in metrics]
-
-    # Lower headers with the actual method names (one header per method)
+    
+    # Clean column format without vertical lines
+    col_format = "l" + "c" * 2 + "c" * (n_metrics * n_models)
+    
+    # Create headers
+    metric_headers = []
+    for _, _, label in metrics:
+        metric_headers.append(fr"\multicolumn{{{n_models}}}{{c}}{{{label}}}")
+    
+    # Model headers
     model_headers = []
     for _ in range(n_metrics):
-        model_headers.extend([fr"\multicolumn{{1}}{{c}}{{\textbf{{\tiny {name_dict[model]}}}}}" for model in models])
+        for model in models:
+            clean_name = name_dict[model].replace("_", " ")
+            model_headers.append(fr"\multicolumn{{1}}{{c}}{{{clean_name}}}")
 
+    # Main headers
+    main_headers = ["Noise", "N", "d"] + model_headers
 
-    # Lower headers for fixed columns (likelihood, sample size, dim)
-    lower_headers = [r"\scriptsize \textbf{Noise}", r"\scriptsize \textbf{N}", r"\scriptsize \textbf{d}"]
-    lower_headers.extend(model_headers)
-
-    # Build the LaTeX header
+    # Create table header
     header = fr"""
-    \begin{{table}}[ht]
-    \centering
-    {fontsize}
-    \begin{{tabularx}}{{1\textwidth}}{{{col_format}}}
-    \toprule
-    \multicolumn{{3}}{{c|}}{{}} & {' & '.join(metric_headers)} \\
-    { ' & '.join(lower_headers) } \\
-    \midrule
-    """
+\begin{{table}}[htbp]
+\centering
+\begin{{tabular}}{{{col_format}}}
+\toprule
+\multicolumn{{3}}{{c}}{{}} & {' & '.join(metric_headers)} \\
+\cmidrule(lr){{4-{3 + n_metrics * n_models}}}
+{' & '.join(main_headers)} \\
+\midrule"""
 
-    # Build table rows
+    # Process data rows
     rows = []
     for _, group in summary_df.groupby(['likelihood', 'sample_size', 'dim']):
-        row = [
-            fr"\scriptsize {noise_dict[group['likelihood'].iloc[0]]}", # map likelihood to chosen name
-            fr"\scriptsize {group['sample_size'].iloc[0]}",
-            fr"\scriptsize {group['dim'].iloc[0]}"
-        ]
+        noise_label = noise_dict[group['likelihood'].iloc[0]]
+        n_val = int(group['sample_size'].iloc[0])
+        d_val = int(group['dim'].iloc[0])
         
-        # For every metric, look for the best value and later make it bold --> use np.isclose
+        row = [noise_label, str(n_val), str(d_val)]
+
+        # Find best values for each metric
         best_metrics = {}
         for mean_col, std_col, label in metrics:
             if metric_criteria[label] == "min":
@@ -249,39 +245,41 @@ def make_latex_table(config, summary_df, metrics, metric_criteria):
                 idx = np.argmin(np.abs(group[mean_col] - target_coverage))
             else:
                 idx = np.argmax(group[mean_col])
-
+            
             best_value = group[mean_col].iloc[idx]
             best_std = group[std_col].iloc[idx]
             best_metrics[label] = (best_value, best_std)
 
-        # For every metric, loop through methods and add results
+        # Add metric values
         for mean_col, std_col, label in metrics:
             for model in models:
                 sub = group[group['model'] == model]
                 if not sub.empty:
                     mean = sub[mean_col].values[0]
                     std = sub[std_col].values[0]
-
-                    best_value, best_std = best_metrics[label]
-                    if abs(mean - best_value) <= 2 * best_std:
-                        row.append(rf"\textbf{{\scriptsize {mean:.2f} \n \tiny ({std:.2f})}}")
-                    else:
-                        row.append(rf"\scriptsize {mean:.2f} \n \tiny ({std:.2f})")
-                else:
-                    row.append("–")
-        rows.append(" & ".join(row) + r" \\")
                     
-    # Footer
-    footer = r"""
-    \bottomrule
-    \end{tabularx}
-    \caption{Comparison of models across likelihoods, sample sizes, and dimensions. Each cell shows mean (std).}
-    \end{table}
-    """
+                    if pd.isna(mean) or pd.isna(std):
+                        row.append("---")
+                    else:
+                        best_value, best_std = best_metrics[label]
+                        if abs(mean - best_value) <= 2 * best_std:
+                            row.append(f"\\textbf{{{mean:.2f}$_\\pm{{\\text{{\\tiny {std:.2f}}}}}$}}")
+                        else:
+                            row.append(f"{mean:.2f}$_\\pm{{\\text{{\\tiny {std:.2f}}}}}$")
+                else:
+                    row.append("---")
+        
+        rows.append(" & ".join(row) + " \\\\")
 
-    # Combine all
-    latex_table = header + "\n".join(rows) + footer
-     
+    # Table footer
+    footer = r"""
+\bottomrule
+\end{tabular}
+\caption{Comparison of GP models across likelihoods, sample sizes, and dimensions. Each cell shows mean (std). Bold indicates best performance within 2 standard deviations. --- indicates method not applicable or convergence failure.}
+\label{tab:gp_comparison}
+\end{table}"""
+
+    latex_table = header + "\n" + "\n".join(rows) + "\n" + footer
     return latex_table
 
 def make_latex_table_real(config, summary_df, metrics, metric_criteria):
@@ -403,65 +401,81 @@ def make_latex_table_hyperparams(config, summary_df):
         ("mse_lengthscale", None, "Lengthscale MSE"),
         ("mse_signal_variance", None, "Signal Variance MSE"),
     ]
-    metric_criteria = {label: "min" for _, _, label in metrics}
 
-    fontsize = r"\small"
     n_models = len(models)
     n_metrics = len(metrics)
-    col_format = "|l|l|l" + "|Y" * (n_metrics * n_models) + "|"
-
-    metric_headers = [fr"\multicolumn{{{n_models}}}{{c|}}{{\textbf{{\scriptsize {label}}}}}" for _, _, label in metrics]
+    
+    # Clean column format without vertical lines
+    col_format = "l" + "c" * 2 + "c" * (n_metrics * n_models)
+    
+    # Create headers
+    metric_headers = []
+    for _, _, label in metrics:
+        metric_headers.append(fr"\multicolumn{{{n_models}}}{{c}}{{{label}}}")
+    
+    # Model headers
     model_headers = []
     for _ in range(n_metrics):
-        model_headers.extend([fr"\multicolumn{{1}}{{c}}{{\textbf{{\tiny {name_dict[model]}}}}}" for model in models])
+        for model in models:
+            clean_name = name_dict[model].replace("_", " ")
+            model_headers.append(fr"\multicolumn{{1}}{{c}}{{{clean_name}}}")
 
-    lower_headers = [r"\scriptsize \textbf{Noise}", r"\scriptsize \textbf{N}", r"\scriptsize \textbf{d}"] + model_headers
+    # Main headers
+    main_headers = ["Noise", "N", "d"] + model_headers
 
+    # Create table header
     header = fr"""
-    \begin{{table}}[ht]
-    \centering
-    {fontsize}
-    \begin{{tabularx}}{{1\textwidth}}{{{col_format}}}
-    \toprule
-    \multicolumn{{3}}{{c|}}{{}} & {' & '.join(metric_headers)} \\
-    { ' & '.join(lower_headers) } \\
-    \midrule
-    """
+\begin{{table}}[htbp]
+\centering
+\begin{{tabular}}{{{col_format}}}
+\toprule
+\multicolumn{{3}}{{c}}{{}} & {' & '.join(metric_headers)} \\
+\cmidrule(lr){{4-{3 + n_metrics * n_models}}}
+{' & '.join(main_headers)} \\
+\midrule"""
 
+    # Process data rows
     rows = []
     for _, group in summary_df.groupby(['likelihood', 'sample_size', 'dim']):
-        row = [
-            fr"\scriptsize {noise_dict[group['likelihood'].iloc[0]]}",
-            fr"\scriptsize {group['sample_size'].iloc[0]}",
-            fr"\scriptsize {group['dim'].iloc[0]}"
-        ]
+        noise_label = noise_dict[group['likelihood'].iloc[0]]
+        n_val = int(group['sample_size'].iloc[0])
+        d_val = int(group['dim'].iloc[0])
+        
+        row = [noise_label, str(n_val), str(d_val)]
 
+        # Find best values for each metric
         best_metrics = {}
         for mean_col, _, label in metrics:
-            col_vals = group[mean_col]
-            best_metrics[label] = np.min(col_vals)
+            best_metrics[label] = np.min(group[mean_col])
 
+        # Add metric values
         for mean_col, _, label in metrics:
             for model in models:
                 sub = group[group['model'] == model]
                 if not sub.empty:
                     mean = sub[mean_col].values[0]
-                    if np.isclose(mean, best_metrics[label]):
-                        row.append(rf"\textbf{{\scriptsize {mean:.4f}}}")
+                    
+                    if pd.isna(mean):
+                        row.append("---")
                     else:
-                        row.append(rf"\scriptsize {mean:.4f}")
+                        if np.isclose(mean, best_metrics[label]):
+                            row.append(f"\\textbf{{{mean:.4f}}}")
+                        else:
+                            row.append(f"{mean:.4f}")
                 else:
-                    row.append("–")
-        rows.append(" & ".join(row) + r" \\")
+                    row.append("---")
+        
+        rows.append(" & ".join(row) + " \\\\")
 
+    # Table footer
     footer = r"""
-    \bottomrule
-    \end{tabularx}
-    \caption{MSE of estimated hyperparameters across models and settings. Bold indicates best (lowest) MSE.}
-    \end{table}
-    """
+\bottomrule
+\end{tabular}
+\caption{MSE of estimated hyperparameters across models and settings. Bold indicates best (lowest) MSE. --- indicates method not applicable or convergence failure.}
+\label{tab:hyperparameter_mse}
+\end{table}"""
 
-    latex_table = header + "\n".join(rows) + footer
+    latex_table = header + "\n" + "\n".join(rows) + "\n" + footer
     return latex_table
 
 

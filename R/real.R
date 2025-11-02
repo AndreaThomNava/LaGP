@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 library(parallel)
 library(reticulate)
-use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
+#use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
 library(yaml)
 source("R/utils.R")
 

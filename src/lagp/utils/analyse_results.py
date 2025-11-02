@@ -25,6 +25,7 @@ def flatten_hyper_params(hyper_params):
     re_idx = 1
 
     for k, v in hyper_params.items():
+        
         if k == "noise_variance":
             flat["noise_variance"] = float(v)
         else:
@@ -312,101 +313,103 @@ def make_latex_table(config, summary_df, metrics, metric_criteria):
 
 def make_latex_table_real(config, summary_df, metrics, metric_criteria):
     """
-    Make a latex table out of the summarized results.
-
+    Make a latex table out of the summarized results for real data.
+    
     Input:
         - config: (dict)
         - summary_df: (pd.DataFrame)
         - metrics: (list)
         - metric_criteria: (dict)
-
+    
     Output:
         - latex_table: (str)
-    
     """
     
-
-    models = config["all_models"] # also eventually Qgam
+    models = config["all_models"]
     name_dict = config["name_dict"]
-
-    # Optional font size
-    fontsize = r"\small"  # you can change to \footnotesize, \small, etc.
-
-    # Column format
+    
     n_models = len(models)
     n_metrics = len(metrics)
-    col_format = "lll|" + "c" * (n_metrics * n_models)
-    col_format = "|l" + "|Y" * (n_metrics * n_models) + "|"
-
-    # Multi-column headers for metrics
-    metric_headers = [fr"\multicolumn{{{n_models}}}{{c|}}{{\textbf{{\scriptsize {label}}}}}" for _, _, label in metrics]
-
-    # Lower headers with the actual method names (one header per method)
+    
+    # Clean column format without vertical lines
+    col_format = "l" + "c" * (n_metrics * n_models)
+    
+    # Create headers with better spacing and grouping
+    metric_headers = []
+    for _, _, label in metrics:
+        metric_headers.append(fr"\multicolumn{{{n_models}}}{{c}}{{{label}}}")
+    
+    # Model headers
     model_headers = []
     for _ in range(n_metrics):
-        model_headers.extend([fr"\multicolumn{{1}}{{c}}{{\textbf{{\tiny {name_dict[model]}}}}}" for model in models])
+        for model in models:
+            clean_name = name_dict[model].replace("_", " ")
+            model_headers.append(fr"\multicolumn{{1}}{{c}}{{{clean_name}}}")
 
+    # Main headers
+    main_headers = ["Dataset"] + model_headers
 
-    # Lower headers for fixed columns (likelihood, sample size, dim)
-    lower_headers = [r"\textbf{dataset}"]
-    lower_headers.extend(model_headers)
-
-    # Build the LaTeX header
+    # Create table header
     header = fr"""
-    \begin{{table}}[ht]
-    \centering
-    {fontsize}
-    \begin{{tabularx}}{{1\textwidth}}{{{col_format}}}
-    \toprule
-    \multicolumn{{1}}{{c|}}{{}} & {' & '.join(metric_headers)} \\
-    { ' & '.join(lower_headers) } \\
-    \midrule
-    """
+\begin{{table}}[htbp]
+\centering
+\begin{{tabular}}{{{col_format}}}
+\toprule
+\multicolumn{{1}}{{c}}{{}} & {' & '.join(metric_headers)} \\
+\cmidrule(lr){{2-{1 + n_metrics * n_models}}}
+{' & '.join(main_headers)} \\
+\midrule"""
 
-    # Build table rows
+    # Process data rows
     rows = []
     for _, group in summary_df.groupby(['dataset']):
-        row = [
-            f"{group['dataset'].iloc[0]}",
-        ]
+        dataset_name = group['dataset'].iloc[0].capitalize()
         
-        # For every metric, look for the best value and later make it bold --> use np.isclose
+        row = [dataset_name]
+
+        # Find best values for each metric
         best_metrics = {}
         for mean_col, std_col, label in metrics:
             if metric_criteria[label] == "min":
-                best_value = np.min(group[mean_col])
+                idx = np.argmin(group[mean_col])
             else:
-                best_value = np.max(group[mean_col])
-            best_metrics[label] = best_value
+                idx = np.argmax(group[mean_col])
+            
+            best_value = group[mean_col].iloc[idx]
+            best_std = group[std_col].iloc[idx]
+            best_metrics[label] = (best_value, best_std)
 
-        # For every metric, loop through methods and add results
+        # Add metric values
         for mean_col, std_col, label in metrics:
             for model in models:
                 sub = group[group['model'] == model]
                 if not sub.empty:
                     mean = sub[mean_col].values[0]
                     std = sub[std_col].values[0]
-                    if np.isclose(mean, best_metrics[label]):
-                        row.append(f"\\textbf{{\\scriptsize {mean:.3f} ({std:.2f})}}")
-                    else:
-                        row.append(f"\\scriptsize {mean:.3f} ({std:.2f})")
-                else:
-                    row.append("–")
-        rows.append(" & ".join(row) + r" \\")
                     
-    # Footer
+                    if pd.isna(mean) or pd.isna(std):
+                        row.append("---")
+                    else:
+                        best_value, best_std = best_metrics[label]
+                        if abs(mean - best_value) <= 2 * best_std:
+                            row.append(f"\\textbf{{{mean:.2f}$_\\pm{{\\text{{\\tiny {std:.2f}}}}}$}}")
+                        else:
+                            row.append(f"{mean:.2f}$_\\pm{{\\text{{\\tiny {std:.2f}}}}}$")
+                else:
+                    row.append("---")
+        
+        rows.append(" & ".join(row) + " \\\\")
+
+    # Table footer
     footer = r"""
-    \bottomrule
-    \end{tabularx}
-    \caption{Comparison of models across datasets. Each cell shows mean (std).}
-    \end{table}
-    """
+\bottomrule
+\end{tabular}
+\caption{Comparison of models across real datasets. Each cell shows mean (std). Bold indicates best performance within 2 standard deviations. --- indicates method not applicable or convergence failure.}
+\label{tab:real_data_comparison}
+\end{table}"""
 
-    # Combine all
-    latex_table = header + "\n".join(rows) + footer
-     
+    latex_table = header + "\n" + "\n".join(rows) + "\n" + footer
     return latex_table
-
 
 
 def make_latex_table_hyperparams(config, summary_df):
@@ -683,21 +686,21 @@ def make_plots_hypers(df, configs, metrics, pars, OUTPUT_DIR):
                            ax=ax)
                 
                 # Add title with better formatting
-                title_text = f"{metric.replace('_', ' ').title()} by Group Size\n"
+                title_text = f"{metric.replace('_', ' ').title()}\n"
                 if crossed:
                     title_text += f"Likelihood: {likelihood}, Num. Groups: ({int(n_g)}, {n_groups_2})"
                 else:
                     title_text += f"Likelihood: {likelihood}, Num. Groups: {n_g}"
                 
-                ax.set_title(title_text, fontsize=16, fontweight='bold', pad=20)
+                ax.set_title(title_text, fontsize=16, pad=20)
                 
                 # Add true value reference line
                 ax.axhline(y=true_variances[metric], color="red", linestyle="--", 
                           linewidth=2, label=f"True {metric.replace('_', ' ').title()}")
                 
                 # Improve labels with larger fonts
-                ax.set_xlabel("Group Size", fontsize=14, fontweight='bold')
-                ax.set_ylabel(f"{metric.replace('_', ' ').title()}", fontsize=14, fontweight='bold')
+                ax.set_xlabel("Group Size", fontsize=14)
+                ax.set_ylabel(f"{metric.replace('_', ' ').title()}", fontsize=14)
                 
                 # Increase tick label sizes
                 ax.tick_params(axis='both', which='major', labelsize=12)
@@ -706,16 +709,12 @@ def make_plots_hypers(df, configs, metrics, pars, OUTPUT_DIR):
                 # Position legend below plot
                 handles, labels = ax.get_legend_handles_labels()
                 legend = ax.legend(handles, labels,
-                                #  title="Model",
-                                  loc='upper center',
-                                  bbox_to_anchor=(0.5, -0.12),
-                                  ncol=len(labels),  # Max 4 columns
-                                  fontsize=16,
-                                  title_fontsize=18,
-                                  frameon=True,
-                                  fancybox=True,
-                                  shadow=True)
-                legend.get_title().set_fontweight('bold')
+                        loc='upper center',
+                        bbox_to_anchor=(0.5, -0.12),
+                        ncol=(len(labels) + 1) // 2,  # Two rows
+                        fontsize=16,
+                        frameon=True)
+                #legend.get_title().set_fontweight('bold')
                 
                 # Adjust layout for legend
                 plt.tight_layout()

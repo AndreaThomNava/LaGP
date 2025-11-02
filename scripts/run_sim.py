@@ -8,7 +8,7 @@ import yaml
 from scipy.stats import norm
 
 from lagp.models.model import (  # Assuming you have these model functions
-    model_gpboost, model_gpytorch, model_viva_gp)
+    model_gpboost, model_gpytorch, model_viva_gp, model_gpboost_twostage)
 from lagp.utils.generate_data import load_data, obtain_quantile, load_scale_gp, compute_dict_pars, get_true_curvature
 from lagp.utils.metrics import (coverage_and_width, interval_score,
                                 quantile_score, align_re, compute_rmse)
@@ -72,8 +72,8 @@ def fit_and_evaluate_replicate(
     # true asympt curvature
     true_curvature = get_true_curvature(f = eps_test, true_quantile = test_true_latent_quantile,
                                         noise = noise, pars = configs["data_generation"]["pars"])
-    print(" --------- true curvature ----------", true_curvature)
-    print("likelihood:", noise)
+    # print(" --------- true curvature ----------", true_curvature)
+    # print("likelihood:", noise)
     true_var = target_quantile*(1-target_quantile) / true_curvature**2
     model_results = {}
     for model_name in models:
@@ -83,24 +83,40 @@ def fit_and_evaluate_replicate(
         # Matches models starting with 'gpboost'
         if re.match(r"^gpboost", model_name):
             approx = gpb_approxs[model_name]
-            print("here")
-            pred, res, elapsed_time, hyper_params = model_gpboost(
-                quantile=target_quantile,
-                train_X=train_X,
-                group_train=group_train,
-                train_y=train_y,
-                test_X=test_X,
-                group_test=group_test,
-                test_y=test_y,
-                approx=approx,
-                delta_logl=delta_logl,
-                estimate_hyper=estimate_hyper,
-            )
+            
+            if model_name.endswith("_twostage"):
+                print("-- start twostage --")
+                pred, res, elapsed_time, hyper_params = model_gpboost_twostage(
+                    quantile=target_quantile,
+                    train_X=train_X,
+                    group_train=group_train,
+                    train_y=train_y,
+                    test_X=test_X,
+                    group_test=group_test,
+                    test_y=test_y,
+                    approx=approx,
+                    delta_logl=delta_logl,
+                )
+                
+
+            else:
+                pred, res, elapsed_time, hyper_params = model_gpboost(
+                    quantile=target_quantile,
+                    train_X=train_X,
+                    group_train=group_train,
+                    train_y=train_y,
+                    test_X=test_X,
+                    group_test=group_test,
+                    test_y=test_y,
+                    approx=approx,
+                    delta_logl=delta_logl,
+                    estimate_hyper=estimate_hyper,
+                )
 
             # with fixed effects
             pred_with_fixed_effects = pred["mu"]
             stddev_pred = np.sqrt(pred["var"])
-          
+            
     
 
             if randeff == "One_random_effect":
@@ -183,7 +199,7 @@ def fit_models_on_all_datasets_parallel(configs, models, num_replicates=10):
                 print(config_key)
                 # Use ProcessPoolExecutor to parallelize across replicates
                 print(os.cpu_count())
-                with concurrent.futures.ProcessPoolExecutor(max_workers = num_replicates) as executor:
+                with concurrent.futures.ProcessPoolExecutor(max_workers = 1) as executor: # num replicates
                     future_to_replicate = {
                         executor.submit(
                             fit_and_evaluate_replicate,

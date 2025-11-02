@@ -27,6 +27,9 @@ def fit_and_evaluate_replicate(X, group_data, Y, fold,
     Output:
         - metrics: dictionary with model names as keys and metrics as values
     """
+    import psutil
+    print(f"Memory usage: {psutil.virtual_memory().percent}%")
+    
     Y = (Y - np.mean(Y)) / np.std(Y)
     train_idx = fold["train_idx"] #[:1000]
     test_idx = fold["test_idx"]# [:1000]
@@ -117,7 +120,7 @@ def fit_models_on_all_datasets_parallel(configs, models):
         results[config_key] = {}
 
         # Use ProcessPoolExecutor to parallelize across replicates
-        with concurrent.futures.ProcessPoolExecutor(max_workers=n_splits) as executor:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor: # n_splits
             future_to_replicate = {
                 executor.submit(
                     fit_and_evaluate_replicate,

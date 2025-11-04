@@ -86,7 +86,7 @@ def fit_and_evaluate_replicate(
             
             if model_name.endswith("_twostage"):
                 print("-- start twostage --")
-                pred, res, elapsed_time, hyper_params = model_gpboost_twostage(
+                pred, res, elapsed_time, hyper_params, group_train1 = model_gpboost_twostage(
                     quantile=target_quantile,
                     train_X=train_X,
                     group_train=group_train,
@@ -97,6 +97,8 @@ def fit_and_evaluate_replicate(
                     approx=approx,
                     delta_logl=delta_logl,
                 )
+                group_train_align = group_train1
+                
                 
 
             else:
@@ -112,6 +114,7 @@ def fit_and_evaluate_replicate(
                     delta_logl=delta_logl,
                     estimate_hyper=estimate_hyper,
                 )
+                group_train_align = group_train
 
             # with fixed effects
             pred_with_fixed_effects = pred["mu"]
@@ -121,7 +124,7 @@ def fit_and_evaluate_replicate(
 
             if randeff == "One_random_effect":
                 # matches predicted random effects from training groups to test groups
-                true_re, pred_re, stddev_pred, true_var_aligned = align_re(group_train, group_test, res, 
+                true_re, pred_re, stddev_pred, true_var_aligned = align_re(group_train_align, group_test, res, 
                                                                            test_true_latent_quantile, 
                                                                            stddev_pred, true_var, group_size)
                 low_pred = pred_re - stddev_pred * t
@@ -141,16 +144,17 @@ def fit_and_evaluate_replicate(
                 pred_low=low_pred,
                 pred_up=up_pred,
                 alpha=alpha,)
-            
+            print("interval loss successful!")
             rmse= compute_rmse(f_true=true_re, f_pred=pred_re)
 
             # compute coverage and width
             coverage, width = coverage_and_width(
             y=true_re, pred_low=low_pred, pred_up=up_pred)
-
+            print("cov successful!")
             # compute coverage and width
             coverage_true, width_true = coverage_and_width(
             y=true_re, pred_low=low_true, pred_up=up_true)
+            print("cov2 successful!")
             print("coverage true: ", coverage_true)
             print("curvature var:", np.sqrt(true_var_aligned[0]))
             print("model", model_name)

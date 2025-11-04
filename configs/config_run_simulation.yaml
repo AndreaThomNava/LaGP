@@ -64,7 +64,7 @@ lr: 0.01
 
 
 # fix dicts
-name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpytorch": "VI", "qgam":"GAM",
+name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpytorch": "VI", "qgam":"QGAM",
             "gpboost_cc_var_corr": "CC corr", "vecchia_mcmc": "BSGP", "VIVA":"VIVA"}
 likelihood_dict : {"gaussian":"N", "ald": "ALD", "t":"t", "chi":"chi", "ald_heteroscedastic": HetALD}
 

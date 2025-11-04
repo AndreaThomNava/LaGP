@@ -47,7 +47,7 @@ models:  ["gpboost_fisher_twostage", "gpboost_fisher"] #"gpboost_lls",  "gpboost
 
 replicate: 5
 n_groups: [100] # [200,  1000]
-group_size: [100] # , 1000] #[100, 1000, 2000] #, 1000]
+group_size: [1000] # , 1000] #[100, 1000, 2000] #, 1000]
 likelihood: ["gaussian", "ald"] #, "gaussian"]
 randeff: "One_random_effect"
 estimate_hyper: True

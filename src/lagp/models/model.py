@@ -341,7 +341,7 @@ def model_gpboost_twostage(
       #  "validation_coverage": coverage_history[best_lr_idx] if coverage_history else None,
     }
     
-    return pred, re_estimate, elapsed_time, hyper_params
+    return pred, re_estimate, elapsed_time, hyper_params, group_train1
 
 
 def model_gpytorch(

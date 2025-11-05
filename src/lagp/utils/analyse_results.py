@@ -760,10 +760,10 @@ def make_plots_real(df, metrics, version, configs=None):
             ax.set_yscale("log")
         
         # Enhanced title and labels with professional formatting
-        ax.set_title(f"{metric.replace('_', ' ').title()} by Dataset", 
-                    fontsize=20, fontweight='bold', pad=20)
-        ax.set_xlabel("Dataset", fontsize=18, fontweight='bold')
-        ax.set_ylabel(f"{metric.replace('_', ' ').title()}", fontsize=18, fontweight='bold')
+        #ax.set_title(f"{metric.replace('_', ' ').title()}", 
+         #           fontsize=22, pad=20)
+        ax.set_xlabel("Dataset", fontsize=20)
+        ax.set_ylabel(f"{metric.replace('_', ' ').title()}", fontsize=20)
         
         # Increase tick label sizes
         ax.tick_params(axis='both', which='major', labelsize=14)
@@ -779,13 +779,13 @@ def make_plots_real(df, metrics, version, configs=None):
                           title="Model",
                           loc='upper center',
                           bbox_to_anchor=(0.5, -0.12),
-                          ncol=min(len(labels), 4),  # Max 4 columns
+                          ncol=min(len(labels), 5),  # Max 4 columns
                           fontsize=16,
                           title_fontsize=18,
                           frameon=True,
                           fancybox=True,
                           shadow=True)
-        legend.get_title().set_fontweight('bold')
+        #legend.get_title().set_fontweight('bold')
         
         # Adjust layout for legend and rotated labels
         plt.tight_layout()

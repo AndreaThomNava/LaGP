@@ -1,94 +1,102 @@
 #!/usr/bin/env Rscript
 library(parallel)
 library(reticulate)
-use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
+#use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
 library(yaml)
 source("R/utils.R")
 
-fit_and_evaluate_replicate <- function(X, y, fold, configs, models) {
+fit_and_evaluate_replicate <- function(X, group_data, y, fold, configs, models) {
  
-  train_idx <- unlist(fold$train_idx)#[1:10000]
+  train_idx <- unlist(fold$train_idx)#[1:1000]
   test_idx <- unlist(fold$test_idx)#[1:1000]
   
- 
-  X_train <- X[train_idx, , drop = FALSE]
-  X_test  <- X[test_idx, , drop = FALSE]
-  y_train <- y[train_idx]
-  y_test  <- y[test_idx]
-
-  # Standardize using only training data
-  y_mean <- mean(y_train)
-  y_sd <- sd(y_train)
-  y_train <- (y_train - y_mean) / y_sd
-  y_test <- (y_test - y_mean) / y_sd
+  train_X <- X[train_idx, , drop = FALSE]
+  test_X  <- X[test_idx, , drop = FALSE]
+  group_train <- group_data[train_idx, , drop = FALSE]
+  group_test <- group_data[test_idx, ,drop = FALSE]
+  # scale y
+  y <- (y - mean(y)) / sd(y)
   
-  # Define tolerance
-  TOL <- 1e-8
-  
-  # Identify non-constant columns in training set
-  is_nonconstant <- apply(X_train, 2, sd) > TOL
-  
-  # Filter both training and test sets
-  X_train <- X_train[, is_nonconstant]
-  X_test <- X_test[, is_nonconstant]
-  
-  # Log dropped features
-  dropped <- colnames(X)[!is_nonconstant]
-  if (length(dropped) > 0) {
-    cat("Dropped constant features:", paste(dropped, collapse=", "), "\n")
-  }
+  train_y <- y[train_idx]
+  test_y  <- y[test_idx]
 
   # Compute min and max for each column of the training set
-  train_min <- apply(X_train, 2, min)
-  train_max <- apply(X_train, 2, max)
+  train_min <- apply(train_X, 2, min)
+  train_max <- apply(train_X, 2, max)
   
   # Compute range
   train_range <- train_max - train_min
-  
+ 
   # Avoid division by zero for constant columns
+  train_min[train_range == 0] <- 0.0  # Add this line
   train_range[train_range == 0] <- 1.0
-  
+
   # Center and scale training data
-  train_X_scaled <- (X_train - matrix(train_min, nrow = nrow(X_train), ncol = ncol(X_train), byrow = TRUE)) /
-    matrix(train_range, nrow = nrow(X_train), ncol = ncol(X_train), byrow = TRUE)
+  train_X_scaled <- (train_X - matrix(train_min, nrow = nrow(train_X), ncol = ncol(train_X), byrow = TRUE)) /
+    matrix(train_range, nrow = nrow(train_X), ncol = ncol(train_X), byrow = TRUE)
   
   # Center and scale test data using training statistics
-  test_X_scaled <- (X_test - matrix(train_min, nrow = nrow(X_test), ncol = ncol(X_test), byrow = TRUE)) /
-    matrix(train_range, nrow = nrow(X_test), ncol = ncol(X_test), byrow = TRUE)
+  test_X_scaled <- (test_X - matrix(train_min, nrow = nrow(test_X), ncol = ncol(test_X), byrow = TRUE)) /
+    matrix(train_range, nrow = nrow(test_X), ncol = ncol(test_X), byrow = TRUE)
   
-
   delta_logl <- configs$delta_logl
-  n_epochs <- configs$n_epochs
-  lr <- configs$lr
-  threshold_approx <- configs$threshold_approximation
-  inducing_points <- configs$inducing_points
   target_quantile <- configs$target_quantile
   
   model_results <- list()
   
+  # For one grouped random effect
+  expected_num_cov_pars <- 1
+  expected_cov_par_names <- c("Group_1")  # Define expected names
+  
+  # Define a "safe empty" hyper_params list to use on failures
+  empty_hyper_params <- c(
+    setNames(rep(NA_real_, expected_num_cov_pars), expected_cov_par_names),
+    list(noise_variance = NA_real_)
+  )
+  
   for (model_name in models) {
     
     latent_pred <- NULL
+    hyper_params <- empty_hyper_params
     fit_time <- NA_real_
     qs_loss <- NA_real_
     
     tryCatch({
-      if (model_name == "qgam") {
-        print("Fitting qgam")
-        pred <- model_qgam(train_X_scaled, y_train, test_X_scaled, target_quantile)
+      if (model_name == "lqmm") {
+        print("Fitting lqmm")
+        res <- model_lqmm(train_X = train_X_scaled, train_y = train_y,
+                          group_train = group_train, test_X = test_X_scaled, group_test = group_test,
+                          target_quantile = target_quantile)
+        
+        latent_pred <- res$predictions
+        hyper_params <- res$hyper_params
+        fit_time <- res$fit_time
+        
+      } else if (model_name == "brms") {
+        print("BRMS: Sampling via MCMC")
+        pred <- model_brms_quantile_v2(train_X = train_X_scaled, train_y = train_y,
+                                    group_train = group_train, test_X = test_X_scaled, group_test = group_test,
+                                    target_quantile = target_quantile)
+        
+        print("sampled successfully")
         latent_pred <- pred$predictions
+        hyper_params <- pred$hyper_params
         fit_time <- pred$fit_time
-      }
-      
-      else if (model_name == "qgam_interactions") {
-        print("Fitting qgam with interactions")
-        pred <- model_qgam_interactions(train_X_scaled, y_train, test_X_scaled, target_quantile)
-        latent_pred <- pred$predictions
-        fit_time <- pred$fit_time
+      } else if (model_name == "bayesqr") {
+        print("Fitting BayesQR (MCMC quantile regression)")
+        
+        res <- model_bayesqr_v2(train_X = train_X_scaled, train_y = train_y,
+                                group_train = group_train,
+                                test_X = test_X_scaled, group_test = group_test,
+                                target_quantile = target_quantile)
+        
+        latent_pred <- res$predictions
+        hyper_params <- res$hyper_params
+        fit_time <- res$fit_time
       }
       
       if (!is.null(latent_pred)) {
-        qs_loss <- quantile_score(y = y_test, preds = latent_pred, quantile = target_quantile)
+        qs_loss <- quantile_score(test_y, latent_pred, target_quantile)
         print(paste("QS loss:", qs_loss))
       } else {
         print("No predictions available for QS loss calculation.")
@@ -97,12 +105,17 @@ fit_and_evaluate_replicate <- function(X, y, fold, configs, models) {
       print(paste("Time:", fit_time))
       
     }, error = function(e) {
+      # On any error, fallback to safe empty values
       print(paste("Model", model_name, "failed with error:", e$message))
-      # fallback values are already set
+      latent_pred <<- NULL
+      hyper_params <<- empty_hyper_params
+      fit_time <<- NA_real_
+      qs_loss <<- NA_real_
     })
     
     model_results[[model_name]] <- list(
       quantile_loss = qs_loss,
+      hyper_params = hyper_params,
       time = fit_time
     )
   }
@@ -115,12 +128,14 @@ fit_models_on_all_datasets_parallel <- function(configs, models) {
   n_splits <- configs$n_splits
   results <- list()
   
-  DIR <- "data/real_data"
+  DIR <- "data/real_data_mm"
   
   for (df_name in configs$datasets) {
+    print(df_name)
     data <- load_X_y_preprocessed(dataset_name = df_name, dir = DIR)
     X <- data$X
-    y <- data$y
+    group_data <- data$group_data
+    y <- data$Y
     
     folds <- load_cv_splits(dataset_name = df_name, dir = DIR,
                             n_splits = n_splits)
@@ -134,7 +149,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models) {
     
     replicate_results <- mclapply(seq_len(n_splits), function(replicate) {
       fold <- folds[replicate, ]
-      fit_and_evaluate_replicate(X, y, fold, configs, models)
+      fit_and_evaluate_replicate(X, group_data, y, fold, configs, models)
     }, mc.cores = 1)  # Set to detectCores() if you want parallelism
     
     for (replicate in seq_len(n_splits)) {
@@ -146,16 +161,16 @@ fit_models_on_all_datasets_parallel <- function(configs, models) {
   return(results)
 }
 
-configs <- load_config("configs/config_run_real.yaml")
-models <- list("qgam", "qgam_interactions")
+configs <- load_config("configs/config_mm_real.yaml")
+models <- list("lqmm", "bayesqr", "brms")#, "bayesqr") #, "bayesqr")#, "brms") #, "bayesqr") # brms lqmm
 for (model_name in models){
   print(models)
 }
 results <- fit_models_on_all_datasets_parallel(configs = configs, models = models)
 
 # Save the results
-version <- "paper"
-OUTPUT_DIR <- paste0("results/real_data/", version)
+version <- "paper_real"
+OUTPUT_DIR <- paste0("results/real_data_mm/", version)
 dir.create(OUTPUT_DIR, showWarnings = FALSE)
 
 # Combine results and config into one list
@@ -166,11 +181,51 @@ all_results <- list(
 
 # Save the object in Python pickle format
 py_run_string("import pickle")
-output_file <- file.path(OUTPUT_DIR, "real_data_results_R.pkl")
-py_save_object(all_results, output_file)  # Save the R object as a pickle file
+output_file_pickle <- file.path(OUTPUT_DIR, "real_data_results_R.pkl")
 
-# Save using saveRDS instead of pickle
-output_file <- file.path(OUTPUT_DIR, "real_data_results_R.rds")
-saveRDS(all_results, output_file)
+if (file.exists(output_file_pickle)) {
+  old_results <- py_load_object(output_file_pickle)
+  
+  # Merge datasets: add new or replace existing
+  for (dataset_key in names(all_results$results)) {
+    old_results$results[[dataset_key]] <- all_results$results[[dataset_key]]
+  }
+  
+  # Optionally update config
+  old_results$config <- all_results$config
+} else {
+  old_results <- all_results
+}
 
-cat("Results and config saved to", output_file, "\n")
+py_save_object(old_results, output_file_pickle)
+
+# --- Save as RDS with merging ---
+output_file_rds <- file.path(OUTPUT_DIR, "real_data_results_R.rds")
+if (file.exists(output_file_rds)) {
+  old_rds <- readRDS(output_file_rds)
+  
+  for (dataset_key in names(all_results$results)) {
+    old_rds$results[[dataset_key]] <- all_results$results[[dataset_key]]
+  }
+  old_rds$config <- all_results$config
+} else {
+  old_rds <- all_results
+}
+
+saveRDS(old_rds, output_file_rds)
+
+cat("✅ Results and config saved to:", output_file_pickle, "and", output_file_rds, "\n")
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -114,6 +114,7 @@ def fit_and_evaluate_replicate(
                     approx=approx,
                     delta_logl=delta_logl,
                     n_vecchia=threshold_approx,
+                    initialize_gaussian=True if model_name.endswith("_gauss") else False
                 )
                 # prediction interval
             

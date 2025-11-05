@@ -82,6 +82,16 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
         low_pred <- latent_pred - stddev_pred * t
         up_pred <- latent_pred + stddev_pred * t
         fit_time <- pred$fit_time
+
+      else if (model_name == "qgam_interactions") {
+        print("Fitting qgam with interactions")
+        pred <- model_qgam_interactions(train_X, train_y, test_X, target_quantile)
+        latent_pred <- pred$predictions
+        stddev_pred <- sqrt(pred$se)
+        low_pred <- latent_pred - stddev_pred * t
+        up_pred <- latent_pred + stddev_pred * t
+        fit_time <- pred$fit_time
+
         
       } else if (model_name == "vecchia_mcmc") {
         print("Sampling via MCMC")
@@ -105,7 +115,8 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
         
         interval_loss <- interval_score(test_true_latent_quantile, low_pred, up_pred, alpha)
         print(paste("IS loss: ", interval_loss))
-        
+        rmse <- sqrt(mean((latent_pred - test_true_latent_quantile)^2))
+
         coverage_and_width_results <- coverage_and_width(test_true_latent_quantile, low_pred, up_pred)
         coverage <- coverage_and_width_results[1]
         width <- coverage_and_width_results[2]
@@ -123,6 +134,7 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
     model_results[[model_name]] <- list(
       quantile_loss = qs_loss,
       interval_loss = interval_loss,
+      rmse = rmse,
       coverage = coverage,
       width = width,
       time = fit_time

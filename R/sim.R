@@ -48,6 +48,7 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
   group_train <- data$group_train
   group_test <- data$group_test
   eps_test <- data$eps_test
+  fe_test <- data$fe_test
   g <- if (is_heteroscedastic) data$g else NULL
   
   
@@ -63,7 +64,7 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
   
   # Compute true latent quantile
   test_true_latent_quantile <- obtain_quantile(
-    eps = eps_test,
+    eps = eps_test + fe_test,
     noise = likelihood,
     pars = configs$data_generation$pars,
     target_quantile = target_quantile,
@@ -147,6 +148,7 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
       if (!is.null(latent_pred)) {
         qs_loss <- quantile_score(test_y, latent_pred, target_quantile)
         print(paste("QS loss:", qs_loss))
+        rmse <- sqrt(mean((latent_pred - test_true_latent_quantile)^2))
         
         
       } else {
@@ -162,10 +164,12 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
       hyper_params <<- empty_hyper_params
       fit_time <<- NA_real_
       qs_loss <<- NA_real_
+      rmse <<- NA_real_
     })
     
     model_results[[model_name]] <- list(
       quantile_loss = qs_loss,
+      rmse= rmse,
       interval_loss = interval_loss,
       coverage = coverage,
       hyper_params = hyper_params,
@@ -230,7 +234,7 @@ if (configs_sim[["data_generation"]][["fixed_snr"]] %||% TRUE) {
   )
 }
 
-models <-  list("lqmm", "bayesqr", "brms") #, "brms") 
+models <-  list("bayesqr", "lqmm", "brms") #, "brms") #, "brms") 
 for (model_name in models){
   print(models)
 }
@@ -240,7 +244,7 @@ results <- fit_models_on_all_datasets_parallel(configs = configs_sim, models = m
                                                num_replicates = num_replicates)
 ### select version
 
-version <- "paper"
+version <- "paper_group"
 
 # Save the results
 OUTPUT_DIR <- file.path("results", "simulation_mm", configs_sim$randeff, version)

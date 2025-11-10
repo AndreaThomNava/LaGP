@@ -55,9 +55,9 @@ def model_gpboost(
     if estimate_hyper:
         params = {
         "estimate_aux_pars": True,
-        "init_aux_pars": np.array([0.1]),
+        "init_aux_pars": np.array([np.std(train_y)]),
        #"init_cov_pars": np.array([1,1]),
-        "trace": True,
+        "trace": False,
         }
     else:
         params = {

@@ -1,6 +1,6 @@
 target_quantile: 0.8
 
-delta_logl: 10
+delta_logl: 0.1
 models:  ["gpboost_cc", "gpboost_lls", "gpboost_fisher"] #, "gpb "gpboost_lls_v2"
 
 estimate_hyper: True
@@ -14,7 +14,7 @@ gpb_approxs: {"gpboost_fisher": "asymmetric_laplace",
 
 
 
-datasets: ["Orthodont", "labor", "cars"] # ["Orthodont", "labor"] cars_crossed
+datasets: ["Orthodont", "labor", "cars"] #Orthodont", "labor"] #, "labor", "cars"] # ["Orthodont", "labor"] cars_crossed
 
 n_splits: 2
 

@@ -56,6 +56,7 @@ def fit_and_evaluate_replicate(
     print(group_train.shape)
     group_test = data["group_test"]
     eps_test = data["eps_test"]
+    fe_test = data["fe_test"]
 
 
 
@@ -63,7 +64,7 @@ def fit_and_evaluate_replicate(
     noise = likelihood
 
     test_true_latent_quantile = obtain_quantile(
-        eps = eps_test, noise=noise, pars=configs["data_generation"]["pars"], target_quantile=target_quantile, g = g if is_heteroscedastic else None
+        eps = eps_test + fe_test, noise=noise, pars=configs["data_generation"]["pars"], target_quantile=target_quantile, g = g if is_heteroscedastic else None
     )
     # needed for prediction intervals
     normv = norm()
@@ -97,7 +98,7 @@ def fit_and_evaluate_replicate(
                     approx=approx,
                     delta_logl=delta_logl,
                 )
-                group_train_align = group_train1
+                #group_train_align = group_train1
                 
                 
 
@@ -114,7 +115,7 @@ def fit_and_evaluate_replicate(
                     delta_logl=delta_logl,
                     estimate_hyper=estimate_hyper,
                 )
-                group_train_align = group_train
+                #group_train_align = group_train
 
             # with fixed effects
             pred_with_fixed_effects = pred["mu"]
@@ -122,49 +123,41 @@ def fit_and_evaluate_replicate(
             
     
 
-            if randeff == "One_random_effect":
+            if False: # randeff == "One_random_effect":
                 # matches predicted random effects from training groups to test groups
                 true_re, pred_re, stddev_pred, true_var_aligned = align_re(group_train_align, group_test, res, 
                                                                            test_true_latent_quantile, 
                                                                            stddev_pred, true_var, group_size)
-                low_pred = pred_re - stddev_pred * t
-                up_pred = pred_re + stddev_pred * t
+        low_pred = pred_with_fixed_effects - stddev_pred * t
+        up_pred = pred_with_fixed_effects + stddev_pred * t
 
-                # using true sandwhich variance
-                low_true = pred_re - np.sqrt(true_var_aligned) * t
-                up_true = pred_re + np.sqrt(true_var_aligned) * t
+        # using true sandwhich variance
+        low_true = pred_with_fixed_effects - np.sqrt(true_var) * t
+        up_true = pred_with_fixed_effects + np.sqrt(true_var) * t
 
-            
         # Compute quantile score
         qs_loss = quantile_score(y=test_y, preds=pred_with_fixed_effects, quantile=target_quantile)
 
-        if randeff == "One_random_effect":
-            interval_loss = interval_score(
-                y=true_re,
-                pred_low=low_pred,
-                pred_up=up_pred,
-                alpha=alpha,)
-            print("interval loss successful!")
-            rmse= compute_rmse(f_true=true_re, f_pred=pred_re)
+        interval_loss = interval_score(
+            y= test_true_latent_quantile,
+            pred_low=low_pred,
+            pred_up=up_pred,
+            alpha=alpha,)
+        print("interval loss successful!")
+        rmse= compute_rmse(f_true=test_true_latent_quantile, f_pred=pred_with_fixed_effects)
 
-            # compute coverage and width
-            coverage, width = coverage_and_width(
-            y=true_re, pred_low=low_pred, pred_up=up_pred)
-            print("cov successful!")
-            # compute coverage and width
-            coverage_true, width_true = coverage_and_width(
-            y=true_re, pred_low=low_true, pred_up=up_true)
-            print("cov2 successful!")
-            print("coverage true: ", coverage_true)
-            print("curvature var:", np.sqrt(true_var_aligned[0]))
-            print("model", model_name)
-            print("estimated var: ", stddev_pred[0])
-
-        else:
-            interval_loss = np.nan
-            coverage, width, rmse, coverage_true = np.nan, np.nan, np.nan, np.nan
-
-
+        # compute coverage and width
+        coverage, width = coverage_and_width(
+            y=test_true_latent_quantile, pred_low=low_pred, pred_up=up_pred)
+        
+        # compute coverage and width
+        coverage_true, width_true = coverage_and_width(
+            y=test_true_latent_quantile, pred_low=low_true, pred_up=up_true)
+        print("cov2 successful!")
+        print("coverage true: ", coverage_true)
+        print("curvature var:", np.sqrt(true_var[0]))
+        print("model", model_name)
+        print("estimated var: ", stddev_pred[0])
 
 
         # store results

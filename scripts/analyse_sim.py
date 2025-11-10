@@ -19,11 +19,11 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH, OUTPUT_DIR):
         configs = yaml.safe_load(f) 
 
     metrics = [
-        ("quantile_loss_mean", "quantile_loss_std", "Quantile Loss"),  # 3rd element is the name/label
+       # ("quantile_loss_mean", "quantile_loss_std", "Quantile Loss"),  # 3rd element is the name/label
         #("interval_loss_mean", "interval_loss_std", "Interval Score"),
        # ("coverage_mean", "coverage_std", "Coverage"),
        # ("time_mean", "time_std", "Time"),
-       #  ("rmse_mean", "rmse_std", "RMSE")
+        ("rmse_mean", "rmse_std", "RMSE")
     ]
     # Define metrics and optimality
     metric_criteria = {"Quantile Loss": "min", "Interval Score": "min", "Coverage": "check_coverage", "Time": "min",

@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 library(parallel)
 library(reticulate)
-#use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
+use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
 library(yaml)
 source("R/utils.R")
 
@@ -12,13 +12,18 @@ fit_and_evaluate_replicate <- function(X, group_data, y, fold, configs, models) 
   
   train_X <- X[train_idx, , drop = FALSE]
   test_X  <- X[test_idx, , drop = FALSE]
+ 
   group_train <- group_data[train_idx, , drop = FALSE]
   group_test <- group_data[test_idx, ,drop = FALSE]
-  # scale y
-  y <- (y - mean(y)) / sd(y)
   
-  train_y <- y[train_idx]
-  test_y  <- y[test_idx]
+  # scale y
+  # Compute mean and sd from the training set only
+  train_mean <- mean(y[train_idx])
+  train_sd   <- sd(y[train_idx])
+  
+  # Scale
+  train_y <- (y[train_idx] - train_mean) / train_sd
+  test_y  <- (y[test_idx]  - train_mean) / train_sd
 
   # Compute min and max for each column of the training set
   train_min <- apply(train_X, 2, min)
@@ -38,6 +43,13 @@ fit_and_evaluate_replicate <- function(X, group_data, y, fold, configs, models) 
   # Center and scale test data using training statistics
   test_X_scaled <- (test_X - matrix(train_min, nrow = nrow(test_X), ncol = ncol(test_X), byrow = TRUE)) /
     matrix(train_range, nrow = nrow(test_X), ncol = ncol(test_X), byrow = TRUE)
+  
+  
+  # add intercept
+  # Add intercept column
+  #train_X_scaled <- cbind(intercept = 1, train_X_scaled)
+  #test_X_scaled  <- cbind(intercept = 1, test_X_scaled)
+  
   
   delta_logl <- configs$delta_logl
   target_quantile <- configs$target_quantile
@@ -76,7 +88,7 @@ fit_and_evaluate_replicate <- function(X, group_data, y, fold, configs, models) 
         print("BRMS: Sampling via MCMC")
         pred <- model_brms_quantile_v2(train_X = train_X_scaled, train_y = train_y,
                                     group_train = group_train, test_X = test_X_scaled, group_test = group_test,
-                                    target_quantile = target_quantile)
+                                    target_quantile = target_quantile, ndraws = 5000)
         
         print("sampled successfully")
         latent_pred <- pred$predictions
@@ -88,7 +100,7 @@ fit_and_evaluate_replicate <- function(X, group_data, y, fold, configs, models) 
         res <- model_bayesqr_v2(train_X = train_X_scaled, train_y = train_y,
                                 group_train = group_train,
                                 test_X = test_X_scaled, group_test = group_test,
-                                target_quantile = target_quantile)
+                                target_quantile = target_quantile, ndraws = 5000)
         
         latent_pred <- res$predictions
         hyper_params <- res$hyper_params
@@ -162,14 +174,13 @@ fit_models_on_all_datasets_parallel <- function(configs, models) {
 }
 
 configs <- load_config("configs/config_mm_real.yaml")
-models <- list("lqmm", "bayesqr", "brms")#, "bayesqr") #, "bayesqr")#, "brms") #, "bayesqr") # brms lqmm
+models <- list("lqmm", "brms", "bayesqr") #, "bayesqr", "brms")#, "bayesqr") #, "bayesqr")#, "brms") #, "bayesqr") # brms lqmm
 for (model_name in models){
   print(models)
 }
 results <- fit_models_on_all_datasets_parallel(configs = configs, models = models)
-
 # Save the results
-version <- "paper_real"
+version <- "paper_group"
 OUTPUT_DIR <- paste0("results/real_data_mm/", version)
 dir.create(OUTPUT_DIR, showWarnings = FALSE)
 
@@ -179,26 +190,41 @@ all_results <- list(
   results = results
 )
 
-# Save the object in Python pickle format
+# --- Python pickle version ---
 py_run_string("import pickle")
 output_file <- file.path(OUTPUT_DIR, "real_data_results_R.pkl")
-py_save_object(all_results, output_file)  # Save the R object as a pickle file
 
-# Save using saveRDS instead of pickle
-output_file <- file.path(OUTPUT_DIR, "real_data_results_R.rds")
-saveRDS(all_results, output_file)
+if (file.exists(output_file)) {
+  # Load existing pickle
+  old_results <- py_load_object(output_file)
+  
+  # Merge datasets: add new or replace existing
+  for (dataset_key in names(all_results$results)) {
+    old_results$results[[dataset_key]] <- all_results$results[[dataset_key]]
+  }
+  
+  # Optionally replace config
+  old_results$config <- all_results$config
+} else {
+  old_results <- all_results
+}
 
-cat("Results and config saved to", output_file, "\n")
+py_save_object(old_results, output_file)  # Save the updated object
 
+# --- RDS version ---
+output_file_rds <- file.path(OUTPUT_DIR, "real_data_results_R.rds")
+if (file.exists(output_file_rds)) {
+  old_rds <- readRDS(output_file_rds)
+  
+  # Merge datasets: add new or replace existing
+  for (dataset_key in names(all_results$results)) {
+    old_rds$results[[dataset_key]] <- all_results$results[[dataset_key]]
+  }
+  old_rds$config <- all_results$config
+} else {
+  old_rds <- all_results
+}
 
+saveRDS(old_rds, output_file_rds)
 
-
-
-
-
-
-
-
-
-
-
+cat("Results and config saved to RDS and pickle in", OUTPUT_DIR, "\n")

@@ -559,15 +559,20 @@ def make_plots(df, metrics, configs, OUTPUT_DIR):
             
             for metric in metrics:
                 fig, ax = plt.subplots(figsize=(12, 7))
+                print(f"{metric=}, {likelihood=}, {n_g=}, n_rows={len(df_filtered)}")
+                print(df_filtered[[ "group_size", metric, hue_col ]].head())
                 sns.boxplot(data=df_filtered, x="group_size", y=f"{metric}", hue=hue_col, palette=EXTENDED_PALETTE,
-                            showmeans=True, ax = ax, #dodge=True, gap = 0.1,
+                           showmeans=True,
+                            ax = ax,
+                            legend=True, #dodge=True, gap = 0.1,
                              meanprops={
                             'marker': 'D',           # Diamond shape
                             'markerfacecolor': 'white', # Red fill
                             'markeredgecolor': 'black', # Black outline
                             'markersize': 6,         # Size
                             'markeredgewidth': 2.5     # Outline thickness
-                            })
+                            }
+                            )
                 if metric == "coverage":
                     ax.axhline(y=alpha, color="red", linestyle="--", linewidth=1, label = f"Nominal Coverage: {alpha}")
                 elif metric == "time":
@@ -590,7 +595,7 @@ def make_plots(df, metrics, configs, OUTPUT_DIR):
                                  # title="Model",
                                   loc='upper center',
                                   bbox_to_anchor=(0.5, -0.12),
-                                  ncol=len(labels),  # Max 4 columns
+                                  ncol=min(len(labels), 4),  # Max 4 columns
                                   fontsize=16,
                                   title_fontsize=18,
                                   frameon=True,
@@ -711,7 +716,7 @@ def make_plots_hypers(df, configs, metrics, pars, OUTPUT_DIR):
                 legend = ax.legend(handles, labels,
                         loc='upper center',
                         bbox_to_anchor=(0.5, -0.12),
-                        ncol=(len(labels) + 1) // 2,  # Two rows
+                        ncol=(len(labels) + 1),   # Two rows
                         fontsize=16,
                         frameon=True)
                 #legend.get_title().set_fontweight('bold')

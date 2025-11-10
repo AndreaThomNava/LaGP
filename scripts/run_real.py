@@ -30,27 +30,35 @@ def fit_and_evaluate_replicate(X, group_data, Y, fold,
     import psutil
     print(f"Memory usage: {psutil.virtual_memory().percent}%")
     
-    Y = (Y - np.mean(Y)) / np.std(Y)
+    
     train_idx = fold["train_idx"] #[:1000]
     test_idx = fold["test_idx"]# [:1000]
+    
     X_train = X[train_idx]
     y_train = Y[train_idx]  
+   
+    train_mean = np.mean(y_train)
+    train_std = np.std(y_train)
 
     X_test = X[test_idx]    
     y_test = Y[test_idx]
 
+    y_train_scaled = (y_train - train_mean) / train_std
+    y_test_scaled = (y_test - train_mean) / train_std
+    
     group_train = group_data[train_idx]
     group_test = group_data[test_idx]
-
+    
     # Compute min and max from training data
     train_min = X_train.min(axis=0)
     train_max = X_train.max(axis=0)
-
+    
     # Avoid division by zero in case some feature is constant
     train_range = train_max - train_min
+   
     train_min[train_range == 0] =  0.0  # Add this line
     train_range[train_range == 0] = 1.0
-
+    
     # Apply scaling to training and test data
     train_X_scaled = (X_train - train_min) / train_range
     test_X_scaled = (X_test - train_min) / train_range  # use train stats!
@@ -71,10 +79,10 @@ def fit_and_evaluate_replicate(X, group_data, Y, fold,
                 quantile=target_quantile,
                 train_X=train_X_scaled,
                 group_train=group_train,
-                train_y=y_train,
+                train_y=y_train_scaled,
                 test_X=test_X_scaled,
                 group_test=group_test,
-                test_y=y_test,
+                test_y=y_test_scaled,
                 approx=approx,
                 delta_logl=delta_logl,
                 estimate_hyper=configs["estimate_hyper"],
@@ -87,7 +95,7 @@ def fit_and_evaluate_replicate(X, group_data, Y, fold,
            
 
         # Compute quantile score
-        qs_loss = quantile_score(y = y_test, preds=pred_with_fixed_effects, quantile=target_quantile)
+        qs_loss = quantile_score(y = y_test_scaled, preds=pred_with_fixed_effects, quantile=target_quantile)
 
        
         # store results

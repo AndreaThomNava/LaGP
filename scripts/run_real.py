@@ -271,6 +271,12 @@ if __name__ == "__main__":
         default="001",
         help="version of experiment",
     )
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        default=None,
+        help="Single dataset to run (overrides config)",
+    )
 
 
     args = parser.parse_args()
@@ -281,45 +287,49 @@ if __name__ == "__main__":
         configs = yaml.safe_load(f)
 
     models = configs["models"]
-    df_names = configs["datasets"]
     n_splits = configs["n_splits"]
+    # Override datasets if specified
+    if args.dataset is not None:
+        df_names = [args.dataset]  # Run only this dataset
+    else:
+        df_names = configs["datasets"]  # Run all from config
 
     # Ensure the results directory exists
-OUTPUT_DIR = f"results/real_data/{version}"
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+    OUTPUT_DIR = f"results/real_data/{version}"
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# fit models
-results = fit_models_on_all_datasets_parallel(
-    configs, models, version
-)
+    # fit models
+    results = fit_models_on_all_datasets_parallel(
+        configs, models, version
+    )
 
-# Save the results
+    # Save the results
 
-# Combine the results and config into one dictionary
-all_results = {
-    "config": configs,
-    "results": results,
-}
+    # Combine the results and config into one dictionary
+    all_results = {
+        "config": configs,
+        "results": results,
+    }
 
-# Construct the output file path
-output_file = os.path.join(OUTPUT_DIR, "real_data_results_python.pkl")
+    # Construct the output file path
+    output_file = os.path.join(OUTPUT_DIR, "real_data_results_python.pkl")
 
-# Load existing results if file exists, otherwise start fresh
-if os.path.exists(output_file):
-    with open(output_file, "rb") as f:
-        old_results = pickle.load(f)
-    
-    # Merge datasets: add new or replace existing
-    for dataset_key in all_results["results"].keys():
-        old_results["results"][dataset_key] = all_results["results"][dataset_key]
-    
-    # Optionally replace config
-    old_results["config"] = all_results["config"]
-else:
-    old_results = all_results
+    # Load existing results if file exists, otherwise start fresh
+    if os.path.exists(output_file):
+        with open(output_file, "rb") as f:
+            old_results = pickle.load(f)
+        
+        # Merge datasets: add new or replace existing
+        for dataset_key in all_results["results"].keys():
+            old_results["results"][dataset_key] = all_results["results"][dataset_key]
+        
+        # Optionally replace config
+        old_results["config"] = all_results["config"]
+    else:
+        old_results = all_results
 
-# Save the updated dictionary using pickle
-with open(output_file, "wb") as f:
-    pickle.dump(old_results, f)
+    # Save the updated dictionary using pickle
+    with open(output_file, "wb") as f:
+        pickle.dump(old_results, f)
 
-print(f"Results and config saved to {output_file}")
+    print(f"Results and config saved to {output_file}")

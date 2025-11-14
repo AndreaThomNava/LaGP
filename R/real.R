@@ -156,7 +156,17 @@ fit_models_on_all_datasets_parallel <- function(configs, models) {
   return(results)
 }
 
+
+# Parse command line arguments
+args <- commandArgs(trailingOnly = TRUE)
+
 configs <- load_config("configs/config_run_real.yaml")
+
+# Override dataset if provided as argument
+if (length(args) > 0) {
+  configs$datasets <- list(args[1])  # Use first argument as dataset name
+}
+
 models <- list("qgam", "qgam_interactions")
 for (model_name in models){
   print(models)

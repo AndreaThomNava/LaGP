@@ -82,7 +82,17 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
         low_pred <- latent_pred - stddev_pred * t
         up_pred <- latent_pred + stddev_pred * t
         fit_time <- pred$fit_time
-        
+      
+      else if (model_name == "qgam_interactions") {
+        print("Fitting qgam with interactions")
+        pred <- model_qgam_interactions(train_X, train_y, test_X, target_quantile)
+        latent_pred <- pred$predictions
+        stddev_pred <- sqrt(pred$se)
+        low_pred <- latent_pred - stddev_pred * t
+        up_pred <- latent_pred + stddev_pred * t
+        fit_time <- pred$fit_time
+      }
+
       } else if (model_name == "vecchia_mcmc") {
         print("Sampling via MCMC")
         pred <- model_vecchia_gp(train_X, train_y, test_X,
@@ -106,6 +116,7 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
         interval_loss <- interval_score(test_true_latent_quantile, low_pred, up_pred, alpha)
         print(paste("IS loss: ", interval_loss))
         
+        rmse <- sqrt(mean((test_true_latent_quantile - latent_pred)^2))
         coverage_and_width_results <- coverage_and_width(test_true_latent_quantile, low_pred, up_pred)
         coverage <- coverage_and_width_results[1]
         width <- coverage_and_width_results[2]
@@ -123,6 +134,7 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
     model_results[[model_name]] <- list(
       quantile_loss = qs_loss,
       interval_loss = interval_loss,
+      rmse = rmse,
       coverage = coverage,
       width = width,
       time = fit_time
@@ -154,7 +166,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models, num_replicates 
         # Use mclapply for parallel execution (requires 'parallel' package)
         replicate_results <- mclapply(1:num_replicates, function(replicate) {
           fit_and_evaluate_replicate(configs, replicate_config, replicate, models)
-        }, mc.cores = 1) # detectCores()
+        }, mc.cores = num_replicates) # detectCores()
         
         # Store results
         for (replicate in 1:num_replicates) {
@@ -180,7 +192,7 @@ if (configs_sim$simulation$fixed_snr) {
   configs_sim$pars <- updated_pars
 }
 
-models <- list("qgam") #, "vecchia_mcmc") #, "vecchia_mcmc")
+models <- list("qgam", "qgam_interactions") #, "vecchia_mcmc") #, "vecchia_mcmc")
 for (model_name in models){
   print(models)
 }
@@ -189,7 +201,7 @@ results <- fit_models_on_all_datasets_parallel(configs = configs_sim, models = m
                                                num_replicates = num_replicates)
 
 # Save the results
-version <- "2"
+version <- "paper"
 OUTPUT_DIR <- paste0("results/simulation/", version)
 dir.create(OUTPUT_DIR, showWarnings = FALSE)
 

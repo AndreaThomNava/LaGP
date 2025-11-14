@@ -31,16 +31,25 @@ def fit_and_evaluate_replicate(X, y, fold,
         - metrics: dictionary with model names as keys and metrics as values
     """
 
-    torch.manual_seed(42)
-    np.random.seed(42)
-
-    # standardize the response
+    
 
     train_idx = fold["train_idx"] # [:1000]
     test_idx = fold["test_idx"]#[:1000]
-    X_train, X_test = X.iloc[train_idx,:], X.iloc[test_idx,:]
-    y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
 
+    torch.manual_seed(42)
+    np.random.seed(42)
+
+    # Randomly sample 6k indices (unsorted)
+    n_total = len(y)
+    sampled_idx = np.random.choice(n_total, size=6000, replace=False)
+
+    # Split: first 5k for train, last 1k for test (already shuffled)
+    train_idx = sampled_idx[:5000]
+    test_idx = sampled_idx[5000:]
+
+    X_train, X_test = X.iloc[train_idx, :], X.iloc[test_idx, :]
+    y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
+    
     # Standardize using only training statistics
     y_mean = y_train.mean()
     y_std = y_train.std()
@@ -276,26 +285,41 @@ if __name__ == "__main__":
     n_splits = configs["n_splits"]
 
     # Ensure the results directory exists
-    OUTPUT_DIR = f"results/real_data/{version}"
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    # fit models
-    results = fit_models_on_all_datasets_parallel(
-        configs, models, version
-    )
+OUTPUT_DIR = f"results/real_data/{version}"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    # Save the results
+# fit models
+results = fit_models_on_all_datasets_parallel(
+    configs, models, version
+)
 
-    # Combine the results and config into one dictionary
-    all_results = {
-        "config": configs,
-        "results": results,
-    }
+# Save the results
 
-    # Construct the output file path (e.g., "results.pkl")
-    output_file = os.path.join(OUTPUT_DIR, "real_data_results_python.pkl")
+# Combine the results and config into one dictionary
+all_results = {
+    "config": configs,
+    "results": results,
+}
 
-    # Save the combined dictionary using pickle
-    with open(output_file, "wb") as f:
-        pickle.dump(all_results, f)
+# Construct the output file path
+output_file = os.path.join(OUTPUT_DIR, "real_data_results_python.pkl")
 
-    print(f"Results and config saved to {output_file}")
+# Load existing results if file exists, otherwise start fresh
+if os.path.exists(output_file):
+    with open(output_file, "rb") as f:
+        old_results = pickle.load(f)
+    
+    # Merge datasets: add new or replace existing
+    for dataset_key in all_results["results"].keys():
+        old_results["results"][dataset_key] = all_results["results"][dataset_key]
+    
+    # Optionally replace config
+    old_results["config"] = all_results["config"]
+else:
+    old_results = all_results
+
+# Save the updated dictionary using pickle
+with open(output_file, "wb") as f:
+    pickle.dump(old_results, f)
+
+print(f"Results and config saved to {output_file}")

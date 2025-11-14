@@ -9,6 +9,16 @@ fit_and_evaluate_replicate <- function(X, y, fold, configs, models) {
  
   train_idx <- unlist(fold$train_idx)#[1:10000]
   test_idx <- unlist(fold$test_idx)#[1:1000]
+
+  # Randomly sample 6k indices (unsorted)
+  np <- import("numpy")
+  np$random$seed(42L)
+  sampled_idx <- np$random$choice(length(y), size=6000L, replace=FALSE)
+
+  # Split: first 5k for train, last 1k for test (already shuffled)
+  train_idx <- sampled_idx[1:5000]
+  test_idx <- sampled_idx[5001:6000]
+
   
  
   X_train <- X[train_idx, , drop = FALSE]
@@ -135,7 +145,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models) {
     replicate_results <- mclapply(seq_len(n_splits), function(replicate) {
       fold <- folds[replicate, ]
       fit_and_evaluate_replicate(X, y, fold, configs, models)
-    }, mc.cores = 1)  # Set to detectCores() if you want parallelism
+    }, mc.cores = n_splits)  # Set to detectCores() if you want parallelism
     
     for (replicate in seq_len(n_splits)) {
       results[[config_key]][[replicate]] <- replicate_results[[replicate]]
@@ -164,13 +174,38 @@ all_results <- list(
   results = results
 )
 
-# Save the object in Python pickle format
+# --- Python pickle version ---
 py_run_string("import pickle")
 output_file <- file.path(OUTPUT_DIR, "real_data_results_R.pkl")
-py_save_object(all_results, output_file)  # Save the R object as a pickle file
+if (file.exists(output_file)) {
+  # Load existing pickle
+  old_results <- py_load_object(output_file)
+  
+  # Merge datasets: add new or replace existing
+  for (dataset_key in names(all_results$results)) {
+    old_results$results[[dataset_key]] <- all_results$results[[dataset_key]]
+  }
+  
+  # Optionally replace config
+  old_results$config <- all_results$config
+} else {
+  old_results <- all_results
+}
+py_save_object(old_results, output_file)  # Save the updated object
 
-# Save using saveRDS instead of pickle
-output_file <- file.path(OUTPUT_DIR, "real_data_results_R.rds")
-saveRDS(all_results, output_file)
+# --- RDS version ---
+output_file_rds <- file.path(OUTPUT_DIR, "real_data_results_R.rds")
+if (file.exists(output_file_rds)) {
+  old_rds <- readRDS(output_file_rds)
+  
+  # Merge datasets: add new or replace existing
+  for (dataset_key in names(all_results$results)) {
+    old_rds$results[[dataset_key]] <- all_results$results[[dataset_key]]
+  }
+  old_rds$config <- all_results$config
+} else {
+  old_rds <- all_results
+}
+saveRDS(old_rds, output_file_rds)
 
-cat("Results and config saved to", output_file, "\n")
+cat("Results and config saved to RDS and pickle in", OUTPUT_DIR, "\n")

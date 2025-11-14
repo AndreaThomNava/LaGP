@@ -1,6 +1,8 @@
 library(qgam)
 library(cmdstanr)
 library(gptoolsStan)
+library(reticulate)
+use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
 
 
 # Quantile function for the Asymmetric Laplace Distribution

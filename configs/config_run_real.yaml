@@ -34,5 +34,5 @@ lr: 0.01
 
 # for later, plotting
 all_models:  ["gpboost_fisher", "gpboost_cc", "gpytorch", "qgam", "qgam_interactions", "VIVA"] # "gpboost_lls", 
-name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpytorch": "VI", "qgam":"QGAM","qgam_interactions":"QGAM Int",
+name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpytorch": "VI", "qgam":"GAM","qgam_interactions":"GAM int",
   "gpboost_fisher":"FL", "boosting": "Boosting", "VIVA": "VIVA"}

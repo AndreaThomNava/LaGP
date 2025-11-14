@@ -72,7 +72,7 @@ def model_boosting_l1(
     return pred, pred_train, elapsed_time, hyper_params
 
 
-def model_gpboost_original(
+def model_gpboost(
     quantile: float,
     train_X: np.ndarray,
     train_y: np.ndarray,
@@ -169,137 +169,6 @@ def model_gpboost_original(
                     "noise_variance": noise_variance,
                     }
     
-
-    return pred, pred_train, elapsed_time, hyper_params
-
-def model_gpboost(
-    quantile: float,
-    train_X: np.ndarray,
-    train_y: np.ndarray,
-    test_X: np.ndarray,
-    test_y: np.ndarray,
-    approx: str,
-    delta_logl: float,
-    n_vecchia: int = 1000,
-    initialize_gaussian: bool = False,
-) -> dict:
-    """
-    Fit the GPBoost model and predict on the test set.
-
-    If initialize_gaussian=True and approx != "gaussian",
-    the model first fits a Gaussian GP to obtain initial hyperparameters,
-    then uses those as initialization for the asymmetric Laplace model.
-    """
-
-    N = len(train_X)
-    vecchia = N > n_vecchia
-    start_time = time.time()
-
-    # ---- (1) Gaussian initialization ----
-    if initialize_gaussian and approx != "gaussian":
-        print("---- GAUSS INIT -----")
-        gp_gauss = gpb.GPModel(
-            gp_coords=train_X,
-            cov_function="matern_ard",
-            cov_fct_shape=1.5,
-            gp_approx="vecchia" if vecchia else "none",
-            num_neighbors=30,
-            matrix_inversion_method="cholesky",
-            likelihood="gaussian",
-            cover_tree_radius=delta_logl,
-            num_parallel_threads=1,
-        )
-        params = {"trace": False}
-        gp_gauss.fit(X=np.ones(N), y=train_y, params=params)
-
-        # Get numpy arrays directly
-        print(gp_gauss.get_cov_pars())
-        cov_pars_gauss = gp_gauss.get_cov_pars(format_pandas=False)
-        print(cov_pars_gauss)
-       
-
-    # ---- (2) Main model ----
-    gpq = gpb.GPModel(
-        gp_coords=train_X,
-        cov_function="matern_ard",
-        cov_fct_shape=1.5,
-        gp_approx="vecchia" if vecchia else "none",
-        num_neighbors=30,
-        matrix_inversion_method="iterative" if (vecchia and approx != "gaussian") else "cholesky",
-        likelihood=approx,
-        likelihood_additional_param=quantile if approx != "gaussian" else 1.0,
-        cover_tree_radius=delta_logl,
-        num_parallel_threads=1,
-    )
-
-    if initialize_gaussian:
-        params = {
-            "estimate_aux_pars": True,
-            "init_aux_pars": np.array([np.std(train_y)]),
-            "init_cov_pars": cov_pars_gauss[1:],
-            "estimate_cov_par_index": np.repeat(0, repeats=len(cov_pars_gauss[1:])), 
-            "trace": False,
-        }
-    
-    else:
-        params = {
-            "estimate_aux_pars": True,
-            "init_aux_pars": np.array([np.std(train_y)]),
-            "trace": False,
-        }
-
-    gpq.set_optim_params({
-        "optimizer_cov": "gradient_descent",
-        "cg_preconditioner_type": "vadu",
-        "delta_rel_conv": 1e-8,
-        "cg_max_num_it": 1500,
-        "cg_max_num_it_tridiag": 1500,
-    })
-
-    # ---- (4) Fit model ----
-    if approx != "gaussian":
-        gpq.fit(X=np.ones(N), y=train_y, params=params)
-    else:
-        gpq.fit(X=np.ones(N), y=train_y)
-
-    # ---- (5) Predict ----
-    pred = gpq.predict(
-        X_pred=np.ones(len(test_X)),
-        gp_coords_pred=test_X,
-        predict_response=False,
-        predict_var=True,
-    )
-
-    pred_train = gpq.predict(
-        X_pred=np.ones(len(train_X)),
-        gp_coords_pred=train_X,
-        predict_response=False,
-        predict_var=True,
-    )
-
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-
-    # ---- (6) Extract final hyperparameters ----
-    # extract hyper-parames
-    cov_pars = gpq.get_cov_pars()
-    if approx == "gaussian":
-        print(cov_pars)
-
-    range_keys = [k for k in cov_pars.columns if k.startswith("GP_range")]
-    estimated_ranges = [cov_pars[k].iloc[0] for k in range_keys]
-    # Aggregate — mean range
-    length_scale = np.mean(estimated_ranges)
-    #length_scale = cov_pars["GP_range"].iloc[0]
-
-    output_variance = cov_pars["GP_var"].iloc[0]
-    noise_variance = gpq.get_aux_pars()["scale"] if approx != "gaussian" else cov_pars["Error_term"]
-
-    hyper_params = {
-        "lengthscale": length_scale,
-        "signal_variance": output_variance,
-        "noise_variance": noise_variance,
-    }
 
     return pred, pred_train, elapsed_time, hyper_params
 

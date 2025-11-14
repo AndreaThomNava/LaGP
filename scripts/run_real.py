@@ -17,7 +17,7 @@ from lagp.utils.metrics import quantile_score
 
 
 def fit_and_evaluate_replicate(X, y, fold,
-    configs, models, version, df_name, replicate,
+    configs, models, version, df_name
 ):
     """
     Fit the models on a single replicate and compute the evaluation metrics.
@@ -146,21 +146,42 @@ def fit_and_evaluate_replicate(X, y, fold,
             )
             
 
-        # Save predictions for later plotting
+        # if X is 2d -> plot countor and save figure
         if X.shape[1] == 2:
-            np.savez(
-            f"results/real_data/{version}/{model_name}_{df_name}_{replicate}.npz",
-            x1_train=X_train.iloc[:, 0].values,
-            x2_train=X_train.iloc[:, 1].values,
-            y_train=(y_mean + y_std * y_train),
-            y_pred_train=(y_mean + y_std *latent_pred_train),
-            x1=X_test.iloc[:, 0].values,
-            x2=X_test.iloc[:, 1].values,
-            y_pred=(y_mean + y_std * latent_pred),
-           # y_std=stddev_pred,
-            y_test=(y_mean + y_std * y_test),
-            )
 
+            OUTPUT_DIR_IMAGES = f"results/real_data/{version}/images"
+            os.makedirs(OUTPUT_DIR_IMAGES, exist_ok=True)
+            plt.figure(figsize=(10, 8))
+            scatter = plt.scatter(X_test.iloc[:, 1], X_test.iloc[:, 0], c=latent_pred, s=50, cmap='viridis', alpha=0.8)
+            plt.colorbar(scatter, label='Predicted Quantile')
+            plt.xlabel('X coordinate')
+            plt.ylabel('Y coordinate')
+            plt.title('Predicted Quantile (No Interpolation)')
+            plt.grid(True, alpha=0.3)
+
+            plt.tight_layout()
+            # Save plots
+            filename = f"{model_name}"
+            for ext in ["png", "pdf"]:
+                plt.savefig(f"results/real_data/{version}/images/{filename}_contour_{df_name}.{ext}", bbox_inches="tight", dpi=300)
+            plt.close()
+
+            # Save predictions for later plotting
+        if X.shape[1] == 2:
+            pred_data = pd.DataFrame({
+                "x1_train": X_train.iloc[:, 0],
+                "x2_train": X_train.iloc[:, 1],
+                'y_train': y_mean + y_std * y_train,
+                "y_pred_train": y_mean + y_std * pred_train,
+                'x1': X_test.iloc[:, 0],
+                'x2': X_test.iloc[:, 1],
+                'y_pred': y_mean + y_std * latent_pred,
+              #  'y_std': stddev_pred,
+                'y_test': y_mean + y_std *  y_test,
+            })
+            
+            filename = f"{model_name}_predictions_{df_name}.csv"
+            pred_data.to_csv(f"results/real_data/{version}/{filename}", index=False)
                 
         # Compute quantile score
         qs_loss = quantile_score(y = y_test, preds=latent_pred, quantile=target_quantile)
@@ -210,7 +231,6 @@ def fit_models_on_all_datasets_parallel(configs, models, version):
                     models,
                     version,
                     df_name,
-                    replicate,
                 ): replicate
                 for replicate  in range(n_splits) #n_splits#
             }
@@ -274,25 +294,8 @@ if __name__ == "__main__":
     # Construct the output file path (e.g., "results.pkl")
     output_file = os.path.join(OUTPUT_DIR, "real_data_results_python.pkl")
 
-    # Load existing results if file exists
-    if os.path.exists(output_file):
-        with open(output_file, "rb") as f:
-            old_results = pickle.load(f)
-        if not isinstance(old_results, dict):
-            raise ValueError(f"{output_file} exists but is not a dict.")
-    else:
-        old_results = {
-            "config": configs,
-            "results": results,
-            }
-
-    # Update existing dictionary: add new datasets or replace existing ones
-    for dataset_key, dataset_results in all_results["results"].items():
-        old_results["results"][dataset_key] = dataset_results  # add or replace
-
-
     # Save the combined dictionary using pickle
     with open(output_file, "wb") as f:
-        pickle.dump(old_results, f)
+        pickle.dump(all_results, f)
 
     print(f"Results and config saved to {output_file}")

@@ -176,6 +176,11 @@ def simulate_response(pars: dict, X, fe, eps, group_data, likelihood, g = None):
         scale = pars["gaussian"]["scale"]
         error = np.random.normal(0, scale, size=N)
         y = eta + error
+    elif likelihood == "t":
+        df = pars["t"]["df"]
+        scale = pars["t"]["scale"]
+        error = np.random.standard_t(df, size=N) * scale
+        y = eta + error
     else:
         raise ValueError(f"Unsupported likelihood: {likelihood}")
     
@@ -227,7 +232,6 @@ def obtain_quantile(
 
     return eps + delta
     
-
 def get_true_curvature(f, true_quantile, noise, pars, g = None):
     
 
@@ -241,11 +245,16 @@ def get_true_curvature(f, true_quantile, noise, pars, g = None):
         # Quantile function of ALD with scale=1, then multiply
         density = np.repeat(pdf_asym_laplace(y = [true_quantile[0]], b = [true_quantile[0]], q = q, scale = scale, log = False), len(f) )
 
+    elif noise == "t":
+        df = pars["t"]["df"]
+        scale = pars["t"]["scale"]
+        from scipy.stats import t as t_dist
+        density = t_dist.pdf(x = true_quantile, df = df, loc = f, scale = scale)
+
     else:
         raise ValueError(f"Unsupported noise model: {noise}")
 
     return density
-
 
 
 def compute_dict_pars(signal_variance, snr, quantile):

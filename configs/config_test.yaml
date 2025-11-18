@@ -2,7 +2,7 @@
 
 data_generation:
   n_groups: [100] #, 500] # [200,  1000]
-  
+  group_size: [100]
   n_groups_2 : 50 # how many levels for the second random effect -->  group_size > n_groups_2
                     # N/n_group_2, should be an integer
   signal_variance: 1.0 # for one grouped random effect
@@ -11,7 +11,7 @@ data_generation:
   fixed_snr: True
   snr: 5.0
   quantile: 0.8
-  likelihood: ["ald", "gaussian"]
+  likelihood: ["t", "gaussian"] # ald
   pars : {
     "gaussian": {"scale": 0.31}, # sqrt(0.31) -> 0.1
     "ald": {"q": 0.8, "scale": 0.1}, #
@@ -20,7 +20,7 @@ data_generation:
   }
   replicate: 10
   test_size: 0.25
-  randeff: "Two_completely_crossed_random_effects" # "One_random_effect" Two_completely_crossed_random_effects
+  randeff: "One_random_effect" # "One_random_effect" Two_completely_crossed_random_effects
   output_folder: "simulated_data_mm"
   random_state: 123
   extrapolate: False
@@ -42,14 +42,14 @@ data_generation:
 
 ##### for running simulation ########
   
-models:  ["gpboost_fisher", "gpboost_cc"] #"gpboost_lls",  "gpboost_fisher", "gpboost_lls_v2",
+models:  ["gpboost_fisher", "gpboost_cc", "gpboost_cc_freq"] #"gpboost_lls",  "gpboost_fisher", "gpboost_lls_v2",
           # , "gpboost_lls_freq", "gpboost_lls_v2_freq"] # , "gpboost_lls_v2_freq", "gpboost_cc_var_corr", "gpboost_lls_groups", "gpboost_lls_v2_groups"] # "gpboost_cc", "gpboost_lls",
 
-replicate: 2
+replicate: 10
 n_groups: [100] # [200,  1000]
 group_size: [100] # , 1000] #[100, 1000, 2000] #, 1000]
-likelihood: ["ald", "gaussian"] #, "ald"] #, "gaussian"]
-randeff: "Two_completely_crossed_random_effects"
+likelihood: ["gaussian", "t"] #, "ald"] #, "gaussian"]
+randeff: "One_random_effect"
 estimate_hyper: True
 
   
@@ -80,7 +80,7 @@ gpb_approxs: {"gpboost_fisher": "asymmetric_laplace",
 
 
 ##### for the analysis of the results ######
-all_models : ["gpboost_cc", #"gpboost_lls_groups", "gpboost_lls_v2_groups",
+all_models : ["gpboost_cc", "gpboost_cc_freq", #"gpboost_lls_groups", "gpboost_lls_v2_groups",
                "gpboost_fisher", "bayesqr", "brms"] # "lqmm"["gpboost_cc", "gpboost_lls", "gpboost_normal"] #, "gpboost_cc_var_corr", "lqmm", "brms"]
 
             

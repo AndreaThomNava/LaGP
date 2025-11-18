@@ -581,9 +581,9 @@ def make_plots(df, metrics, configs, OUTPUT_DIR):
                # Increase font sizes
                 ax.set_title(f"{metric.replace('_', ' ').title()} by Group Size\n"
                             f"Likelihood: {likelihood}, Num. Groups: {n_g}", 
-                            fontsize=20, fontweight='bold', pad=20)
-                ax.set_xlabel("Group Size", fontsize=18, fontweight='bold')
-                ax.set_ylabel(f"{metric.replace('_', ' ').title()}", fontsize=18, fontweight='bold')
+                            fontsize=20, pad=20)
+                ax.set_xlabel("Group Size", fontsize=18)
+                ax.set_ylabel(f"{metric.replace('_', ' ').title()}", fontsize=18)
                 
                 # Increase tick label sizes
                 ax.tick_params(axis='both', which='major', labelsize=14)
@@ -601,7 +601,7 @@ def make_plots(df, metrics, configs, OUTPUT_DIR):
                                   frameon=True,
                                   fancybox=True,
                                   shadow=True)
-                legend.get_title().set_fontweight('bold')
+                #legend.get_title().set_fontweight('bold')
                 
                 # Adjust layout for legend
                 plt.tight_layout()

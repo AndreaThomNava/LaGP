@@ -1,8 +1,8 @@
 simulation:
   seed: 43
   grid_lims: [0, 1]
-  sample_sizes: [1000, 5000] #, 5000] #, 5000] #, 100000] #, 5000, 10000, 20000] #, 5000, 10000] #, 10000] #, 5000, 10000]  # Different sample sizes for datasets
-  dimensions: [1, 2, 5] #, 5] #,5]  # 1D, 2D, or 3D datasets
+  sample_sizes: [1000, 10000] #, 5000] #, 5000] #, 100000] #, 5000, 10000, 20000] #, 5000, 10000] #, 10000] #, 5000, 10000]  # Different sample sizes for datasets
+  dimensions: [2, 5] #, 5] #,5]  # 1D, 2D, or 3D datasets
   likelihoods: 
      - gaussian
      - t
@@ -75,7 +75,7 @@ lr: 0.01
 
 
 # fix dicts
-name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpboost_cc_cv": "CC_cv" ,"gpytorch": "VI", "qgam":"GAM", "gpboost_normal": "gpbN",
+name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpboost_cc_cv": "CC_cv" ,"gpytorch": "VI", "qgam":"QGAM", "gpboost_normal": "gpbN",
             "gpboost_cc_var_corr": "CC corr", "vecchia_mcmc": "BSGP", "VIVA":"VIVA",
              "gpboost_fisher":"FL", "gpboost_lls_v2": "LLSV2", "gpboost_groups": "Groups",
              gpboost_fisher_twostage: "FL-2stage", "qgam_interactions":"QGAMInt"}

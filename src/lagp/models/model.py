@@ -831,6 +831,7 @@ def model_viva_gp(
     print("VIVA pred len:", len(mu))
     print(len(train_y))
     print("train shape", mu[:n_train].shape)
+    print("n_test", n_test)
 
     return mu[-n_test:], sd[-n_test:], elapsed_time, hyper_params
 

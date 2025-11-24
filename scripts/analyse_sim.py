@@ -50,7 +50,7 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH, version):
     # make and save plots
     
     metrics_for_plotting = ["quantile_loss", "true_pinball_loss", "rmse", "empirical_quantile", "interval_loss", "coverage", "train_coverage", "bias", "width", "time"] # df.columns[5:]
-    make_plots(df = df, metrics = metrics_for_plotting, configs=configs, version=version)
+    #make_plots(df = df, metrics = metrics_for_plotting, configs=configs, version=version)
     make_plots_hypers(df = df, configs=configs, metrics=["signal_variance", "lengthscale"], version = version)
    
     return latex_table, hyper_latex_table

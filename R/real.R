@@ -5,14 +5,14 @@ use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required
 library(yaml)
 source("R/utils.R")
 
-fit_and_evaluate_replicate <- function(X, y, fold, configs, models) {
+fit_and_evaluate_replicate <- function(X, y, fold, configs, models, replicate) {
  
   train_idx <- unlist(fold$train_idx)#[1:10000]
   test_idx <- unlist(fold$test_idx)#[1:1000]
 
   # Randomly sample 6k indices (unsorted)
   np <- import("numpy")
-  np$random$seed(42L)
+  np$random$seed(42L + replicate)
   sampled_idx <- np$random$choice(length(y), size=6000L, replace=FALSE)
 
   # Split: first 5k for train, last 1k for test (already shuffled)
@@ -144,7 +144,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models) {
     
     replicate_results <- mclapply(seq_len(n_splits), function(replicate) {
       fold <- folds[replicate, ]
-      fit_and_evaluate_replicate(X, y, fold, configs, models)
+      fit_and_evaluate_replicate(X, y, fold, configs, models, replicate)
     }, mc.cores = n_splits)  # Set to detectCores() if you want parallelism
     
     for (replicate in seq_len(n_splits)) {

@@ -194,6 +194,7 @@ def make_latex_table(config, summary_df, metrics, metric_criteria):
     models = config["all_models"]
     name_dict = config["name_dict"]
     noise_dict = config["likelihood_dict"]
+    dimensions = config["simulation"]["dimensions"]
     
     n_models = len(models)
     n_metrics = len(metrics)
@@ -233,6 +234,8 @@ def make_latex_table(config, summary_df, metrics, metric_criteria):
         noise_label = noise_dict[group['likelihood'].iloc[0]]
         n_val = int(group['sample_size'].iloc[0])
         d_val = int(group['dim'].iloc[0])
+        if d_val not in dimensions:
+            continue   # ← skip this group
         
         row = [noise_label, str(n_val), str(d_val)]
 
@@ -282,6 +285,8 @@ def make_latex_table(config, summary_df, metrics, metric_criteria):
     latex_table = header + "\n" + "\n".join(rows) + "\n" + footer
     return latex_table
 
+
+
 def make_latex_table_real(config, summary_df, metrics, metric_criteria):
     """
     Make a latex table out of the summarized results.
@@ -298,87 +303,102 @@ def make_latex_table_real(config, summary_df, metrics, metric_criteria):
     """
     
 
-    models = config["all_models"] # also eventually Qgam
+    models = config["all_models"]
     name_dict = config["name_dict"]
 
-    # Optional font size
-    fontsize = r"\small"  # you can change to \footnotesize, \small, etc.
-
-    # Column format
     n_models = len(models)
     n_metrics = len(metrics)
-    col_format = "lll|" + "c" * (n_metrics * n_models)
-    col_format = "|l" + "|Y" * (n_metrics * n_models) + "|"
 
-    # Multi-column headers for metrics
-    metric_headers = [fr"\multicolumn{{{n_models}}}{{c|}}{{\textbf{{\scriptsize {label}}}}}" for _, _, label in metrics]
+    # Column formatting: one left column (dataset), then one column for each model per metric
+    col_format = "l" + "c" * (n_metrics * n_models)
 
-    # Lower headers with the actual method names (one header per method)
+    # Metric group headers
+    metric_headers = []
+    for _, _, label in metrics:
+        metric_headers.append(fr"\multicolumn{{{n_models}}}{{c}}{{{label}}}")
+
+    # Under each metric group: model names
     model_headers = []
     for _ in range(n_metrics):
-        model_headers.extend([fr"\multicolumn{{1}}{{c}}{{\textbf{{\tiny {name_dict[model]}}}}}" for model in models])
+        for model in models:
+            clean = name_dict[model].replace("_", " ")
+            model_headers.append(fr"\multicolumn{{1}}{{c}}{{{clean}}}")
 
+    # leftmost main header is just "Dataset"
+    main_headers = ["Dataset"] + model_headers
 
-    # Lower headers for fixed columns (likelihood, sample size, dim)
-    lower_headers = [r"\textbf{dataset}"]
-    lower_headers.extend(model_headers)
-
-    # Build the LaTeX header
+    # Build LaTeX header
     header = fr"""
-    \begin{{table}}[ht]
-    \centering
-    {fontsize}
-    \begin{{tabularx}}{{1\textwidth}}{{{col_format}}}
-    \toprule
-    \multicolumn{{1}}{{c|}}{{}} & {' & '.join(metric_headers)} \\
-    { ' & '.join(lower_headers) } \\
-    \midrule
-    """
+\begin{{table}}[htbp]
+\centering
+\begin{{tabular}}{{{col_format}}}
+\toprule
+\multicolumn{{1}}{{c}}{{}} & {' & '.join(metric_headers)} \\
+\cmidrule(lr){{2-{1 + n_metrics * n_models}}}
+{' & '.join(main_headers)} \\
+\midrule
+"""
 
     # Build table rows
     rows = []
-    for _, group in summary_df.groupby(['dataset']):
-        row = [
-            f"{group['dataset'].iloc[0]}",
-        ]
-        
-        # For every metric, look for the best value and later make it bold --> use np.isclose
+
+    for dataset, group in summary_df.groupby("dataset"):
+        row = [dataset]
+
+        # Determine best values for each metric
         best_metrics = {}
         for mean_col, std_col, label in metrics:
-            if metric_criteria[label] == "min":
-                best_value = np.min(group[mean_col])
-            else:
-                best_value = np.max(group[mean_col])
-            best_metrics[label] = best_value
 
-        # For every metric, loop through methods and add results
+            if metric_criteria[label] == "min":
+                idx = np.argmin(group[mean_col])
+            else:
+                idx = np.argmax(group[mean_col])
+
+            best_value = group[mean_col].iloc[idx]
+            best_std = group[std_col].iloc[idx]
+            best_metrics[label] = (best_value, best_std)
+
+        # Fill values for each metric/model pair
         for mean_col, std_col, label in metrics:
+            best_value, best_std = best_metrics[label]
+
             for model in models:
-                sub = group[group['model'] == model]
-                if not sub.empty:
-                    mean = sub[mean_col].values[0]
-                    std = sub[std_col].values[0]
-                    if np.isclose(mean, best_metrics[label]):
-                        row.append(f"\\textbf{{\\scriptsize {mean:.3f} ({std:.2f})}}")
-                    else:
-                        row.append(f"\\scriptsize {mean:.3f} ({std:.2f})")
+                sub = group[group["model"] == model]
+
+                if sub.empty:
+                    row.append("---")
+                    continue
+
+                mean = sub[mean_col].values[0]
+                std = sub[std_col].values[0]
+
+                if pd.isna(mean) or pd.isna(std):
+                    row.append("---")
+                    continue
+
+                # Bold if within 2 std of best
+                if abs(mean - best_value) <= 2 * best_std:
+                    row.append(
+                        fr"\textbf{{{mean:.2f}$_\pm$\text{{\tiny {std:.2f}}}}}"
+                    )
                 else:
-                    row.append("–")
+                    row.append(
+                        fr"{mean:.2f}$_\pm$\text{{\tiny {std:.2f}}}"
+                    )
+
         rows.append(" & ".join(row) + r" \\")
-                    
+
     # Footer
     footer = r"""
-    \bottomrule
-    \end{tabularx}
-    \caption{Comparison of models across datasets. Each cell shows mean (std).}
-    \end{table}
-    """
+\bottomrule
+\end{tabular}
+\caption{Comparison of models across real datasets. Each cell shows mean (std). Bold indicates best performance within 2 standard deviations. --- indicates method not applicable or failed.}
+\label{tab:real_data_comparison}
+\end{table}
+"""
 
-    # Combine all
-    latex_table = header + "\n".join(rows) + footer
-     
+    latex_table = header + "\n".join(rows) + "\n" + footer
     return latex_table
-
 
 def make_latex_table_hyperparams(config, summary_df):
     """
@@ -395,6 +415,7 @@ def make_latex_table_hyperparams(config, summary_df):
     models = config["models_with_hyperparams"]
     name_dict = config["name_dict"]
     noise_dict = config["likelihood_dict"]
+    dimensions = config["simulation"]["dimensions"]
 
     # Metrics to include
     metrics = [
@@ -440,6 +461,8 @@ def make_latex_table_hyperparams(config, summary_df):
         noise_label = noise_dict[group['likelihood'].iloc[0]]
         n_val = int(group['sample_size'].iloc[0])
         d_val = int(group['dim'].iloc[0])
+        if d_val not in dimensions:
+            continue
         
         row = [noise_label, str(n_val), str(d_val)]
 
@@ -761,9 +784,9 @@ def make_plots_real(df, metrics, version, configs=None):
         
         # Enhanced title and labels with professional formatting
         ax.set_title(f"{metric.replace('_', ' ').title()} by Dataset", 
-                    fontsize=20, fontweight='bold', pad=20)
-        ax.set_xlabel("Dataset", fontsize=18, fontweight='bold')
-        ax.set_ylabel(f"{metric.replace('_', ' ').title()}", fontsize=18, fontweight='bold')
+                    fontsize=20, pad=20)
+        ax.set_xlabel("Dataset", fontsize=18)
+        ax.set_ylabel(f"{metric.replace('_', ' ').title()}", fontsize=18)
         
         # Increase tick label sizes
         ax.tick_params(axis='both', which='major', labelsize=14)
@@ -785,7 +808,7 @@ def make_plots_real(df, metrics, version, configs=None):
                           frameon=True,
                           fancybox=True,
                           shadow=True)
-        legend.get_title().set_fontweight('bold')
+        #legend.get_title().set_fontweight('bold')
         
         # Adjust layout for legend and rotated labels
         plt.tight_layout()

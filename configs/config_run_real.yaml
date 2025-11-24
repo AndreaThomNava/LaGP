@@ -20,7 +20,7 @@ alpha: 0.9
 
 n_splits: 5
 
-datasets: ["laegern", "modis", "heaton", "house"] # , "power"] #, "power", "houses", "elevators", "protein"]
+datasets: ["laegern"] #, "modis", "heaton", "house"] # , "power"] #, "power", "houses", "elevators", "protein"]
 models: ["VIVA", "gpboost_fisher", "gpytorch"] #"gpboost_fisher", "gpytorch"] #, "gpboost_lls", "gpytorch"], gpboost_cc
 gpb_approxs: {"gpboost_lls": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
             "gpboost_cc": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
@@ -33,6 +33,6 @@ n_epochs : 200
 lr: 0.01
 
 # for later, plotting
-all_models:  ["gpboost_fisher", "gpboost_cc", "gpytorch", "qgam", "qgam_interactions", "VIVA"] # "gpboost_lls", 
-name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpytorch": "VI", "qgam":"GAM","qgam_interactions":"GAM int",
+all_models:  ["gpboost_fisher",  "gpytorch",  "VIVA",  "qgam", "qgam_interactions"] # "gpboost_lls", 
+name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpytorch": "VI", "qgam":"QGAM","qgam_interactions":"QGAM int",
   "gpboost_fisher":"FL", "boosting": "Boosting", "VIVA": "VIVA"}

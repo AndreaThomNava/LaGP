@@ -17,7 +17,7 @@ from lagp.utils.metrics import quantile_score
 
 
 def fit_and_evaluate_replicate(X, y, fold,
-    configs, models, version, df_name
+    configs, models, version, df_name, replicate
 ):
     """
     Fit the models on a single replicate and compute the evaluation metrics.
@@ -36,20 +36,20 @@ def fit_and_evaluate_replicate(X, y, fold,
     train_idx = fold["train_idx"] # [:1000]
     test_idx = fold["test_idx"]#[:1000]
 
-    torch.manual_seed(42)
-    np.random.seed(42)
+    torch.manual_seed(42 + replicate)
+    np.random.seed(42 + replicate)
 
     # Randomly sample 6k indices (unsorted)
     n_total = len(y)
-    sampled_idx = np.random.choice(n_total, size=6000, replace=False)
+    sampled_idx = np.random.choice(n_total, size=2000, replace=False)
 
     # Split: first 5k for train, last 1k for test (already shuffled)
-    train_idx = sampled_idx[:5000]
-    test_idx = sampled_idx[5000:]
+    train_idx = sampled_idx[:1500]
+    test_idx = sampled_idx[1500:]
 
     X_train, X_test = X.iloc[train_idx, :], X.iloc[test_idx, :]
     y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
-    
+    print(y_test.shape)
     # Standardize using only training statistics
     y_mean = y_train.mean()
     y_std = y_train.std()
@@ -155,42 +155,27 @@ def fit_and_evaluate_replicate(X, y, fold,
             )
             
 
-        # if X is 2d -> plot countor and save figure
-        if X.shape[1] == 2:
-
-            OUTPUT_DIR_IMAGES = f"results/real_data/{version}/images"
-            os.makedirs(OUTPUT_DIR_IMAGES, exist_ok=True)
-            plt.figure(figsize=(10, 8))
-            scatter = plt.scatter(X_test.iloc[:, 1], X_test.iloc[:, 0], c=latent_pred, s=50, cmap='viridis', alpha=0.8)
-            plt.colorbar(scatter, label='Predicted Quantile')
-            plt.xlabel('X coordinate')
-            plt.ylabel('Y coordinate')
-            plt.title('Predicted Quantile (No Interpolation)')
-            plt.grid(True, alpha=0.3)
-
-            plt.tight_layout()
-            # Save plots
-            filename = f"{model_name}"
-            for ext in ["png", "pdf"]:
-                plt.savefig(f"results/real_data/{version}/images/{filename}_contour_{df_name}.{ext}", bbox_inches="tight", dpi=300)
-            plt.close()
-
+    
             # Save predictions for later plotting
+        # Save predictions for later plotting
         if X.shape[1] == 2:
-            pred_data = pd.DataFrame({
-                "x1_train": X_train.iloc[:, 0],
-                "x2_train": X_train.iloc[:, 1],
-                'y_train': y_mean + y_std * y_train,
-                "y_pred_train": y_mean + y_std * pred_train,
-                'x1': X_test.iloc[:, 0],
-                'x2': X_test.iloc[:, 1],
-                'y_pred': y_mean + y_std * latent_pred,
-              #  'y_std': stddev_pred,
-                'y_test': y_mean + y_std *  y_test,
-            })
-            
-            filename = f"{model_name}_predictions_{df_name}.csv"
-            pred_data.to_csv(f"results/real_data/{version}/{filename}", index=False)
+            save_dict = {
+                "x1_train": X_train.iloc[:, 0].values,
+                "x2_train": X_train.iloc[:, 1].values,
+                "y_train": (y_mean + y_std * y_train),
+                "x1_test": X_test.iloc[:, 0].values,
+                "x2_test": X_test.iloc[:, 1].values,
+                "y_pred": (y_mean + y_std * latent_pred),
+                "y_test": (y_mean + y_std * y_test),
+            }
+
+            # Filename & folder
+            filename = f"{model_name}_predictions_{df_name}.npz"
+            save_path = f"results/real_data/{version}"
+            os.makedirs(save_path, exist_ok=True)
+
+            # Save
+            np.savez(os.path.join(save_path, filename), **save_dict)
                 
         # Compute quantile score
         qs_loss = quantile_score(y = y_test, preds=latent_pred, quantile=target_quantile)
@@ -240,6 +225,7 @@ def fit_models_on_all_datasets_parallel(configs, models, version):
                     models,
                     version,
                     df_name,
+                    replicate
                 ): replicate
                 for replicate  in range(n_splits) #n_splits#
             }

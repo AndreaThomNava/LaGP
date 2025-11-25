@@ -428,7 +428,7 @@ model_brms_quantile_v2 <- function(train_X, train_y, group_train,
   
   # Fit model and predict with timeout
   fit_time_start <- Sys.time()
-  timeout_seconds <- 5 #00  # 1 hour
+  timeout_seconds <- 3600 #00  # 1 hour
   
   # Try to fit with timeout
   fit_result <- tryCatch({

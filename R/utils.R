@@ -4,7 +4,7 @@ library(gptoolsStan)
 library(brms)
 library(lqmm)
 library(reticulate)
-#use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
+use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
 library(bayesQR)
 
 os <- import("os")
@@ -428,7 +428,7 @@ model_brms_quantile_v2 <- function(train_X, train_y, group_train,
   
   # Fit model and predict with timeout
   fit_time_start <- Sys.time()
-  timeout_seconds <- 3600 #00  # 1 hour
+  timeout_seconds <- 5 #00  # 1 hour
   
   # Try to fit with timeout
   fit_result <- tryCatch({
@@ -569,37 +569,79 @@ model_bayesqr_v2 <- function(train_X, train_y, group_train,
   predictor_vars <- setdiff(names(X_train_df), "y")
   formula_str <- paste("y ~", paste(predictor_vars, collapse = " + "), "- 1") # -1 for manual intercept
   
-  fit_time <- system.time({
-    fit <- bayesQR(
-      formula = as.formula(formula_str),
-      data = X_train_df,
-      normal.approx = FALSE,
-      quantile = target_quantile,
-      ndraw = ndraws,
-    )
-    
-    # Posterior draws
-    burnin <- 1000 # ndraws %/% 2
-    fit_summary <- summary(fit, burnin = burnin)
-    beta_draws <- fit_summary[[1]]$betadraw
-    
-    # Posterior mean prediction
-    beta_post_mean <- rowMeans(beta_draws)
-    X_test_matrix  <- as.matrix(X_test)
-    preds <- as.numeric(X_test_matrix %*% beta_post_mean)
-    
-    # Posterior standard deviation of predictions
-    preds_samples <- t(beta_draws) %*% t(X_test_matrix)
-    preds_se <- apply(preds_samples, 2, sd)
-  })[["elapsed"]]
-  
+  # Fit model and predict with timeout
+  fit_time_start <- Sys.time()
+  timeout_seconds <- 3600  # 1 hour
+
+  fit_result <- tryCatch({
+
+    R.utils::withTimeout({
+
+      fit <- bayesQR(
+        formula = as.formula(formula_str),
+        data    = X_train_df,
+        normal.approx = FALSE,
+        quantile = target_quantile,
+        ndraw    = ndraws
+      )
+      
+      # Posterior draws
+      burnin <- 1000
+      fit_summary <- summary(fit, burnin = burnin)
+      beta_draws  <- fit_summary[[1]]$betadraw
+      
+      # Posterior mean prediction
+      beta_post_mean <- rowMeans(beta_draws)
+      X_test_matrix  <- as.matrix(X_test)
+      preds <- as.numeric(X_test_matrix %*% beta_post_mean)
+      
+      # Posterior SD of predictions
+      preds_samples <- t(beta_draws) %*% t(X_test_matrix)
+      preds_se <- apply(preds_samples, 2, sd)
+
+      list(
+        fit   = fit,
+        pred  = preds,
+        se    = preds_se,
+        success = TRUE
+      )
+
+    }, timeout = timeout_seconds, onTimeout = "error")
+
+  }, TimeoutException = function(e) {
+    warning(paste("bayesQR fitting timed out after", timeout_seconds, "seconds"))
+    list(success = FALSE)
+
+  }, error = function(e) {
+    warning(paste("bayesQR fitting failed:", e$message))
+    list(success = FALSE)
+  })
+
+  fit_time <- as.numeric(difftime(Sys.time(), fit_time_start, units = "secs"))
+
+  # If timeout/error → return NA structure
+  if (!fit_result$success) {
+    n_test <- nrow(X_test)
+    return(list(
+      predictions = rep(NA_real_, n_test),
+      se = rep(NA_real_, n_test),
+      fit_time = fit_time,
+      hyper_params = list(noise_variance = NA_real_),  # even though bayesQR has no VarCorr
+      model = NULL,
+      status = "timeout_or_error"
+    ))
+  }
+
+  # If successful
   return(list(
-    predictions = preds,
-    se          = preds_se,
-    fit_time    = fit_time,
-    model       = fit
-  ))
-}
+        predictions = fit_result$pred,
+        se          = fit_result$se,
+        fit_time    = fit_time,
+        hyper_params = list(noise_variance = NA_real_),  # placeholder for consistency
+        model       = fit_result$fit,
+        status      = "success"
+      ))
+  }
 
 
 #### UTILS FOR VECCHIA ####

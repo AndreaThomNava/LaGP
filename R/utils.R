@@ -346,7 +346,7 @@ model_lqmm <- function(train_X, train_y, group_train,
 
 model_brms_quantile_v2 <- function(train_X, train_y, group_train,
                                 test_X, group_test,
-                                target_quantile = 0.5, ndraws = 5000) {
+                                target_quantile = 0.5, ndraws = 3000) {
   
   n_predictors <- ncol(train_X) - 1
   
@@ -438,7 +438,7 @@ model_brms_quantile_v2 <- function(train_X, train_y, group_train,
         formula = formula_fixed,
         data = data_train,
         family = asym_laplace(),
-        chains = 2, iter = ndraws, refresh = 0,
+        chains = 2, iter = ndraws, warmup = 1000, refresh = 0,
         control = list(adapt_delta = 0.95),
         seed = 42
       )
@@ -505,7 +505,7 @@ model_brms_quantile_v2 <- function(train_X, train_y, group_train,
 model_bayesqr_v2 <- function(train_X, train_y, group_train,
                              test_X, group_test,
                              target_quantile = 0.5,
-                             ndraws = 5000) {
+                             ndraws = 3000) {
   
   # --- Prepare predictor matrix ---
   n_predictors <- ncol(train_X) - 1  # Number of non-intercept predictors

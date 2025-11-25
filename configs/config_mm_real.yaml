@@ -14,9 +14,9 @@ gpb_approxs: {"gpboost_fisher": "asymmetric_laplace",
 
 
 
-datasets: ["Orthodont", "labor", "cars"] #Orthodont", "labor"] #, "labor", "cars"] # ["Orthodont", "labor"] cars_crossed
+datasets: ["Orthodont", "labor"] #, "cars"] #Orthodont", "labor"] #, "labor", "cars"] # ["Orthodont", "labor"] cars_crossed
 
-n_splits: 2
+n_splits: 10
 
 
 #### ANALYSIS ###

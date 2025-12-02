@@ -199,7 +199,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models, num_replicates 
         # Use mclapply for parallel execution (requires 'parallel' package)
         replicate_results <- mclapply(1:num_replicates, function(replicate) {
           fit_and_evaluate_replicate(configs, replicate_config, replicate, models)
-        }, mc.cores = 1) # detectCores()
+        }, mc.cores = num_replicates) # detectCores()
         
         # Store results
         for (replicate in 1:num_replicates) {

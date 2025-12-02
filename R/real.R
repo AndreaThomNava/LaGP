@@ -9,18 +9,8 @@ fit_and_evaluate_replicate <- function(X, group_data, y, fold, configs, models, 
  
   train_idx <- unlist(fold$train_idx)#[1:1000]
   test_idx <- unlist(fold$test_idx)#[1:1000]
-  
-  np <- import("numpy", convert = TRUE)
-  np$random$seed(50L + replicate)
-  n <- nrow(X)
-  perm <- np$random$permutation(n)
-  # Convert NumPy array to R integer vector
-  perm <- as.integer(perm)
-  half <- n %/% 2
-  
-  train_idx <- perm[1:half]
-  test_idx  <- perm[(half + 1):n]
-  
+
+
   train_X <- X[train_idx, , drop = FALSE]
   test_X  <- X[test_idx, , drop = FALSE]
  
@@ -161,7 +151,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models) {
     y <- data$Y
     
     folds <- load_cv_splits(dataset_name = df_name, dir = DIR,
-                            n_splits = 2)
+                            n_splits = n_splits)
     
     replicate_config <- list(
       df_name = df_name
@@ -173,7 +163,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models) {
     replicate_results <- mclapply(seq_len(n_splits), function(replicate) {
       fold <- folds[replicate, ]
       fit_and_evaluate_replicate(X, group_data, y, fold, configs, models, replicate)
-    }, mc.cores = 1)  # Set to detectCores() if you want parallelism
+    }, mc.cores = n_splits)  # Set to detectCores() if you want parallelism
     
     for (replicate in seq_len(n_splits)) {
       results[[config_key]][[replicate]] <- replicate_results[[replicate]]

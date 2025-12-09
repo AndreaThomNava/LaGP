@@ -590,7 +590,7 @@ def make_plots(df, metrics, configs, version):
                                   title="Model",
                                   loc='upper center',
                                   bbox_to_anchor=(0.5, -0.12),
-                                  ncol=min(len(labels), 4),  # Max 4 columns
+                                  ncol= 4, #min(len(labels), 4),  # Max 4 columns
                                   fontsize=14,
                                   title_fontsize=16,
                                   frameon=True,

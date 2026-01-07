@@ -89,7 +89,7 @@ fit_and_evaluate_replicate <- function(X, group_data, y, fold, configs, models, 
         print("BRMS: Sampling via MCMC")
         pred <- model_brms_quantile_v2(train_X = train_X_scaled, train_y = train_y,
                                     group_train = group_train, test_X = test_X_scaled, group_test = group_test,
-                                    target_quantile = target_quantile, ndraws = 5000)
+                                    target_quantile = target_quantile, ndraws = 3000)
         
         print("sampled successfully")
         latent_pred <- pred$predictions
@@ -101,7 +101,7 @@ fit_and_evaluate_replicate <- function(X, group_data, y, fold, configs, models, 
         res <- model_bayesqr_v2(train_X = train_X_scaled, train_y = train_y,
                                 group_train = group_train,
                                 test_X = test_X_scaled, group_test = group_test,
-                                target_quantile = target_quantile, ndraws = 5000)
+                                target_quantile = target_quantile, ndraws = 3000)
         
         latent_pred <- res$predictions
         hyper_params <- res$hyper_params
@@ -163,7 +163,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models) {
     replicate_results <- mclapply(seq_len(n_splits), function(replicate) {
       fold <- folds[replicate, ]
       fit_and_evaluate_replicate(X, group_data, y, fold, configs, models, replicate)
-    }, mc.cores = n_splits)  # Set to detectCores() if you want parallelism
+    }, mc.cores = 1) #n_splits)  # Set to detectCores() if you want parallelism
     
     for (replicate in seq_len(n_splits)) {
       results[[config_key]][[replicate]] <- replicate_results[[replicate]]

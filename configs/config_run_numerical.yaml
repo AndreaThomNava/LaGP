@@ -10,7 +10,7 @@ laplace_approximations : ["asymmetric_laplace_fisher_mode_finding",
 approx_dict : {"asymmetric_laplace_constant_curvature_fisher_mode_finding": "CC",
                "asymmetric_laplace_lls_laplace_fisher_mode_finding": "LLS", 
                "asymmetric_laplace_fisher_mode_finding":"Fisher-Laplace",
-               "naive": "Non-adaptive"}
+               "naive": "Naive"}
 B: 50
 integration_nodes: 100
 misspecified: True  #True

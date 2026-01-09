@@ -1,14 +1,14 @@
 simulation:
   seed: 43
   grid_lims: [0, 1]
-  sample_sizes: [1000, 5000] #, 10000] #, 5000] #, 5000] #, 100000] #, 5000, 10000, 20000] #, 5000, 10000] #, 10000] #, 5000, 10000]  # Different sample sizes for datasets
-  dimensions: [2, 5] #, 5] #,5]  # 1D, 2D, or 3D datasets
+  sample_sizes: [1000, 10000] #, 5000] #, 10000] #, 5000] #, 5000] #, 100000] #, 5000, 10000, 20000] #, 5000, 10000] #, 10000] #, 5000, 10000]  # Different sample sizes for datasets
+  dimensions: [2, 5] #, 5] #, 5] #,5]  # 1D, 2D, or 3D datasets
   likelihoods: 
      - gaussian
      - t
      - gaussian_heteroscedastic
    # - chi
-    # - ald
+     #- ald
      # - ald_heteroscedastic # testing heteroscedasticity
   
   # Simulation Settings
@@ -51,16 +51,16 @@ train_split: 0.75
 
 # for python
 
-models: ["gpboost_fisher_clip", "gpboost_fisher"] #["gpboost_fisher_clip", "VIVA", "gpytorch"] #, "gpboost_cc", "gpboost_lls", "gpboost_lls_v2"] # , "gpboost_groups", "gpboost_lls"] #, "gpboost_cc", "gpboost_fisher", "gpboost_lls", "gpboost_lls_v2", "gpytorch"] #,
+models: ["gpboost_cc", "gpboost_cc_var_corr", "gpboost_fisher", "gpboost_fisher_fi"] #["gpboost_fisher_clip", "VIVA", "gpytorch"] #, "gpboost_cc", "gpboost_lls", "gpboost_lls_v2"] # , "gpboost_groups", "gpboost_lls"] #, "gpboost_cc", "gpboost_fisher", "gpboost_lls", "gpboost_lls_v2", "gpytorch"] #,
 # hyper-params --> useful for producing later results
-models_with_hyperparams:  ["gpboost_normal", "gpboost_cc", "gpboost_fisher", "gpboost_lls", "gpboost_lls_v2", "gpytorch", "gpboost_groups",
+models_with_hyperparams:  ["gpboost_fisher", "gpytorch", 
                   "VIVA", "qgam", "qgam_interactions"] #, "gpboost_cc"] #["gpboost_cc", "gpboost_lls", "gpboost_fisher", "gpboost_normal"] #"gpboost_cc_var_corr", "gpytorch", "VIVA"]
 
 
 gpb_approxs: {"gpboost_fisher": "asymmetric_laplace_fisher_mode_finding", # use continue as well, second order helps if not local!
            "gpboost_lls": "asymmetric_laplace_lls_laplace_fisher_mode_finding",
             "gpboost_cc": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
-            "gpboost_cc_var_corr": "asymmetric_laplace_constant_curvature_fisher_mode_finding_var_cor_pred",
+            "gpboost_cc_var_corr": "asymmetric_laplace_constant_curvature_fisher_mode_finding_var_cor_pred_freq_asym",
             "gpboost_normal": "gaussian",
             "gpboost_lls_v2": "asymmetric_laplace_lls_laplace_v2_fisher_mode_finding",
             "gpboost_groups": "asymmetric_laplace_lls_laplace_groups_fisher_mode_finding",
@@ -86,10 +86,5 @@ name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpboost_cc_cv": "CC_cv" 
 likelihood_dict : {"gaussian":"N", "ald": "ALD", "t":"t", "chi":"chi", "ald_heteroscedastic": HetALD, "gaussian_heteroscedastic": HetN}
 
 # what I want to plot/make latex tables for
-all_models: ["gpboost_fisher_clip", "gpytorch", "VIVA", "qgam", "qgam_interactions",
-            "gpboost_fisher"] #, "gpboost_cc"] # ["gpboost_cc", "gpboost_lls", "gpboost_fisher", "gpboost_normal"] #gpboost_cc_var_corr", "gpytorch", "qgam", "vecchia_mcmc", "VIVA"] # ["gpboost_lls", "gpboost_cc", "gpytorch", "qgam"]
-
-# hyper-params --> useful for producing later results
-models_with_hyperparams:  ["gpboost_fisher_clip", "gpytorch", "VIVA"] #, "qgam", "qgam_interactions"] #, "gpboost_cc"] #["gpboost_cc", "gpboost_lls", "gpboost_fisher", "gpboost_normal"] #"gpboost_cc_var_corr", "gpytorch", "VIVA"]
-
-
+all_models: ["gpboost_fisher", "gpytorch", "VIVA", "qgam", "qgam_interactions",
+            ] #, "gpboost_cc"] # ["gpboost_cc", "gpboost_lls", "gpboost_fisher", "gpboost_normal"] #gpboost_cc_var_corr", "gpytorch", "qgam", "vecchia_mcmc", "VIVA"] # ["gpboost_lls", "gpboost_cc", "gpytorch", "qgam"]

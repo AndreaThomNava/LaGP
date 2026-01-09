@@ -28,13 +28,13 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH, version):
         ("train_coverage_mean", "train_coverage_std", "train_coverage"),
         ("time_mean", "time_std", "Time")
     ]
+
+    metrics = [("time_mean", "time_std", "Time")]
    
     # Define metrics and optimality
     metric_criteria = {"Quantile Score": "min", "True Pinball Score": "min", "Interval Score": "min", "Coverage": "check_coverage", "Time": "min",
                        "RMSE": "min", "bias": "min", "train_coverage": "check_coverage", "train_width": "min"}
                        
-
-
     df = make_flattened_df(results = res)
     summary_df = group_flattened_df(flat_df=df)
     
@@ -48,8 +48,8 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH, version):
     # make and save plots
     
     metrics_for_plotting = ["quantile_loss", "coverage", "time"] #"true_pinball_loss", "rmse", "empirical_quantile", "interval_loss", "coverage", "train_coverage", "bias", "width", "time"] # df.columns[5:]
-    make_plots(df = df, metrics = metrics_for_plotting, configs=configs, version=version)
-    make_plots_hypers(df = df, configs=configs, metrics=["signal_variance", "lengthscale"], version = version)
+    #make_plots(df = df, metrics = metrics_for_plotting, configs=configs, version=version)
+    #make_plots_hypers(df = df, configs=configs, metrics=["signal_variance", "lengthscale"], version = version)
    
     return latex_table, hyper_latex_table
 

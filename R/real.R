@@ -164,7 +164,7 @@ for (model_name in models){
 results <- fit_models_on_all_datasets_parallel(configs = configs, models = models)
 
 # Save the results
-version <- "paper"
+version <- "095"
 OUTPUT_DIR <- paste0("results/real_data/", version)
 dir.create(OUTPUT_DIR, showWarnings = FALSE)
 

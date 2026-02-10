@@ -206,9 +206,7 @@ def fit_models_on_all_datasets_parallel(configs, models, version, df_names=None)
     for df_name in df_names:
         print(f"Dataset: {df_name}")
         # Create splits for the dataset
-        save_cv_splits_preprocessed(
-            df_name, n_splits=n_splits, dir="data/real_data", seed=42
-        )
+        #save_cv_splits_preprocessed(df_name, n_splits=n_splits, dir="data/real_data", seed=42)
         X, y = load_X_y_preprocessed(dataset_name=df_name, dir=DIR)
         folds = load_cv_splits(dataset_name=df_name, dir=DIR, n_splits=n_splits)
         # Store results for this configuration

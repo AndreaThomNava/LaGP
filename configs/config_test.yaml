@@ -80,13 +80,13 @@ gpb_approxs: {"gpboost_fisher": "asymmetric_laplace",
 
 
 ##### for the analysis of the results ######
-all_models : ["gpboost_cc", "gpboost_lls", #"gpboost_lls_groups", "gpboost_lls_v2_groups",
+all_models : ["gpboost_cc", #"gpboost_lls_groups", "gpboost_lls_v2_groups",
                "gpboost_fisher", "bayesqr", "brms", "lqmm"] # "lqmm"["gpboost_cc", "gpboost_lls", "gpboost_normal"] #, "gpboost_cc_var_corr", "lqmm", "brms"]
 
             
 
 models_with_hyperparams: ["gpboost_cc",  # "gpboost_lls_groups", "gpboost_lls_v2_groups",
-               "gpboost_fisher", "gpboost_lls", "brms", "lqmm"] #, "lqmm", "bayesqr", "brms"] 
+               "gpboost_fisher", "brms", "lqmm"] #, "lqmm", "bayesqr", "brms"] 
 
             
 name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpboost_cc_freq": "CC corr",

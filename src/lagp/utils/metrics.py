@@ -42,7 +42,7 @@ def interval_score(y, pred_low, pred_up, alpha):
         - y: (np.ndarray) observed responses.
         - pred_low: (np.ndarray) predicted lower quantiles.
         - pred_up: (np.ndarray) predicted upper quantiles.
-        - alpha: (float) confidence level of prediction interval.
+        - alpha: (float) misscoverage level of prediction interval.
 
     Output:
         - mis: (float) mean interval score.

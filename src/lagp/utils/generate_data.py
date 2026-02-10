@@ -232,8 +232,6 @@ def train_test_split(X: np.ndarray, y: np.ndarray, train_split: float) -> np.nda
 
 
 ##### LOAD DATA ######
-
-
 def load_latent_from_file(dim, n, replicate, base_path="data/simulated_latent"):
     file_path = f"{base_path}/{n}_{dim}/data_replicate_{replicate+1}.npz"
     data = np.load(file_path)

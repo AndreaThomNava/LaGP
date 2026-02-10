@@ -7,20 +7,18 @@ source("R/utils.R")
 
 fit_and_evaluate_replicate <- function(X, y, fold, configs, models, replicate) {
  
-  train_idx <- unlist(fold$train_idx)#[1:10000]
-  test_idx <- unlist(fold$test_idx)#[1:1000]
+  train_idx <- unlist(fold$train_idx)
+  test_idx <- unlist(fold$test_idx)
 
-  # Randomly sample 6k indices (unsorted)
+  # Randomly sample 10k indices (unsorted)
   np <- import("numpy")
   np$random$seed(42L + replicate)
-  sampled_idx <- np$random$choice(length(y), size=6000L, replace=FALSE)
-
+  sampled_idx <- np$random$choice(length(y), size=10000L, replace=FALSE)
+  sampled_idx <- as.integer(sampled_idx) + 1L # to match python 0-based indexing
   # Split: first 5k for train, last 1k for test (already shuffled)
-  train_idx <- sampled_idx[1:5000]
-  test_idx <- sampled_idx[5001:6000]
+  train_idx <- sampled_idx[1:9000]
+  test_idx <- sampled_idx[9001:10000]
 
-  
- 
   X_train <- X[train_idx, , drop = FALSE]
   X_test  <- X[test_idx, , drop = FALSE]
   y_train <- y[train_idx]
@@ -66,7 +64,7 @@ fit_and_evaluate_replicate <- function(X, y, fold, configs, models, replicate) {
   test_X_scaled <- (X_test - matrix(train_min, nrow = nrow(X_test), ncol = ncol(X_test), byrow = TRUE)) /
     matrix(train_range, nrow = nrow(X_test), ncol = ncol(X_test), byrow = TRUE)
   
-
+  # configs
   delta_logl <- configs$delta_logl
   n_epochs <- configs$n_epochs
   lr <- configs$lr
@@ -103,7 +101,6 @@ fit_and_evaluate_replicate <- function(X, y, fold, configs, models, replicate) {
       } else {
         print("No predictions available for QS loss calculation.")
       }
-      
       print(paste("Time:", fit_time))
       
     }, error = function(e) {
@@ -134,11 +131,6 @@ fit_models_on_all_datasets_parallel <- function(configs, models) {
     
     folds <- load_cv_splits(dataset_name = df_name, dir = DIR,
                             n_splits = n_splits)
-    
-    replicate_config <- list(
-      df_name = df_name
-    )
-    
     config_key <- df_name
     results[[config_key]] <- vector("list", n_splits)
     
@@ -156,10 +148,8 @@ fit_models_on_all_datasets_parallel <- function(configs, models) {
   return(results)
 }
 
-
 # Parse command line arguments
 args <- commandArgs(trailingOnly = TRUE)
-
 configs <- load_config("configs/config_run_real.yaml")
 
 # Override dataset if provided as argument
@@ -190,12 +180,10 @@ output_file <- file.path(OUTPUT_DIR, "real_data_results_R.pkl")
 if (file.exists(output_file)) {
   # Load existing pickle
   old_results <- py_load_object(output_file)
-  
   # Merge datasets: add new or replace existing
   for (dataset_key in names(all_results$results)) {
     old_results$results[[dataset_key]] <- all_results$results[[dataset_key]]
   }
-  
   # Optionally replace config
   old_results$config <- all_results$config
 } else {

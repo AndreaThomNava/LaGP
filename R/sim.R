@@ -1,5 +1,4 @@
 # Load required libraries
-
 source("R/utils.R")
 library(yaml)
 library(parallel)
@@ -20,9 +19,8 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
   print(paste("Replicate", replicate))
   
   delta_logl <- configs$delta_logl
-  alpha <- configs$alpha
+  target_coverage <- configs$target_coverage
   train_split <- configs$train_split
-  print(train_split)
   n_epochs <- configs$n_epochs
   lr <- configs$lr
   target_quantile <- configs$target_quantile
@@ -39,7 +37,6 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
   if (is_heteroscedastic) {
     # Load the scale GP (g) if heteroscedastic
     g <- load_scale_gp(likelihood, sample_size, input_dim, replicate, file_path = NULL)
-    
     # Get the noise model from the likelihood
     noise <- strsplit(likelihood, "_")[[1]][1]
   } else {
@@ -56,8 +53,8 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
   )
   
   # Needed for prediction intervals
-  t <- qnorm(1 - (1 - alpha) / 2)
-  
+  alpha <- 1 - target_coverage
+  t <- qnorm(1 - alpha/2)
   model_results <- list()
   
   for (model_name in models) {
@@ -71,6 +68,7 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
     interval_loss <- NA_real_
     coverage <- NA_real_
     width <- NA_real_
+    rmse <- NA_real_
     
     tryCatch({
       
@@ -82,8 +80,7 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
         low_pred <- latent_pred - stddev_pred * t
         up_pred <- latent_pred + stddev_pred * t
         fit_time <- pred$fit_time
-      
-      else if (model_name == "qgam_interactions") {
+      } else if (model_name == "qgam_interactions") {
         print("Fitting qgam with interactions")
         pred <- model_qgam_interactions(train_X, train_y, test_X, target_quantile)
         latent_pred <- pred$predictions
@@ -91,8 +88,6 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
         low_pred <- latent_pred - stddev_pred * t
         up_pred <- latent_pred + stddev_pred * t
         fit_time <- pred$fit_time
-      }
-
       } else if (model_name == "vecchia_mcmc") {
         print("Sampling via MCMC")
         pred <- model_vecchia_gp(train_X, train_y, test_X,
@@ -110,12 +105,9 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
       if (!is.null(latent_pred)) {
         qs_loss <- quantile_score(test_y, latent_pred, target_quantile)
         print(paste("QS loss:", qs_loss))
-        
         test_true_latent_quantile <- true_latent_quantile[(length(train_y) + 1):sample_size]
-        
         interval_loss <- interval_score(test_true_latent_quantile, low_pred, up_pred, alpha)
         print(paste("IS loss: ", interval_loss))
-        
         rmse <- sqrt(mean((test_true_latent_quantile - latent_pred)^2))
         coverage_and_width_results <- coverage_and_width(test_true_latent_quantile, low_pred, up_pred)
         coverage <- coverage_and_width_results[1]
@@ -123,14 +115,11 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
       } else {
         print("No predictions available for QS or IS calculation.")
       }
-      
       print(paste("Time:", fit_time))
-      
     }, error = function(e) {
       print(paste("Model", model_name, "failed with error:", e$message))
       # All outputs stay NA or NULL
     })
-    
     model_results[[model_name]] <- list(
       quantile_loss = qs_loss,
       interval_loss = interval_loss,
@@ -181,18 +170,16 @@ fit_models_on_all_datasets_parallel <- function(configs, models, num_replicates 
 
 configs_sim <- load_config("configs/config_run_simulation.yaml")
 
-# update them!
-# Parameter update if fixed SNR is set
+# update them! Parameter update if fixed SNR is set
 if (configs_sim$simulation$fixed_snr) {
   signal_variance <- configs_sim$gp_parameters$kernel$signal_variance
   snr <- configs_sim$simulation$snr
   quantile <- configs_sim$simulation$pars$ald$q
-  
   updated_pars <- compute_dict_pars(signal_variance, snr, quantile)
-  configs_sim$pars <- updated_pars
+  configs_sim$simulation$pars <- updated_pars
 }
 
-models <- list("qgam", "qgam_interactions") #, "vecchia_mcmc") #, "vecchia_mcmc")
+models <- list("qgam", "qgam_interactions") 
 for (model_name in models){
   print(models)
 }

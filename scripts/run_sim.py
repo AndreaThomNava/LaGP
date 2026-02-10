@@ -3,21 +3,22 @@ import concurrent.futures
 import os
 import pickle
 import re
+import sys
+
 import numpy as np
 import yaml
 from scipy.stats import norm
-import sys
 
-from lagp.models.model import (  # Assuming you have these model functions
-    model_gpboost, model_gpytorch, model_viva_gp, model_gpboost_cv, model_gpboost_twostage)
-from lagp.utils.generate_data import load_data, obtain_quantile, load_scale_gp, compute_dict_pars
-from lagp.utils.metrics import (coverage_and_width, interval_score,
-                                quantile_score, compute_rmse)
+from lagp.models.model import (model_gpboost, model_gpboost_cv,
+                               model_gpboost_twostage, model_gpytorch,
+                               model_viva_gp)
+from lagp.utils.generate_data import (compute_dict_pars, load_data,
+                                      load_scale_gp, obtain_quantile)
+from lagp.utils.metrics import (compute_rmse, coverage_and_width,
+                                interval_score, quantile_score)
 
 
-def fit_and_evaluate_replicate(
-    configs, replicate_config, replicate, models
-):
+def fit_and_evaluate_replicate(configs, replicate_config, replicate, models):
     """
     Fit the models on a single replicate and compute the evaluation metrics.
 
@@ -33,7 +34,6 @@ def fit_and_evaluate_replicate(
     is_heteroscedastic = re.search("heteroscedastic", likelihood) is not None
     sample_size = replicate_config["sample_size"]
     input_dim = replicate_config["input_dim"]
-    
     delta_logl = configs["delta_logl"]
     target_coverage = configs["target_coverage"]
     train_split = configs["train_split"]
@@ -49,9 +49,7 @@ def fit_and_evaluate_replicate(
         likelihood, sample_size, input_dim, replicate, train_split
     )
 
-
     # obtain true latent quantile
-
     # if heteroscedastic likelihood, load also second GP!
     if is_heteroscedastic:
         g = load_scale_gp(likelihood, sample_size, input_dim, replicate, file_path=None)
@@ -60,22 +58,26 @@ def fit_and_evaluate_replicate(
         noise = likelihood
 
     true_latent_quantile = obtain_quantile(
-        f=f, noise=noise, pars=configs["simulation"]["pars"], target_quantile=target_quantile, g = g if is_heteroscedastic else None
+        f=f,
+        noise=noise,
+        pars=configs["simulation"]["pars"],
+        target_quantile=target_quantile,
+        g=g if is_heteroscedastic else None,
     )
     # needed for prediction intervals
     normv = norm()
     alpha = 1 - target_coverage
-    t = normv.ppf(1 - alpha/ 2)
+    t = normv.ppf(1 - alpha / 2)
 
     model_results = {}
     for model_name in models:
         # Fit the model and make predictions
         print(f"fitting {model_name}")
-        
+
         # Matches models starting with 'gpboost'
         if re.match(r"^gpboost", model_name):
             approx = gpb_approxs[model_name]
-           
+
             if model_name.endswith("_cv"):
                 pred, pred_train, elapsed_time, hyper_params = model_gpboost_cv(
                     quantile=target_quantile,
@@ -86,7 +88,9 @@ def fit_and_evaluate_replicate(
                     approx=approx,
                     n_vecchia=threshold_approx,
                     n_folds=2,  # Can make this configurable
-                    delta_logl_grid=np.array([0.1, 1.0, 10.0]),  # Can make this configurable
+                    delta_logl_grid=np.array(
+                        [0.1, 1.0, 10.0]
+                    ),  # Can make this configurable
                 )
 
             elif model_name.endswith("_twostage"):
@@ -101,7 +105,7 @@ def fit_and_evaluate_replicate(
                     delta_logl=delta_logl,
                     n_vecchia=threshold_approx,
                     target_coverage=target_coverage,
-                    max_iter=10
+                    max_iter=10,
                 )
 
             else:
@@ -115,8 +119,8 @@ def fit_and_evaluate_replicate(
                     delta_logl=delta_logl,
                     n_vecchia=threshold_approx,
                 )
-                # prediction interval
-            
+
+            # prediction interval
             latent_pred = pred["mu"]
             stddev_pred = np.sqrt(pred["var"])
             low_pred = latent_pred - stddev_pred * t
@@ -124,10 +128,9 @@ def fit_and_evaluate_replicate(
 
             # train prediction interval
             latent_pred_train = pred_train["mu"]
-            stddev_pred_train = np.sqrt(pred_train["var"])  
-            #low_pred_train = latent_pred_train - stddev_pred_train * t
-            #up_pred_train = latent_pred_train + stddev_pred_train * t
-
+            stddev_pred_train = np.sqrt(pred_train["var"])
+            # low_pred_train = latent_pred_train - stddev_pred_train * t
+            # up_pred_train = latent_pred_train + stddev_pred_train * t
 
         elif model_name == "gpytorch":
             pred, elapsed_time, hyper_params, train_pred = model_gpytorch(
@@ -137,9 +140,9 @@ def fit_and_evaluate_replicate(
                 test_X=test_X,
                 test_y=test_y,
                 epochs=n_epochs,
-                lr = lr,
+                lr=lr,
                 inducing_threshold=threshold_approx,
-                inducing_points=inducing_points
+                inducing_points=inducing_points,
             )
 
             latent_pred = pred.mean.numpy()
@@ -157,7 +160,7 @@ def fit_and_evaluate_replicate(
                 train_y=train_y,
                 test_X=test_X,
                 test_y=test_y,
-                rho = 1.5, # fixed
+                rho=1.5,  # fixed
                 lengthscale_init=0.25,
                 outputscale_init=0.25,
                 epochs=n_epochs,
@@ -183,16 +186,15 @@ def fit_and_evaluate_replicate(
             y=test_true_latent_quantile,
             pred_low=low_pred,
             pred_up=up_pred,
-            alpha=target_coverage,
+            alpha=alpha,
         )
 
         # train prediction interval
         low_pred_train = latent_pred_train - stddev_pred_train * t
         up_pred_train = latent_pred_train + stddev_pred_train * t
 
-
         # RMSE
-        rmse= compute_rmse(f_true=test_true_latent_quantile, f_pred=latent_pred)
+        rmse = compute_rmse(f_true=test_true_latent_quantile, f_pred=latent_pred)
 
         # compute coverage and width
         coverage, width = coverage_and_width(
@@ -201,7 +203,10 @@ def fit_and_evaluate_replicate(
 
         if model_name != "VIVA":
             train_coverage, train_width = coverage_and_width(
-                y=train_true_latent_quantile, pred_low=low_pred_train, pred_up=up_pred_train)
+                y=train_true_latent_quantile,
+                pred_low=low_pred_train,
+                pred_up=up_pred_train,
+            )
         else:
             train_coverage, train_width = np.nan, np.nan
 
@@ -223,7 +228,7 @@ def fit_and_evaluate_replicate(
             "interval_loss": interval_loss,
             "rmse": rmse,
             "bias": bias,
-            "empirical_quantile":empirical_quantile,
+            "empirical_quantile": empirical_quantile,
             "coverage": coverage,
             "width": width,
             "train_coverage": train_coverage,
@@ -231,7 +236,7 @@ def fit_and_evaluate_replicate(
             "time": elapsed_time,
             "lengthscale": hyper_params["lengthscale"],
             "signal_variance": hyper_params["signal_variance"],
-            "noise_variance": hyper_params["noise_variance"]
+            "noise_variance": hyper_params["noise_variance"],
         }
 
     return model_results
@@ -258,7 +263,9 @@ def fit_models_on_all_datasets_parallel(configs, models, num_replicates=10):
                 print(config_key)
                 # Use ProcessPoolExecutor to parallelize across replicates
                 print(os.cpu_count())
-                with concurrent.futures.ProcessPoolExecutor(max_workers = num_replicates) as executor:
+                with concurrent.futures.ProcessPoolExecutor(
+                    max_workers=num_replicates
+                ) as executor:
                     future_to_replicate = {
                         executor.submit(
                             fit_and_evaluate_replicate,
@@ -267,7 +274,7 @@ def fit_models_on_all_datasets_parallel(configs, models, num_replicates=10):
                             replicate,
                             models,
                         ): replicate
-                        for replicate  in range(1, num_replicates+1)
+                        for replicate in range(1, num_replicates + 1)
                     }
 
                     for future in concurrent.futures.as_completed(future_to_replicate):
@@ -299,7 +306,6 @@ if __name__ == "__main__":
         help="version of experiment",
     )
 
-
     args = parser.parse_args()
     version = args.version
 
@@ -313,12 +319,12 @@ if __name__ == "__main__":
     signal_variance = configs["gp_parameters"]["kernel"]["signal_variance"]
 
     if fixed_snr:
-        pars = compute_dict_pars(signal_variance=signal_variance,
-                                 snr = snr,
-                                 quantile=configs["simulation"]["pars"]["ald"]["q"])
-        configs["pars"] = pars
-       # mu_dict = compute_u_scale_gp(signal_variance=signal_variance, pars = pars)
-    
+        pars = compute_dict_pars(
+            signal_variance=signal_variance,
+            snr=snr,
+            quantile=configs["simulation"]["pars"]["ald"]["q"],
+        )
+        configs["simulation"]["pars"] = pars
 
     models = configs["models"]
     num_replicates = configs["simulation"]["replicates"]
@@ -327,8 +333,7 @@ if __name__ == "__main__":
         configs, models, num_replicates=num_replicates
     )
 
-    # Save the results
-    # Ensure the results directory exists
+    # Save the results: ensure the results directory exists
     OUTPUT_DIR = f"results/simulation/{version}"
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 

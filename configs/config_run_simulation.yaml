@@ -1,15 +1,12 @@
 simulation:
   seed: 43
   grid_lims: [0, 1]
-  sample_sizes: [1000, 10000] #, 5000] #, 10000] #, 5000] #, 5000] #, 100000] #, 5000, 10000, 20000] #, 5000, 10000] #, 10000] #, 5000, 10000]  # Different sample sizes for datasets
-  dimensions: [2, 5] #, 5] #, 5] #,5]  # 1D, 2D, or 3D datasets
+  sample_sizes: [1000, 10000] 
+  dimensions: [2, 5] 
   likelihoods: 
      - gaussian
      - t
      - gaussian_heteroscedastic
-   # - chi
-     #- ald
-     # - ald_heteroscedastic # testing heteroscedasticity
   
   # Simulation Settings
   snr: 5.0                # Desired signal-to-noise ratio
@@ -20,8 +17,7 @@ simulation:
     "t": {"df": 3, "scale": 0.1},
     "chi": {"df": 2, "scale": 0.1}
   }
-  # useless noise_levels: [0.1, 0.2, 0.3]  # Noise levels for adding to data
-  replicates: 5
+  replicates: 10
 
 # update also simulation config
 gp_parameters:
@@ -32,13 +28,11 @@ gp_parameters:
     signal_variance: 1.0
   # You can add more GP parameters as needed
 
-
 ## TARGET QUANTILE ##
-target_quantile: 0.8
+target_quantile: 0.95
 
 # MIN DECREASE LOG-LIKELIHOOD FOR GPBOOST
 delta_logl: 10
-
 
 # specific for the simulation run
 threshold_approximation: 1001
@@ -47,15 +41,13 @@ inducing_points:  1000
 # level for prediction intervals --> build a alphax100% prediction interval
 target_coverage: 0.9
 
+# train-test split
 train_split: 0.75
 
 # for python
-
-models: ["gpboost_cc", "gpboost_cc_var_corr", "gpboost_fisher", "gpboost_fisher_fi"] #["gpboost_fisher_clip", "VIVA", "gpytorch"] #, "gpboost_cc", "gpboost_lls", "gpboost_lls_v2"] # , "gpboost_groups", "gpboost_lls"] #, "gpboost_cc", "gpboost_fisher", "gpboost_lls", "gpboost_lls_v2", "gpytorch"] #,
+models: ["gpboost_cc", "gpboost_fisher", "gpytorch", "VIVA"] #[
 # hyper-params --> useful for producing later results
-models_with_hyperparams:  ["gpboost_fisher", "gpytorch", 
-                  "VIVA", "qgam", "qgam_interactions"] #, "gpboost_cc"] #["gpboost_cc", "gpboost_lls", "gpboost_fisher", "gpboost_normal"] #"gpboost_cc_var_corr", "gpytorch", "VIVA"]
-
+models_with_hyperparams:  ["gpboost_cc", "gpboost_fisher", "gpytorch",  "VIVA", "qgam", "qgam_interactions"] 
 
 gpb_approxs: {"gpboost_fisher": "asymmetric_laplace_fisher_mode_finding", # use continue as well, second order helps if not local!
            "gpboost_lls": "asymmetric_laplace_lls_laplace_fisher_mode_finding",
@@ -69,22 +61,18 @@ gpb_approxs: {"gpboost_fisher": "asymmetric_laplace_fisher_mode_finding", # use 
             "gpboost_fisher_clip": "asymmetric_laplace_kink_clipping",
             "gpboost_fisher_fi": "asymmetric_laplace_var_cor_pred_freq_asym"}
 
-
-
 # for GPytorch
 n_epochs : 200
 lr: 0.01
 
-
-# fix dicts
+# model dictionary for latex tables
 name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpboost_cc_cv": "CC_cv" ,"gpytorch": "VI", "qgam":"QGAM", "gpboost_normal": "gpbN",
             "gpboost_cc_var_corr": "CC corr", "vecchia_mcmc": "BSGP", "VIVA":"VIVA",
              "gpboost_fisher":"FL", "gpboost_lls_v2": "LLSV2", "gpboost_groups": "Groups",
-             gpboost_fisher_twostage: "FL-2stage", "qgam_interactions":"QGAMInt", 
-              "gpboost_fisher_clip": "FL-clip", gpboost_fisher_fi: "FL-FI"}
-             
-likelihood_dict : {"gaussian":"N", "ald": "ALD", "t":"t", "chi":"chi", "ald_heteroscedastic": HetALD, "gaussian_heteroscedastic": HetN}
+             "gpboost_fisher_twostage": "FL-2stage", "qgam_interactions":"QGAMInt", 
+              "gpboost_fisher_clip": "FL-clip", "gpboost_fisher_fi": "FL-FI"}
+# likelihood dictionary for latex tables          
+likelihood_dict : {"gaussian":"N", "ald": "ALD", "t":"t", "chi":"chi", "ald_heteroscedastic": "HetALD", "gaussian_heteroscedastic": "HetN"}
 
 # what I want to plot/make latex tables for
-all_models: ["gpboost_fisher", "gpytorch", "VIVA", "qgam", "qgam_interactions",
-            ] #, "gpboost_cc"] # ["gpboost_cc", "gpboost_lls", "gpboost_fisher", "gpboost_normal"] #gpboost_cc_var_corr", "gpytorch", "qgam", "vecchia_mcmc", "VIVA"] # ["gpboost_lls", "gpboost_cc", "gpytorch", "qgam"]
+all_models: ["gpboost_cc", "gpboost_fisher", "gpytorch", "VIVA", "qgam", "qgam_interactions"]

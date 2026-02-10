@@ -1,10 +1,7 @@
 library(RandomFields)
 library(reticulate)
 library(yaml)
-#use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
-
-set.seed(2)
-
+use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
 np <- import("numpy")
 
 # SIMULATION SETTINGS
@@ -19,18 +16,7 @@ sigma2 <- gp_parameters$kernel$signal_variance
 rho <- gp_parameters$kernel$lengthscale
 nu <- gp_parameters$kernel$nu
 
-
-# disables internal spatial conforming heuristics
-# RFoptions(spConform = TRUE)
-#RFoptions(spConform = FALSE, pcholesky.ignore = TRUE, modus_operandi = "no", messages = FALSE)
-
-
-# ns <- 2000
-#rho <- 0.01
-# sigma_2 <- 1
-# dims <- 3
 for (d in dims) {
-  print(d)
   if (d > 2){
     rho_d <- rho * sqrt(d/2)
   } else {
@@ -54,27 +40,22 @@ for (d in dims) {
       } else {
         coords <- matrix(runif(n * d), ncol = d)
       }
-     # coords <- matrix(runif(n * d), ncol = d)
       
       # --- Latent GP (f) ---
       RFmodel_f <- RMmatern(var = sigma2, notinvnu = TRUE, scale = rho_d, nu = nu)
       sim_f1 <- RFsimulate(RFmodel_f, x = coords)
-      #f <- as.numeric(sim_f)
       sim_f <- RFspDataFrame2conventional(sim_f1)
       f <- sim_f$data
       
       # --- Heteroscedastic GP (g)---
       RFmodel_g <- RMmatern(var = sigma2, notinvnu = TRUE, scale = rho_d, nu = nu)  # You can change var here
       sim_g <- RFsimulate(RFmodel_g, x = coords)
-      #g <- as.numeric(sim_g)
       sim_g <- RFspDataFrame2conventional(sim_g)
       g <- sim_g$data
-      
       
       # --- Save to .npz ---
       dir_path <- paste0("data/simulated_latent/", n, "_", d, "/")
       dir.create(dir_path, recursive = TRUE, showWarnings = FALSE)
-      
       file_path <- paste0(dir_path, "/data_replicate_", b, ".npz")
       
       # Convert and save
@@ -84,7 +65,6 @@ for (d in dims) {
         f = r_to_py(f),
         g = r_to_py(g)
       )
-      
       cat(sprintf("Saved: %s\n", file_path))
     }
   }

@@ -1,10 +1,7 @@
 ### check functions/ tests ###
-
 source("R/utils.R")
 
 ## load data from sim
-
-
 ### fit bayesqr
 randeff <- "One_random_effect"
 likelihood <- "gaussian"

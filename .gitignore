@@ -5,3 +5,9 @@ __pycache__/
 
 *.egg-info/
 
+R/tests.R
+
+results/
+notebooks/
+data/
+R/stan

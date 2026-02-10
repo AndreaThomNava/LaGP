@@ -3,21 +3,32 @@ import concurrent.futures
 import os
 import pickle
 import re
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import torch
 import yaml
 from scipy.stats import norm
-import matplotlib.pyplot as plt
-import torch
 
-from lagp.models.model import (  # Assuming you have these model functions
-    model_gpboost, model_gpytorch, model_viva_gp, model_boosting_l1)
-from lagp.utils.generate_data import  load_X_y_preprocessed, save_cv_splits, load_cv_splits, load_X_y, save_cv_splits_preprocessed
+from lagp.models.model import (  
+    model_boosting_l1,
+    model_gpboost,
+    model_gpytorch,
+    model_viva_gp,
+)
+from lagp.utils.generate_data import (
+    load_cv_splits,
+    load_X_y,
+    load_X_y_preprocessed,
+    save_cv_splits,
+    save_cv_splits_preprocessed,
+)
 from lagp.utils.metrics import quantile_score
 
 
-def fit_and_evaluate_replicate(X, y, fold,
-    configs, models, version, df_name, replicate
+def fit_and_evaluate_replicate(
+    X, y, fold, configs, models, version, df_name, replicate
 ):
     """
     Fit the models on a single replicate and compute the evaluation metrics.
@@ -31,31 +42,28 @@ def fit_and_evaluate_replicate(X, y, fold,
         - metrics: dictionary with model names as keys and metrics as values
     """
 
-    
-
-    train_idx = fold["train_idx"] # [:1000]
-    test_idx = fold["test_idx"]#[:1000]
+    train_idx = fold["train_idx"]
+    test_idx = fold["test_idx"]
 
     torch.manual_seed(42 + replicate)
     np.random.seed(42 + replicate)
 
-    # Randomly sample 6k indices (unsorted)
+    # Randomly sample 10k indices (unsorted)
     n_total = len(y)
-    sampled_idx = np.random.choice(n_total, size=2000, replace=False)
+    sampled_idx = np.random.choice(n_total, size=10000, replace=False)
 
-    # Split: first 5k for train, last 1k for test (already shuffled)
-    train_idx = sampled_idx[:1500]
-    test_idx = sampled_idx[1500:]
+    # Split: first 9k for train, last 1k for test (already shuffled)
+    train_idx = sampled_idx[:9000]
+    test_idx = sampled_idx[9000:]
 
     X_train, X_test = X.iloc[train_idx, :], X.iloc[test_idx, :]
     y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
-    print(y_test.shape)
+
     # Standardize using only training statistics
     y_mean = y_train.mean()
     y_std = y_train.std()
     y_train = (y_train - y_mean) / y_std
     y_test = (y_test - y_mean) / y_std  # Use train stats
-
 
     # Define a tolerance for near-constant features
     TOL = 1e-8
@@ -69,7 +77,6 @@ def fit_and_evaluate_replicate(X, y, fold,
     if len(dropped) > 0:
         print(f"Dropped constant features: {list(dropped)}")
 
-
     # Compute min and max from training data
     train_min = X_train.min(axis=0)
     train_max = X_train.max(axis=0)
@@ -82,7 +89,7 @@ def fit_and_evaluate_replicate(X, y, fold,
     train_X_scaled = (X_train - train_min) / train_range
     test_X_scaled = (X_test - train_min) / train_range  # use train stats!
 
-
+    # load configs
     delta_logl = configs["delta_logl"]
     n_epochs = configs["n_epochs"]
     lr = configs["lr"]
@@ -90,13 +97,12 @@ def fit_and_evaluate_replicate(X, y, fold,
     inducing_points = configs["inducing_points"]
     target_quantile = configs["target_quantile"]
     gpb_approxs = configs["gpb_approxs"]
-    
-   
+
     model_results = {}
     for model_name in models:
         print(f"model: {model_name}")
         # Fit the model and make predictions
-         # Matches models starting with 'gpboost'
+        # Matches models starting with 'gpboost'
         if re.match(r"^gpboost", model_name):
             approx = gpb_approxs[model_name]
             pred, pred_train, elapsed_time, hyper_params = model_gpboost(
@@ -107,12 +113,11 @@ def fit_and_evaluate_replicate(X, y, fold,
                 test_y=y_test,
                 approx=approx,
                 delta_logl=delta_logl,
-                n_vecchia= threshold_approx,
+                n_vecchia=threshold_approx,
             )
 
             latent_pred = pred["mu"]
             latent_pred_train = pred_train["mu"]
-           
 
         elif model_name == "gpytorch":
             pred, elapsed_time, hyper_params, pred_train = model_gpytorch(
@@ -122,13 +127,12 @@ def fit_and_evaluate_replicate(X, y, fold,
                 test_X=test_X_scaled,
                 test_y=y_test,
                 epochs=n_epochs,
-                lr = lr,
+                lr=lr,
                 inducing_threshold=threshold_approx,
-                inducing_points=inducing_points
+                inducing_points=inducing_points,
             )
 
             latent_pred = pred.mean.numpy()
-
 
         elif model_name == "VIVA":
             latent_pred, latend_std, elapsed_time, hyper_params = model_viva_gp(
@@ -137,7 +141,7 @@ def fit_and_evaluate_replicate(X, y, fold,
                 train_y=y_train,
                 test_X=test_X_scaled,
                 test_y=y_test,
-                rho = 1.5, # fixed
+                rho=1.5,  # fixed
                 lengthscale_init=0.25,
                 outputscale_init=0.25,
                 epochs=n_epochs,
@@ -146,17 +150,14 @@ def fit_and_evaluate_replicate(X, y, fold,
             )
 
         elif model_name == "boosting":
-            latent_pred, pred_train, elapsed_time, hyper_params= model_boosting_l1(
+            latent_pred, pred_train, elapsed_time, hyper_params = model_boosting_l1(
                 quantile=target_quantile,
                 train_X=train_X_scaled,
                 train_y=y_train,
                 test_X=test_X_scaled,
                 test_y=y_test,
             )
-            
 
-    
-            # Save predictions for later plotting
         # Save predictions for later plotting
         if X.shape[1] == 2:
             save_dict = {
@@ -173,16 +174,14 @@ def fit_and_evaluate_replicate(X, y, fold,
             filename = f"{model_name}_predictions_{df_name}.npz"
             save_path = f"results/real_data/{version}"
             os.makedirs(save_path, exist_ok=True)
-
             # Save
             np.savez(os.path.join(save_path, filename), **save_dict)
-                
+
         # Compute quantile score
-        qs_loss = quantile_score(y = y_test, preds=latent_pred, quantile=target_quantile)
+        qs_loss = quantile_score(y=y_test, preds=latent_pred, quantile=target_quantile)
 
-       # compute empirical quantile
+        # compute empirical quantile
         empirical_quantile = np.mean(y_test <= latent_pred)
-
 
         # store results
         model_results[model_name] = {
@@ -191,26 +190,27 @@ def fit_and_evaluate_replicate(X, y, fold,
             "time": elapsed_time,
             "lengthscale": hyper_params["lengthscale"],
             "signal_variance": hyper_params["signal_variance"],
-            "noise_variance": hyper_params["noise_variance"]
+            "noise_variance": hyper_params["noise_variance"],
         }
 
     return model_results
 
 
-def fit_models_on_all_datasets_parallel(configs, models, version):
-    
+def fit_models_on_all_datasets_parallel(configs, models, version, df_names=None):
+
     results = {}
     n_splits = configs["n_splits"]
     # load from config
-    DIR =  "data/real_data"
+    DIR = "data/real_data"
     # Loop over datasets
-    for df_name in configs["datasets"]:
+    for df_name in df_names:
         print(f"Dataset: {df_name}")
-
-        # Create splits for the dataset 
-        save_cv_splits_preprocessed(df_name, n_splits=n_splits, dir="data/real_data", seed=42)
-        X, y = load_X_y_preprocessed(dataset_name=df_name, dir = DIR)
-        folds = load_cv_splits(dataset_name=df_name, dir = DIR, n_splits = n_splits)
+        # Create splits for the dataset
+        save_cv_splits_preprocessed(
+            df_name, n_splits=n_splits, dir="data/real_data", seed=42
+        )
+        X, y = load_X_y_preprocessed(dataset_name=df_name, dir=DIR)
+        folds = load_cv_splits(dataset_name=df_name, dir=DIR, n_splits=n_splits)
         # Store results for this configuration
         config_key = f"{df_name}"
         results[config_key] = {}
@@ -220,14 +220,16 @@ def fit_models_on_all_datasets_parallel(configs, models, version):
             future_to_replicate = {
                 executor.submit(
                     fit_and_evaluate_replicate,
-                    X, y, folds[replicate],
+                    X,
+                    y,
+                    folds[replicate],
                     configs,
                     models,
                     version,
                     df_name,
-                    replicate
+                    replicate,
                 ): replicate
-                for replicate  in range(n_splits) #n_splits#
+                for replicate in range(n_splits)  # n_splits#
             }
 
             for future in concurrent.futures.as_completed(future_to_replicate):
@@ -264,10 +266,9 @@ if __name__ == "__main__":
         help="Single dataset to run (overrides config)",
     )
 
-
     args = parser.parse_args()
     version = args.version
-    
+
     config_path = os.path.join("configs", args.config)
     with open(config_path, "r") as f:
         configs = yaml.safe_load(f)
@@ -285,13 +286,9 @@ if __name__ == "__main__":
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     # fit models
-    results = fit_models_on_all_datasets_parallel(
-        configs, models, version
-    )
+    results = fit_models_on_all_datasets_parallel(configs, models, version, df_names)
 
-    # Save the results
-
-    # Combine the results and config into one dictionary
+    # Save the results: combine the results and config into one dictionary
     all_results = {
         "config": configs,
         "results": results,
@@ -304,11 +301,11 @@ if __name__ == "__main__":
     if os.path.exists(output_file):
         with open(output_file, "rb") as f:
             old_results = pickle.load(f)
-        
+
         # Merge datasets: add new or replace existing
         for dataset_key in all_results["results"].keys():
             old_results["results"][dataset_key] = all_results["results"][dataset_key]
-        
+
         # Optionally replace config
         old_results["config"] = all_results["config"]
     else:

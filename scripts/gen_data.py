@@ -1,31 +1,26 @@
 import argparse
 import os
-from pathlib import Path
 import re
+from pathlib import Path
+
 import gpytorch as gpy
 import numpy as np
 import torch
 import yaml
 
 from lagp.utils.generate_data import (
-    generate_input_grid,
-    simulate_latentGP,
-    simulate_response,
     compute_dict_pars,
     compute_u_scale_gp,
+    generate_input_grid,
     load_latent_from_file,
-    obtain_quantile
+    obtain_quantile,
+    simulate_latentGP,
+    simulate_response,
 )
 
 
 def gen_data(name_config_file: str):
-    # Get the path to the script (e.g., src/lagp/scripts/your_script.py)
-    SCRIPT_DIR = Path(__file__).resolve().parent
 
-    # Go up 3 levels: scripts → lagp → src → project_root
-    PROJECT_ROOT = SCRIPT_DIR #.parents[2]
-
-    # Now you can access configs/ and data/ from the root
     CONFIGS_DIR = "configs"
     DATA_DIR = "data"
 
@@ -36,16 +31,16 @@ def gen_data(name_config_file: str):
     sim_config = config["simulation"]
     gp_config = config["gp_parameters"]
     signal_variance = gp_config["kernel"]["signal_variance"]
-
     snr = sim_config["snr"]
     fixed_snr = sim_config["fixed_snr"]
 
     if fixed_snr:
-        pars = compute_dict_pars(signal_variance=signal_variance,
-                                 snr = snr,
-                                 quantile=sim_config["pars"]["ald"]["q"])
-        print(pars)
-        mu_dict = compute_u_scale_gp(signal_variance=signal_variance, pars = pars)
+        pars = compute_dict_pars(
+            signal_variance=signal_variance,
+            snr=snr,
+            quantile=sim_config["pars"]["ald"]["q"],
+        )
+        mu_dict = compute_u_scale_gp(signal_variance=signal_variance, pars=pars)
     else:
         pars = config["simulation"]["pars"]
 
@@ -62,50 +57,43 @@ def gen_data(name_config_file: str):
         for dim in sim_config["dimensions"]:
             print(f"Generating data for sample size: {sample_size}, dimension: {dim}")
 
-            # Prepare the grid (same for all likelihoods)
-            #X = generate_input_grid(
-             #   d=dim, sample_size=sample_size, lims=sim_config["grid_lims"]
-            #)  # Grid of input points
-
+            # DEPRECATED: not used, we load later the latents generated from the R script
             # Generate the latent function (same for all likelihoods)
             nu = gp_config["kernel"]["nu"]
-
-            #### EXPERIMENTAL ##
-            lengthscale = gp_config["kernel"]["lengthscale"] 
-            ##############################
-
+            lengthscale = gp_config["kernel"]["lengthscale"]
             signal_variance = gp_config["kernel"]["signal_variance"]
             base_kernel = gpy.kernels.MaternKernel(nu=nu)
-            base_kernel.lengthscale = lengthscale * np.sqrt(dim) # * 2.448/2.74 # for an effective range in higher dim, with nu = 1.5
+            base_kernel.lengthscale = lengthscale * np.sqrt(
+                dim
+            )  # * 2.448/2.74 # for an effective range in higher dim, with nu = 1.5
             kernel = gpy.kernels.ScaleKernel(base_kernel)
-            kernel.outputscale = torch.tensor(np.sqrt(signal_variance)) #torch.tensor(signal_variance)
-
+            kernel.outputscale = torch.tensor(np.sqrt(signal_variance))
 
             # generate num_replicates indipendent samples
             Xs = []
             Fs = []
             Gs = []
             for _ in range(sim_config["replicates"]):
-                X, f, g = load_latent_from_file(dim, sample_size, _, base_path="data/simulated_latent")
+                X, f, g = load_latent_from_file(
+                    dim, sample_size, _, base_path="data/simulated_latent"
+                )
                 Xs.append(X)
-                f = f.reshape(sample_size) 
+                f = f.reshape(sample_size)
                 Fs.append(f)
-                # generate heteroscedastic GP
-                #g = simulate_latentGP(X, kernel, n_samples=1)
                 g = g.reshape(sample_size)
                 Gs.append(g)
 
             # Loop over different likelihoods
             for likelihood in sim_config["likelihoods"]:
                 print(f"Generating data for likelihood: {likelihood}")
-
                 # Check if this is a heteroscedastic model
-                is_heteroscedastic = re.search("heteroscedastic", likelihood) is not None
+                is_heteroscedastic = (
+                    re.search("heteroscedastic", likelihood) is not None
+                )
                 if is_heteroscedastic:
                     noise = likelihood.split("_")[0]
                 else:
                     noise = likelihood
-
 
                 # Output directory for the specific likelihood
                 likelihood_dir = os.path.join(
@@ -123,12 +111,11 @@ def gen_data(name_config_file: str):
                         mu = mu_dict[noise]
                         g = g + mu
 
-                    g = np.exp(g) # ensure positivity
+                    g = np.exp(g)  # ensure positivity
                     # Simulate the response for this likelihood. If heteroscedastic then pass also g !
-                    y = simulate_response(f, noise=noise, pars=pars, g=g if is_heteroscedastic else None)
-                    #q = obtain_quantile(
-                    #    f=f, noise=noise, pars=pars, target_quantile=target_quantile, g = g if is_heteroscedastic else None
-                    #)
+                    y = simulate_response(
+                        f, noise=noise, pars=pars, g=g if is_heteroscedastic else None
+                    )
                     # Save the data
                     output_file = os.path.join(
                         likelihood_dir, f"data_replicate_{replicate + 1}.npz"
@@ -137,27 +124,21 @@ def gen_data(name_config_file: str):
                         np.savez(output_file, X=X, f=f, g=g, y=y)
                     else:
                         np.savez(output_file, X=X, f=f, y=y)
-
                     print(f"  Data saved to {output_file}")
 
 
 def main():
-    # Step 1: Set up argument parser
     parser = argparse.ArgumentParser(
         description="Generate simulated data based on configuration."
     )
-
-    # Step 2: Define arguments
     parser.add_argument(
-        "--config", type=str, 
-         default = "config_run_simulation.yaml" ,
-           help="Path to the YAML configuration file."
+        "--config",
+        type=str,
+        default="config_run_simulation.yaml",
+        help="Path to the YAML configuration file.",
     )
-
-    # Step 3: Parse arguments
     args = parser.parse_args()
 
-    # Step 4: Call the function with the parsed arguments
     gen_data(name_config_file=args.config)
 
 

@@ -300,9 +300,21 @@ if __name__ == "__main__":
         with open(output_file, "rb") as f:
             old_results = pickle.load(f)
 
-        # Merge datasets: add new or replace existing
-        for dataset_key in all_results["results"].keys():
-            old_results["results"][dataset_key] = all_results["results"][dataset_key]
+        for dataset_key, new_dataset_res in all_results["results"].items():
+            if new_dataset_res is None:
+                continue
+
+            old_results["results"].setdefault(dataset_key, {})
+
+            for rep_id, new_rep_res in new_dataset_res.items():
+                if new_rep_res is None:
+                    continue
+
+                old_results["results"][dataset_key].setdefault(rep_id, {})
+
+                for model_name, metrics in new_rep_res.items():
+                    old_results["results"][dataset_key][rep_id].setdefault(model_name, {})
+                    old_results["results"][dataset_key][rep_id][model_name].update(metrics)
 
         # Optionally replace config
         old_results["config"] = all_results["config"]

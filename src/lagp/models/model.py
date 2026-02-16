@@ -110,7 +110,7 @@ def model_gpboost(
         cov_function="matern_ard",
         cov_fct_shape=1.5,
         gp_approx="vecchia" if vecchia else "none",
-        num_neighbors=30,
+        num_neighbors=20,
         matrix_inversion_method=(
             "iterative" if (vecchia and approx != "gaussian") else "cholesky"
         ),

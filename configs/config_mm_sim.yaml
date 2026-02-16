@@ -1,10 +1,8 @@
 # General parameters for data generation and splitting
-
 data_generation:
   n_groups: [100] #, 500] # [200,  1000]
   group_size: [10, 100, 500]
-  n_groups_2 : 50 # how many levels for the second random effect -->  group_size > n_groups_2
-                    # N/n_group_2, should be an integer
+  n_groups_2 : 50 # how many levels for the second random effect -->  group_size > n_groups_2 # N/n_group_2, should be an integer
   signal_variance: 1.0 # for one grouped random effect
   signal_variance_2: 2.0 # for second random effect
   
@@ -37,14 +35,8 @@ data_generation:
   sigma2_2: 0.25
   sigma2_3: 0.25
 
-
-
-
 ##### for running simulation ########
-  
-models:  ["gpboost_fisher", "gpboost_cc", "gpboost_lls"] #, "gpboost_cc_freq"] #"gpboost_lls",  "gpboost_fisher", "gpboost_lls_v2",
-          # , "gpboost_lls_freq", "gpboost_lls_v2_freq"] # , "gpboost_lls_v2_freq", "gpboost_cc_var_corr", "gpboost_lls_groups", "gpboost_lls_v2_groups"] # "gpboost_cc", "gpboost_lls",
-
+models:  ["gpboost_fisher", "gpboost_cc"] 
 replicate: 10
 n_groups: [100] # [200,  1000]
 group_size: [10, 100, 500] # , 1000] #[100, 1000, 2000] #, 1000]
@@ -52,7 +44,6 @@ likelihood:  ["t"]  #, "ald"] #, "gaussian"]
 randeff: "One_random_effect"
 estimate_hyper: True
 
-  
 delta_logl: 0.1
 alpha: 0.9
 target_quantile: 0.8
@@ -78,19 +69,13 @@ gpb_approxs: {"gpboost_fisher": "asymmetric_laplace",
             "gpboost_lls_v2_groups": "asymmetric_laplace_lls_laplace_groups_fisher_mode_finding" }
 
 
-
 ##### for the analysis of the results ######
-all_models : ["gpboost_cc", #"gpboost_lls_groups", "gpboost_lls_v2_groups",
-               "gpboost_fisher", "bayesqr", "brms", "lqmm"] # "lqmm"["gpboost_cc", "gpboost_lls", "gpboost_normal"] #, "gpboost_cc_var_corr", "lqmm", "brms"]
-
-            
-
-models_with_hyperparams: ["gpboost_cc",  # "gpboost_lls_groups", "gpboost_lls_v2_groups",
-               "gpboost_fisher", "brms", "lqmm"] #, "lqmm", "bayesqr", "brms"] 
+all_models : ["gpboost_cc", "gpboost_fisher", "bayesqr", "brms", "lqmm"]
+models_with_hyperparams: ["gpboost_cc", "gpboost_fisher", "brms", "lqmm"] 
 
             
 name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpboost_cc_freq": "CC corr",
-           "brms": "BRMS", "lqmm":"LQMM", "gpboost_normal": "gpbN", "gpboost_fisher": Fisher, 
+           "brms": "BRMS", "lqmm":"LQMM", "gpboost_normal": "gpbN", "gpboost_fisher": "Fisher", 
            "gpboost_lls_v2": "LLSV2", "gpboost_lls_freq": "LLSsand",
            "gpboost_cc_f":"CCf","gpboost_cc_fc":"CCfc","gpboost_lls_f":"LLSf",
            "gpboost_lls_fc":"LLSfc","gpboost_fisher_f":"Fisherf","gpboost_fisher_fc":"Fisherfc",

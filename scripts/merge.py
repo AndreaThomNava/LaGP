@@ -1,10 +1,13 @@
-### merge R and Python results 
+### merge R and Python results
 
 import argparse
-import pickle
-import yaml
 import os
+import pickle
+
+import yaml
+
 from lagp.utils.analyse_results import replace_missing_with_nan
+
 
 def merge_results(pickle_results_1, pickle_results_2):
     """Merge results from Python (gpboost) and R (lqmm, brsm)."""
@@ -20,39 +23,62 @@ def merge_results(pickle_results_1, pickle_results_2):
                     merged_results["results"][config_key][replicate] = model_data
                 else:
                     for model_name, metrics in model_data.items():
-                        if model_name not in merged_results["results"][config_key][replicate]:
-                            existing = merged_results["results"][config_key][replicate].get(model_name, {})
-                            merged_results["results"][config_key][replicate][model_name] = {**existing, **metrics}
+                        if (
+                            model_name
+                            not in merged_results["results"][config_key][replicate]
+                        ):
+                            existing = merged_results["results"][config_key][
+                                replicate
+                            ].get(model_name, {})
+                            merged_results["results"][config_key][replicate][
+                                model_name
+                            ] = {**existing, **metrics}
                         else:
                             # Handle if same model already exists (merge or overwrite)
-                            merged_results["results"][config_key][replicate][model_name].update(metrics)
+                            merged_results["results"][config_key][replicate][
+                                model_name
+                            ].update(metrics)
 
     return merged_results
-
 
 
 def main():
     # Argument parsing
     parser = argparse.ArgumentParser(description="Merge results from two pickle files.")
-    parser.add_argument('pickle_file_1', nargs='?',
-                        default = "simulation_results_python.pkl",
-                        type=str, help="Path to the first pickle file.")
-    parser.add_argument('pickle_file_2', nargs='?',
-                        default = "simulation_results_R.pkl",
-                        type=str, help="Path to the second pickle file.")
-    parser.add_argument('output_file', nargs='?',
-                        default = "simulation_results.pkl",
-                        type=str, help="Path to save the merged results.")
-    
-    parser.add_argument('configs', nargs='?',
-                        default = "configs/config_test.yaml",
-                        type=str, help="Path to experiment config.")
-    
-    parser.add_argument('--version', nargs='?',
-                        default = "001",
-                        type=str, help="version number.")
-    
-    
+    parser.add_argument(
+        "pickle_file_1",
+        nargs="?",
+        default="simulation_results_python.pkl",
+        type=str,
+        help="Path to the first pickle file.",
+    )
+    parser.add_argument(
+        "pickle_file_2",
+        nargs="?",
+        default="simulation_results_R.pkl",
+        type=str,
+        help="Path to the second pickle file.",
+    )
+    parser.add_argument(
+        "output_file",
+        nargs="?",
+        default="simulation_results.pkl",
+        type=str,
+        help="Path to save the merged results.",
+    )
+
+    parser.add_argument(
+        "configs",
+        nargs="?",
+        default="configs/config_mm_sim.yaml",
+        type=str,
+        help="Path to experiment config.",
+    )
+
+    parser.add_argument(
+        "--version", nargs="?", default="001", type=str, help="version number."
+    )
+
     args = parser.parse_args()
 
     CONFIGS_PATH = args.configs
@@ -61,7 +87,7 @@ def main():
 
     randeff = configs["randeff"]
 
-    RESULTS_PATH = os.path.join("results", "simulation_mm",  f"{randeff}", args.version)
+    RESULTS_PATH = os.path.join("results", "simulation_mm", f"{randeff}", args.version)
     # Load the pickle files
     with open(os.path.join(RESULTS_PATH, args.pickle_file_1), "rb") as f1:
         res_python = pickle.load(f1)
@@ -77,15 +103,16 @@ def main():
     # Merge the results
     merged_results = merge_results(res_python, res_R)
 
-    ## replace NAs from failed runs with np.nan 
+    ## replace NAs from failed runs with np.nan
     clean_results = replace_missing_with_nan(merged_results)
-   
+
     OUTPUT_PATH = os.path.join(RESULTS_PATH, args.output_file)
     # Save the merged results to the output file
     with open(OUTPUT_PATH, "wb") as output_f:
         pickle.dump(clean_results, output_f)
 
     print(f"Results merged and saved to {OUTPUT_PATH}")
+
 
 if __name__ == "__main__":
     main()

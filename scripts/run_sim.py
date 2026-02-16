@@ -3,20 +3,34 @@ import concurrent.futures
 import os
 import pickle
 import re
+
 import numpy as np
 import yaml
 from scipy.stats import norm
 
-from lagp.models.model import (  # Assuming you have these model functions
-    model_gpboost, model_gpytorch, model_viva_gp, model_gpboost_twostage)
-from lagp.utils.generate_data import load_data, obtain_quantile, load_scale_gp, compute_dict_pars, get_true_curvature
-from lagp.utils.metrics import (coverage_and_width, interval_score,
-                                quantile_score, align_re, compute_rmse)
+from lagp.models.model import (  
+    model_gpboost,
+    model_gpboost_twostage,
+    model_gpytorch,
+    model_viva_gp,
+)
+from lagp.utils.generate_data import (
+    compute_dict_pars,
+    get_true_curvature,
+    load_data,
+    load_scale_gp,
+    obtain_quantile,
+)
+from lagp.utils.metrics import (
+    align_re,
+    compute_rmse,
+    coverage_and_width,
+    interval_score,
+    quantile_score,
+)
 
 
-def fit_and_evaluate_replicate(
-    configs, replicate_config, replicate, models
-):
+def fit_and_evaluate_replicate(configs, replicate_config, replicate, models):
     """
     Fit the models on a single replicate and compute the evaluation metrics.
 
@@ -30,9 +44,11 @@ def fit_and_evaluate_replicate(
     """
     likelihood = replicate_config["likelihood"]
     is_heteroscedastic = re.search("heteroscedastic", likelihood) is not None
+    # heteroscedastic not supported for now, so g is None for all likelihoods
+    g=None
     n_group = replicate_config["n_group"]
     group_size = replicate_config["group_size"]
-    
+
     delta_logl = configs["delta_logl"]
     alpha = configs["alpha"]
     gpb_approxs = configs["gpb_approxs"]
@@ -58,49 +74,55 @@ def fit_and_evaluate_replicate(
     eps_test = data["eps_test"]
     fe_test = data["fe_test"]
 
-
-
     # obtain true latent quantile
     noise = likelihood
 
     test_true_latent_quantile = obtain_quantile(
-        eps = eps_test + fe_test, noise=noise, pars=configs["data_generation"]["pars"], target_quantile=target_quantile, g = g if is_heteroscedastic else None
+        eps=eps_test + fe_test,
+        noise=noise,
+        pars=configs["data_generation"]["pars"],
+        target_quantile=target_quantile,
+        g=g if is_heteroscedastic else None,
     )
     # needed for prediction intervals
     normv = norm()
     t = normv.ppf(1 - (1 - alpha) / 2)
 
     # true asympt curvature
-    true_curvature = get_true_curvature(f = eps_test, true_quantile = test_true_latent_quantile,
-                                        noise = noise, pars = configs["data_generation"]["pars"])
+    true_curvature = get_true_curvature(
+        f=eps_test,
+        true_quantile=test_true_latent_quantile,
+        noise=noise,
+        pars=configs["data_generation"]["pars"],
+    )
     # print(" --------- true curvature ----------", true_curvature)
     # print("likelihood:", noise)
-    true_var = target_quantile*(1-target_quantile) / true_curvature**2
+    true_var = target_quantile * (1 - target_quantile) / true_curvature**2
     model_results = {}
     for model_name in models:
         # Fit the model and make predictions
         print(f"fitting {model_name}")
-        
+
         # Matches models starting with 'gpboost'
         if re.match(r"^gpboost", model_name):
             approx = gpb_approxs[model_name]
-            
+
             if model_name.endswith("_twostage"):
                 print("-- start twostage --")
-                pred, res, elapsed_time, hyper_params, group_train1 = model_gpboost_twostage(
-                    quantile=target_quantile,
-                    train_X=train_X,
-                    group_train=group_train,
-                    train_y=train_y,
-                    test_X=test_X,
-                    group_test=group_test,
-                    test_y=test_y,
-                    approx=approx,
-                    delta_logl=delta_logl,
+                pred, res, elapsed_time, hyper_params, group_train1 = (
+                    model_gpboost_twostage(
+                        quantile=target_quantile,
+                        train_X=train_X,
+                        group_train=group_train,
+                        train_y=train_y,
+                        test_X=test_X,
+                        group_test=group_test,
+                        test_y=test_y,
+                        approx=approx,
+                        delta_logl=delta_logl,
+                    )
                 )
-                #group_train_align = group_train1
-                
-                
+                # group_train_align = group_train1
 
             else:
                 pred, res, elapsed_time, hyper_params = model_gpboost(
@@ -115,19 +137,23 @@ def fit_and_evaluate_replicate(
                     delta_logl=delta_logl,
                     estimate_hyper=estimate_hyper,
                 )
-                #group_train_align = group_train
+                # group_train_align = group_train
 
             # with fixed effects
             pred_with_fixed_effects = pred["mu"]
             stddev_pred = np.sqrt(pred["var"])
-            
-    
 
-            if False: # randeff == "One_random_effect":
+            if False:  # randeff == "One_random_effect":
                 # matches predicted random effects from training groups to test groups
-                true_re, pred_re, stddev_pred, true_var_aligned = align_re(group_train_align, group_test, res, 
-                                                                           test_true_latent_quantile, 
-                                                                           stddev_pred, true_var, group_size)
+                true_re, pred_re, stddev_pred, true_var_aligned = align_re(
+                    group_train_align,
+                    group_test,
+                    res,
+                    test_true_latent_quantile,
+                    stddev_pred,
+                    true_var,
+                    group_size,
+                )
         low_pred = pred_with_fixed_effects - stddev_pred * t
         up_pred = pred_with_fixed_effects + stddev_pred * t
 
@@ -136,29 +162,35 @@ def fit_and_evaluate_replicate(
         up_true = pred_with_fixed_effects + np.sqrt(true_var) * t
 
         # Compute quantile score
-        qs_loss = quantile_score(y=test_y, preds=pred_with_fixed_effects, quantile=target_quantile)
+        qs_loss = quantile_score(
+            y=test_y, preds=pred_with_fixed_effects, quantile=target_quantile
+        )
 
         interval_loss = interval_score(
-            y= test_true_latent_quantile,
+            y=test_true_latent_quantile,
             pred_low=low_pred,
             pred_up=up_pred,
-            alpha=alpha,)
+            alpha=alpha,
+        )
         print("interval loss successful!")
-        rmse= compute_rmse(f_true=test_true_latent_quantile, f_pred=pred_with_fixed_effects)
+        rmse = compute_rmse(
+            f_true=test_true_latent_quantile, f_pred=pred_with_fixed_effects
+        )
 
         # compute coverage and width
         coverage, width = coverage_and_width(
-            y=test_true_latent_quantile, pred_low=low_pred, pred_up=up_pred)
-        
+            y=test_true_latent_quantile, pred_low=low_pred, pred_up=up_pred
+        )
+
         # compute coverage and width
         coverage_true, width_true = coverage_and_width(
-            y=test_true_latent_quantile, pred_low=low_true, pred_up=up_true)
+            y=test_true_latent_quantile, pred_low=low_true, pred_up=up_true
+        )
         print("cov2 successful!")
         print("coverage true: ", coverage_true)
         print("curvature var:", np.sqrt(true_var[0]))
         print("model", model_name)
         print("estimated var: ", stddev_pred[0])
-
 
         # store results
         model_results[model_name] = {
@@ -169,7 +201,7 @@ def fit_and_evaluate_replicate(
             "coverage_true": coverage_true,
             "width": width,
             "time": elapsed_time,
-            "hyper_params": hyper_params
+            "hyper_params": hyper_params,
         }
 
     return model_results
@@ -196,7 +228,9 @@ def fit_models_on_all_datasets_parallel(configs, models, num_replicates=10):
                 print(config_key)
                 # Use ProcessPoolExecutor to parallelize across replicates
                 print(os.cpu_count())
-                with concurrent.futures.ProcessPoolExecutor(max_workers = num_replicates) as executor: # num replicates
+                with concurrent.futures.ProcessPoolExecutor(
+                    max_workers=num_replicates
+                ) as executor:  
                     future_to_replicate = {
                         executor.submit(
                             fit_and_evaluate_replicate,
@@ -205,7 +239,7 @@ def fit_models_on_all_datasets_parallel(configs, models, num_replicates=10):
                             replicate,
                             models,
                         ): replicate
-                        for replicate  in range(1, num_replicates+1)
+                        for replicate in range(1, num_replicates + 1)
                     }
 
                     for future in concurrent.futures.as_completed(future_to_replicate):
@@ -226,7 +260,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config",
         type=str,
-        default="config_test.yaml",
+        default="config_mm_sim.yaml",
         help="Path to the YAML config file",
     )
 
@@ -241,7 +275,6 @@ if __name__ == "__main__":
     with open(config_path, "r") as f:
         configs = yaml.safe_load(f)
 
-
     # Generate noise parameters if fixed_snr is True
     if configs["data_generation"].get("fixed_snr", True):
         pars = compute_dict_pars(
@@ -251,7 +284,6 @@ if __name__ == "__main__":
         )
         # Merge noise pars into data generation params
         configs["data_generation"]["pars"].update(pars)
-    
 
     models = configs["models"]
     num_replicates = configs["replicate"]

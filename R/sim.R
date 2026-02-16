@@ -1,5 +1,4 @@
 # Load required libraries
-
 source("R/utils.R")
 library(yaml)
 library(parallel)
@@ -46,13 +45,12 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
   group_test <- data$group_test
   eps_test <- data$eps_test
   fe_test <- data$fe_test
-  g <- if (is_heteroscedastic) data$g else NULL
+  g <-  NULL
   
   
   if (is_heteroscedastic) {
     # Load the scale GP (g) if heteroscedastic
     g <- load_scale_gp(likelihood, sample_size, input_dim, replicate, file_path = NULL)
-    
     # Get the noise model from the likelihood
     noise <- strsplit(likelihood, "_")[[1]][1]
   } else {
@@ -62,7 +60,7 @@ fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, mod
   # Compute true latent quantile
   test_true_latent_quantile <- obtain_quantile(
     eps = eps_test + fe_test,
-    noise = likelihood,
+    noise = noise,
     pars = configs$data_generation$pars,
     target_quantile = target_quantile,
     g = g
@@ -213,7 +211,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models, num_replicates 
 }
 
 
-configs_sim <- load_config("configs/config_test.yaml")
+configs_sim <- load_config("configs/config_mm_sim.yaml")
 
 # update them!
 # Parameter update if fixed SNR is set
@@ -231,16 +229,11 @@ if (configs_sim[["data_generation"]][["fixed_snr"]] %||% TRUE) {
   )
 }
 
-models <-  list("bayesqr", "lqmm", "brms") #, "brms") #, "brms") 
-for (model_name in models){
-  print(models)
-}
-
+models <-  list("bayesqr", "lqmm", "brms") 
 num_replicates <- configs_sim$replicate
 results <- fit_models_on_all_datasets_parallel(configs = configs_sim, models = models,
                                                num_replicates = num_replicates)
 ### select version
-
 version <- "paper_group"
 
 # Save the results

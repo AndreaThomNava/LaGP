@@ -163,7 +163,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models) {
     replicate_results <- mclapply(seq_len(n_splits), function(replicate) {
       fold <- folds[replicate, ]
       fit_and_evaluate_replicate(X, group_data, y, fold, configs, models, replicate)
-    }, mc.cores = 1) #n_splits)  # Set to detectCores() if you want parallelism
+    }, mc.cores = n_splits) #n_splits)  # Set to detectCores() if you want parallelism
     
     for (replicate in seq_len(n_splits)) {
       results[[config_key]][[replicate]] <- replicate_results[[replicate]]
@@ -175,10 +175,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models) {
 }
 
 configs <- load_config("configs/config_mm_real.yaml")
-models <- list("lqmm", "brms", "bayesqr") #, "bayesqr", "brms")#, "bayesqr") #, "bayesqr")#, "brms") #, "bayesqr") # brms lqmm
-for (model_name in models){
-  print(models)
-}
+models <- list("lqmm", "brms", "bayesqr") 
 results <- fit_models_on_all_datasets_parallel(configs = configs, models = models)
 # Save the results
 version <- "paper_group"

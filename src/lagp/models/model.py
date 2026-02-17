@@ -111,9 +111,7 @@ def model_gpboost(
         cov_fct_shape=1.5,
         gp_approx="vecchia" if vecchia else "none",
         num_neighbors=20,
-        matrix_inversion_method=(
-            "iterative" if (vecchia and approx != "gaussian") else "cholesky"
-        ),
+        matrix_inversion_method= "cholesky", #("iterative" if (vecchia and approx != "gaussian") else "cholesky"),
         likelihood=approx,
         likelihood_additional_param=quantile if approx != "gaussian" else 1.0,
         cover_tree_radius=delta_logl,
@@ -128,10 +126,10 @@ def model_gpboost(
     gpq.set_optim_params(
         {
             "optimizer_cov": "gradient_descent",
-            "cg_preconditioner_type": "vadu",
-            "delta_rel_conv": 1e-8,
-            "cg_max_num_it": 1500,
-            "cg_max_num_it_tridiag": 1500,
+            "cg_preconditioner_type": "vadu", # not used i think
+            "delta_rel_conv": 1e-6,
+            "cg_max_num_it": 1000,
+            "cg_max_num_it_tridiag": 1000,
         }
     )
     # fit
@@ -317,9 +315,7 @@ def model_gpboost_cv(
         cov_fct_shape=1.5,
         gp_approx="vecchia" if vecchia else "none",
         num_neighbors=30,
-        matrix_inversion_method=(
-            "iterative" if (vecchia and approx != "gaussian") else "cholesky"
-        ),
+        matrix_inversion_method= "cholesky", #("iterative" if (vecchia and approx != "gaussian") else "cholesky"),
         likelihood=approx,
         likelihood_additional_param=quantile if approx != "gaussian" else 1.0,
         cover_tree_radius=best_delta_logl,
@@ -336,9 +332,9 @@ def model_gpboost_cv(
         {
             "optimizer_cov": "gradient_descent",
             "cg_preconditioner_type": "vadu",
-            "delta_rel_conv": 1e-9,
-            "cg_max_num_it": 1500,
-            "cg_max_num_it_tridiag": 1500,
+            "delta_rel_conv": 1e-6,
+            "cg_max_num_it": 1000,
+            "cg_max_num_it_tridiag": 1000,
         }
     )
 

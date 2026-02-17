@@ -29,7 +29,7 @@ gp_parameters:
   # You can add more GP parameters as needed
 
 ## TARGET QUANTILE ##
-target_quantile: 0.95
+target_quantile: 0.80 #0.95
 
 # MIN DECREASE LOG-LIKELIHOOD FOR GPBOOST
 delta_logl: 10

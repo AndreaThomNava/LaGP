@@ -3,7 +3,7 @@ source("R/utils.R")
 library(yaml)
 library(parallel)
 library(reticulate)
-use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
+#use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
 
 # Function to fit and evaluate models for a single replicate
 fit_and_evaluate_replicate <- function(configs, replicate_config, replicate, models) {
@@ -197,7 +197,7 @@ fit_models_on_all_datasets_parallel <- function(configs, models, num_replicates 
         # Use mclapply for parallel execution (requires 'parallel' package)
         replicate_results <- mclapply(1:num_replicates, function(replicate) {
           fit_and_evaluate_replicate(configs, replicate_config, replicate, models)
-        }, mc.cores = num_replicates) # detectCores()
+        }, mc.cores = 1) # detectCoresnum_replicates()
         
         # Store results
         for (replicate in 1:num_replicates) {
@@ -234,7 +234,7 @@ num_replicates <- configs_sim$replicate
 results <- fit_models_on_all_datasets_parallel(configs = configs_sim, models = models,
                                                num_replicates = num_replicates)
 ### select version
-version <- "paper_group"
+version <- "095"
 
 # Save the results
 OUTPUT_DIR <- file.path("results", "simulation_mm", configs_sim$randeff, version)

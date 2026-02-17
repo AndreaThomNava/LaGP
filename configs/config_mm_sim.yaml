@@ -40,13 +40,13 @@ models:  ["gpboost_fisher", "gpboost_cc"]
 replicate: 10
 n_groups: [100] # [200,  1000]
 group_size: [10, 100, 500] # , 1000] #[100, 1000, 2000] #, 1000]
-likelihood:  ["t"]  #, "ald"] #, "gaussian"]
+likelihood:  ["ald", "gaussian", "t"]  #, "ald"] #, "gaussian"]
 randeff: "One_random_effect"
 estimate_hyper: True
 
 delta_logl: 0.1
 alpha: 0.9
-target_quantile: 0.8
+target_quantile: 0.95
 gpb_approxs: {"gpboost_fisher": "asymmetric_laplace",
             "gpboost_fisher_twostage": "asymmetric_laplace", 
             "gpboost_fisher_f": "asymmetric_laplace_fisher_mode_finding",

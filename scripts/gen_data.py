@@ -97,7 +97,7 @@ def main():
         description="Simulate mixed effects data over multiple configs."
     )
     parser.add_argument(
-        "--config", type=str, default="config_test.yaml", help="YAML config filename"
+        "--config", type=str, default="config_mm_sim.yaml", help="YAML config filename"
     )
     args = parser.parse_args()
 

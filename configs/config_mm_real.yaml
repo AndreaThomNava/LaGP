@@ -1,4 +1,4 @@
-target_quantile: 0.8
+target_quantile: 0.95
 
 delta_logl: 0.1
 models:  ["gpboost_cc", "gpboost_fisher"] 
@@ -13,7 +13,7 @@ gpb_approxs: {"gpboost_fisher": "asymmetric_laplace",
             "gpboost_normal": "gaussian"}
 
 datasets: ["labor", "Orthodont"] #"Orthodont", "labor"] #, "cars"] #Orthodont", "labor"] #, "labor", "cars"] # ["Orthodont", "labor"] cars_crossed
-n_splits: 10
+n_splits: 5
 
 #### ANALYSIS ###
 all_models: ["gpboost_cc", "gpboost_fisher", "lqmm", "brms", "bayesqr"] 

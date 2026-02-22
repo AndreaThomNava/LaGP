@@ -178,7 +178,7 @@ configs <- load_config("configs/config_mm_real.yaml")
 models <- list("lqmm", "brms", "bayesqr") 
 results <- fit_models_on_all_datasets_parallel(configs = configs, models = models)
 # Save the results
-version <- "paper_group"
+version <- "group_095"
 OUTPUT_DIR <- paste0("results/real_data_mm/", version)
 dir.create(OUTPUT_DIR, showWarnings = FALSE)
 

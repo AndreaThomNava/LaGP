@@ -4,7 +4,7 @@ library(gptoolsStan)
 library(brms)
 library(lqmm)
 library(reticulate)
-#use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
+use_python("/cluster/home/navaan/miniconda3/envs/conda_env/bin/python", required = TRUE)
 library(bayesQR)
 
 os <- import("os")

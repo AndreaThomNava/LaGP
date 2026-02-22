@@ -7,9 +7,9 @@ min_decreases: [1, 10, 100]
 laplace_approximations : ["asymmetric_laplace",
                           "asymmetric_laplace_constant_curvature_fisher_mode_finding", 
                           "asymmetric_laplace_lls_laplace_fisher_mode_finding"]
-approx_dict : {"asymmetric_laplace_constant_curvature_fisher_mode_finding": "CC",
+approx_dict : {"asymmetric_laplace_constant_curvature_fisher_mode_finding": "TKC",
                "asymmetric_laplace_lls_laplace_fisher_mode_finding": "LLS", 
-               "asymmetric_laplace":"Fisher-Laplace"}
+               "asymmetric_laplace_fisher_mode_finding":"Fisher-Laplace"}
 B: 10
 integration_nodes: 100
 misspecified: True

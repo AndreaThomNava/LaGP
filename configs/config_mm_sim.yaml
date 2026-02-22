@@ -9,7 +9,7 @@ data_generation:
   fixed_snr: True
   snr: 5.0
   quantile: 0.8
-  likelihood: ["t"] # ald, t, gaussian
+  likelihood: ["t", "ald", "gaussian"] # ald, t, gaussian
   pars : {
     "gaussian": {"scale": 0.31}, # sqrt(0.31) -> 0.1
     "ald": {"q": 0.8, "scale": 0.1}, #

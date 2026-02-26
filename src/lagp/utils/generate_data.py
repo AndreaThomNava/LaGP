@@ -477,60 +477,7 @@ def compute_u_scale_gp(signal_variance, pars):
     return mu_scale_gp
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-############# NOT IN USE ##################
-# load real data
-def load_real_data(name, data_dir="data/real_data", train_split=0.75):
-    path = os.path.join(data_dir, f"{name}.csv")
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"Dataset '{name}' not found at {path}")
-
-    df = pd.read_csv(path)
-
-    if name == "bike":
-        # Example: predict count from weather and time features
-        y = df["cnt"]
-        X = df.drop(columns=["cnt", "casual", "registered", "dteday"])
-    elif name == "house":
-        y = df["median_house_value"]
-        X = df.drop(columns=["median_house_value"])
-    elif name == "power":
-        y = df["Global_active_power"]
-        X = df.drop(columns=["Global_active_power"])
-    elif name == "protein":
-        y = df["target"] if "target" in df else df.iloc[:, -1]
-        X = df.drop(columns=[y.name])
-    elif name == "elevators":
-        y = df["failure"] if "failure" in df else df.iloc[:, -1]
-        X = df.drop(columns=[y.name])
-    else:
-        raise ValueError(f"Unknown dataset name: {name}")
-
-    # make it a np.ndarray
-    X = np.array(X)
-    y = np.array(y)
-    X_train, y_train, X_test, y_test  = train_test_split(
-        X, y, train_split=train_split)
-    
-
-    return X_train, y_train, X_test, y_test
-
-
-
-
+# NOT IN USE
 def simulate_latentGP_old(
     X: np.ndarray, kernel: gpy.kernels.Kernel, n_samples: int
 ) -> np.ndarray:

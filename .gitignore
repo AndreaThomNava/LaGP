@@ -1,6 +1,4 @@
 # ignore all __pychace__ directories, no matter where they are
-
-
 __pycache__/
 
 *.egg-info/
@@ -8,6 +6,8 @@ __pycache__/
 R/tests.R
 
 results/
-notebooks/
+#notebooks/
+**/*.ipynb
+!notebooks/paper/**/*.ipynb
 data/
 R/stan

@@ -99,52 +99,6 @@ load_scale_gp <- function(likelihood, sample_size, input_dim, replicate, file_pa
 
 
 
-
-load_X_y <- function(dataset_name, dir) {
-  path <- file.path(dir, paste0(dataset_name, ".csv"))
-  
-  if (!file.exists(path)) {
-    stop(sprintf("Dataset '%s' not found at %s", dataset_name, path))
-  }
-  
-  df <- read.csv(path)
-  
-  if (dataset_name == "bike") {
-    # Predict 'cnt' from other features
-    y <- df$cnt
-    X <- df[, !(names(df) %in% c("cnt", "casual", "registered", "dteday"))]
-    
-  } else if (dataset_name == "house") {
-    y <- df$median_house_value
-    X <- df[, !(names(df) %in% "median_house_value")]
-    
-  } else if (dataset_name == "power") {
-    y <- df$Global_active_power
-    X <- df[, !(names(df) %in% "Global_active_power")]
-    
-  } else if (dataset_name == "protein") {
-    if ("target" %in% names(df)) {
-      y <- df$target
-    } else {
-      y <- df[[ncol(df)]]
-    }
-    X <- df[, !(names(df) %in% names(y))]
-    
-  } else if (dataset_name == "elevators") {
-    if ("failure" %in% names(df)) {
-      y <- df$failure
-    } else {
-      y <- df[[ncol(df)]]
-    }
-    X <- df[, !(names(df) %in% names(y))]
-    
-  } else {
-    stop(sprintf("Unknown dataset name: %s", dataset_name))
-  }
-  
-  return(list(X = X, y = y))
-}
-
 # Define the R version of load_X_y_preprocessed
 load_X_y_preprocessed <- function(dataset_name, dir) {
   # Construct path
@@ -156,10 +110,7 @@ load_X_y_preprocessed <- function(dataset_name, dir) {
     message(sprintf("DEBUG: File does not exist at %s", path))
     stop(sprintf("Dataset '%s' not found at %s", dataset_name, path))
   }
-  
-  print("here 2")
-  
- 
+
   # Load .npz file using numpy
   data <- np$load(path, allow_pickle = TRUE)
  
@@ -271,25 +222,6 @@ model_lqmm <- function(train_X, train_y, group_train,
   data_test$group <- factor(group_test, levels = levels(data$group))
   # Check if any NAs were created
   print(paste("NAs were created: ", sum(is.na(data_test$group))))
-  
-  # Remove rows with NA groups from test data
-  #complete_rows <- complete.cases(data_test$group)
-  #if (sum(!complete_rows) > 0) {
-  #  print(paste("Removing", sum(!complete_rows), "rows with NA groups"))
-  #  data_test <- data_test[complete_rows, , drop = FALSE]
-    
-    # Handle group_test based on its structure
-  #  if (is.null(dim(group_test))) {
-      # group_test is a vector
-  #    group_test <- group_test[complete_rows]
-  #  } else {
-      # group_test is a matrix/data.frame
-  #    group_test <- group_test[complete_rows, , drop = FALSE]
-  #  }
-  #}
-  
-  # Verify NAs are gone
-  #print(paste("NAs remaining: ", sum(is.na(data_test$group))))
   
   formula_fixed <- as.formula(paste("y ~ -1 +", paste(predictor_names, collapse = " + ")))
   
@@ -644,164 +576,6 @@ model_bayesqr_v2 <- function(train_X, train_y, group_train,
   }
 
 
-#### UTILS FOR VECCHIA ####
-# 2) Vecchia adjacency function (works with 1D and 2D inputs)
-vecchia_adj <- function(X, num_neighbors) {
-  X <- as.matrix(X)
-  N <- nrow(X)
-  adj <- matrix(0L, N, N)
-  
-  for (i in 2:N) {
-    previous <- 1:(i-1)
-    diffs <- sweep(X[previous, , drop=FALSE], 2, X[i, ], "-")
-    dists <- rowSums(diffs^2)
-    neighbors <- previous[order(dists)[seq_len(min(num_neighbors, length(previous)))]]
-    adj[neighbors, i] <- 1L
-  }
-  adj
-}
-
-# 3) Convert adjacency matrix to lattice predecessors matrix
-lattice_predecessors <- function(adj, num_neighbors) {
-  N <- ncol(adj)
-  lattice <- matrix(-1L, nrow = N, ncol = num_neighbors + 1)
-  lattice[, num_neighbors + 1] <- 1:N
-  for (i in seq_len(N)) {
-    preds <- which(adj[, i] == 1)
-    if (length(preds) < num_neighbors) {
-      preds <- c(preds, rep(-1L, num_neighbors - length(preds)))
-    }
-    lattice[i, 1:num_neighbors] <- preds
-  }
-  lattice
-}
-
-# 4) Convert lattice predecessors to edge index for Stan (1-based)
-predecessors_to_edge_index <- function(predecessors) {
-  N <- nrow(predecessors)
-  num_neighbors <- ncol(predecessors) - 1
-  edges_list <- vector("list", N)
-  
-  for (i in 1:N) {
-    node <- predecessors[i, num_neighbors + 1]
-    parents <- predecessors[i, 1:num_neighbors]
-    parents <- parents[parents >= 0]  # remove padding
-    if (length(parents) == 0) {
-      edges_list[[i]] <- NULL
-    } else {
-      edges_list[[i]] <- cbind(parents, rep(node, length(parents)))
-    }
-  }
-  edges <- do.call(rbind, edges_list)
-  edges
-}
-
-#### ACTUAL MODEL ####
-
-model_vecchia_gp <- function(train_X, train_y, test_X,
-                                      target_quantile = 0.5,
-                                      stan_model_path = "R/stan/asym_laplace_matern32_noncentered_sparse.stan",
-                                      m = 5)
-                             {
-  
-  X <- rbind(train_X, test_X)
-  N <- nrow(X)
-  D <- ncol(X)
-  
-  adj <- vecchia_adj(X, num_neighbors = m)
-  lattice <- lattice_predecessors(adj, m)
-  edge_index <- predecessors_to_edge_index(lattice)
-  
-  
-  n_train = nrow(train_X)
-  n_test = nrow(test_X)
-  
-  is_observed <- rep(0, N)
-  is_observed[1:n_train] <- 1
-  
-  y_test <- rep(0, n_test)
-  
-  y_masked <- c(train_y, y_test)
-  # y_masked[is_observed == 0] <- 0  # dummy value, won't be used in model
-  
-  
-  data_list <- list(
-    N = N,
-    D = D,
-    x_mat = X,
-    y = y_masked,
-    is_observed = is_observed,
-    tau = target_quantile,
-    epsilon = 1e-6,      # jitter
-    num_edges = nrow(edge_index),
-    edge_index = t(edge_index)
-    
-  )
-  
-  # 4. Compile and fit the Stan model --------------------------------------------
-  
-  mod <- cmdstan_model(stan_model_path, 
-                       include_paths = gptools_include_path())
-  fit_time <- system.time({
-    fit <- mod$sample(
-      data = data_list,
-      chains = 2,
-      iter_warmup = 200,
-      iter_sampling = 200
-    )})[["elapsed"]]
-  print("here 1")
-  f_samples <- fit$draws("f")
-  print("here 2")
-  f_samples_test <- f_samples[, , (n_train + 1):N]
-  print("here 3")
-  f_mean <- apply(f_samples, 3, mean)
-  f_mean_test <- f_mean[(n_train + 1):N]
-  print("here 4")
-  
-  
-  return(list(
-    predictions = f_mean_test,
-    samples = f_samples_test,
-    fit_time = fit_time))
-}
-
-## GP via STAN/MCMC ##
-fit_gp_stan <- function(train_X, train_y, test_X, target_quantile, 
-                        file_path = "R/stan/asym_laplace_matern32_noncentered.stan",
-                        iter = 2000, warmup = 1000, chains = 4, seed = 42) {
-  
-  N <- length(train_y)
-  data_list <- list(
-    N = length(train_X),
-    N_test = length(test_X),
-    D = dim(train_X)[2],
-    x = train_X,
-    y = train_y,
-    x_test = test_X,
-    tau = target_quantile
-  )
-  stan_model <- rstan::stan_model(file = file_path)
-  
-  fit_time <- system.time({
-    fit <- rstan::sampling(
-      stan_model, 
-      data = data_list, 
-      iter = iter, 
-      warmup = warmup, 
-      chains = chains, 
-      seed = seed,
-      control = list(max_treedepth = 15)
-    )
-  })
-  
-  f_test_samples <- extract(fit)$f_test_mean  # matrix [num_draws x N_test]
-  
-  return(list(
-    test_posterior_samples = f_test_samples,
-    fit_time = fit_time))
-  
-}
-
 ### ----------------- EVALUATION METRICS ---------------- ###
 
 quantile_score <- function(y, preds, quantile) {
@@ -834,12 +608,6 @@ coverage_and_width <- function(y, pred_low, pred_up) {
   
   return(c(coverage, width))
 }
-
-
-
-###### MIXED MODELS SIMULATION ######
-
-
 
 
 

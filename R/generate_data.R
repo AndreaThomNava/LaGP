@@ -19,16 +19,6 @@ sigma2 <- gp_parameters$kernel$signal_variance
 rho <- gp_parameters$kernel$lengthscale
 nu <- gp_parameters$kernel$nu
 
-
-# disables internal spatial conforming heuristics
-# RFoptions(spConform = TRUE)
-#RFoptions(spConform = FALSE, pcholesky.ignore = TRUE, modus_operandi = "no", messages = FALSE)
-
-
-# ns <- 2000
-#rho <- 0.01
-# sigma_2 <- 1
-# dims <- 3
 for (d in dims) {
   print(d)
   if (d > 2){

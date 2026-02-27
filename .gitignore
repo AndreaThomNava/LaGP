@@ -1,6 +1,4 @@
 # ignore all __pychace__ directories, no matter where they are
-
-
 __pycache__/
 
 *.egg-info/
@@ -10,5 +8,7 @@ results/
 data/*
 !data/real_data_mm/
 
-notebooks/
+notebooks/*
+
+!notebooks/paper/
 !notebooks/paper/**

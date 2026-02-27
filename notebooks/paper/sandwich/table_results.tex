@@ -1,0 +1,17 @@
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{lccccccc}
+\toprule
+\multicolumn{3}{c}{} & \multicolumn{5}{c}{RMSE} \\
+\cmidrule(lr){4-8}
+Noise & M & n & \multicolumn{1}{c}{CC} & \multicolumn{1}{c}{CC corr} & \multicolumn{1}{c}{Fisher} & \multicolumn{1}{c}{BayesQR} & \multicolumn{1}{c}{BRMS} \\
+\midrule
+N & 100 & 100 & \textbf{0.07$_\pm{\text{\tiny 0.00}}$} & \textbf{0.07$_\pm{\text{\tiny 0.00}}$} & \textbf{0.07$_\pm{\text{\tiny 0.00}}$} & --- & --- \\
+t & 100 & 100 & \textbf{0.07$_\pm{\text{\tiny 0.00}}$} & \textbf{0.07$_\pm{\text{\tiny 0.00}}$} & \textbf{0.07$_\pm{\text{\tiny 0.00}}$} & --- & --- \\
+
+\bottomrule
+\end{tabular}
+\caption{Comparison of models across likelihoods, sample sizes, and dimensions. Each cell shows mean (std). Bold indicates best performance within 2 standard deviations. --- indicates method not applicable or convergence failure.}
+\label{tab:model_comparison}
+\end{table}

@@ -1,0 +1,17 @@
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{lcccc}
+\toprule
+\multicolumn{3}{c}{} & \multicolumn{2}{c}{MSE of Random Effect Variance (1)} \\
+\cmidrule(lr){4-5}
+Noise & M & n & \multicolumn{1}{c}{CC} & \multicolumn{1}{c}{Fisher} \\
+\midrule
+N & 100 & 100 & \textbf{0.0025} & 0.0279 \\
+t & 100 & 100 & \textbf{0.0001} & 0.0052 \\
+
+\bottomrule
+\end{tabular}
+\caption{{Mean squared error of estimated hyperparameters across models and settings. Best performance (lowest MSE) shown in bold. --- indicates method not applicable or convergence failure.}}
+\label{{tab:hyperparams_mse}}
+\end{table}

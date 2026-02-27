@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import seaborn as sns
 import pickle
 import os
@@ -515,6 +516,39 @@ def make_latex_table_hyperparams(config, summary_df):
     latex_table = header + "\n" + "\n".join(rows) + "\n" + footer
     return latex_table
 
+def set_style():
+    mpl.rcParams.update({
+        # Figure / export
+        "figure.dpi": 150,
+        "savefig.dpi": 300,
+        "savefig.bbox": "tight",
+        "pdf.fonttype": 42,   # editable text in Illustrator
+        "ps.fonttype": 42,
+        "svg.fonttype": "none",
+
+        # Typography
+        "font.family": "serif",
+        "font.serif": ["Times New Roman", "Times", "STIXGeneral", "DejaVu Serif"],
+        "mathtext.fontset": "stix",
+        "font.size": 10,
+        "axes.titlesize": 11,
+        "axes.labelsize": 10,
+        "xtick.labelsize": 9,
+        "ytick.labelsize": 9,
+        "legend.fontsize": 9,
+
+        # Axes look
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+        "axes.grid": True,
+        "grid.alpha": 0.25,
+        "grid.linewidth": 0.6,
+        "axes.axisbelow": True,
+
+        # Lines
+        "lines.linewidth": 1.2,
+    })
+
 
 def make_plots(df, metrics, configs, OUTPUT_DIR):
     """
@@ -618,6 +652,16 @@ def make_plots_hypers(df, configs, metrics, pars, OUTPUT_DIR):
     """Make plots about hyperparameter results with improved styling"""
     
     plt.style.use('seaborn-v0_8-whitegrid')
+    set_style()
+    PALETTE = [
+    "#4C72B0",  # muted blue
+    "#DD8452",  # muted orange
+    "#55A868",  # muted green
+    "#C44E52",  # muted red
+    "#8172B3",  # muted purple
+    "#937860",  # muted brown
+    ]
+
     OUTPUT_DIR = Path(os.path.join(OUTPUT_DIR, "images"))
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -645,12 +689,6 @@ def make_plots_hypers(df, configs, metrics, pars, OUTPUT_DIR):
    
     n_groups = df["n_groups"].unique()
     likelihoods = df["likelihood"].unique()
-    
-    # Extended palette for more models
-    EXTENDED_PALETTE = [
-        '#0173B2', '#DE8F05', '#CC78BC', '#029E73', '#D55E00', '#56B4E9',
-        '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b'
-    ]
 
     for likelihood in likelihoods:
         if likelihood == "ald":
@@ -679,7 +717,7 @@ def make_plots_hypers(df, configs, metrics, pars, OUTPUT_DIR):
                 fig, ax = plt.subplots(figsize=(12, 7))  # Taller for legend below
                 
                 sns.boxplot(data=df_filtered, x="group_size", y=metric, 
-                           hue=hue_col, palette=EXTENDED_PALETTE, 
+                           hue=hue_col, palette=PALETTE, 
                            showmeans=True,
                            meanprops={
                                'marker': 'D',
@@ -691,25 +729,32 @@ def make_plots_hypers(df, configs, metrics, pars, OUTPUT_DIR):
                            ax=ax)
                 
                 # Add title with better formatting
-                title_text = f"{metric.replace('_', ' ').title()}\n"
+                title_text = "" # f"{metric.replace('_', ' ').title()}\n"
                 if crossed:
                     title_text += f"Likelihood: {likelihood}, Num. Groups: ({int(n_g)}, {n_groups_2})"
                 else:
                     title_text += f"Likelihood: {likelihood}, Num. Groups: {n_g}"
                 
-                ax.set_title(title_text, fontsize=16, pad=20)
+                ax.set_title(title_text,fontsize=20, pad=20) #
                 
                 # Add true value reference line
-                ax.axhline(y=true_variances[metric], color="red", linestyle="--", 
-                          linewidth=2, label=f"True {metric.replace('_', ' ').title()}")
-                
+                # ax.axhline(y=true_variances[metric], color="red", linestyle="--", linewidth=2, label=f"True {metric.replace('_', ' ').title()}")
+                ax.axhline(y=true_variances[metric], color="red", linestyle="--", linewidth=2, zorder=0)
+                # small label on the right, just above the line
+                ax.text(
+                    0.99, true_variances[metric], "True variance",
+                    transform=ax.get_yaxis_transform(),  # x in axes coords, y in data coords
+                    ha="right", va="bottom",
+                    color="black", fontsize=16
+                )
+
                 # Improve labels with larger fonts
-                ax.set_xlabel("Group Size", fontsize=14)
-                ax.set_ylabel(f"{metric.replace('_', ' ').title()}", fontsize=14)
-                
+                ax.set_xlabel("Group Size", fontsize=18)
+                #ax.set_ylabel(f"{metric.replace('_', ' ').title()}", fontsize=18)
+                ax.set_ylabel(f"Random effect variance", fontsize=18)
                 # Increase tick label sizes
-                ax.tick_params(axis='both', which='major', labelsize=12)
-                ax.tick_params(axis='both', which='minor', labelsize=10)
+                ax.tick_params(axis='both', which='major', labelsize=14)
+                ax.tick_params(axis='both', which='minor', labelsize=12)
                 
                 # Position legend below plot
                 handles, labels = ax.get_legend_handles_labels()
@@ -717,7 +762,7 @@ def make_plots_hypers(df, configs, metrics, pars, OUTPUT_DIR):
                         loc='upper center',
                         bbox_to_anchor=(0.5, -0.12),
                         ncol=(len(labels) + 1),   # Two rows
-                        fontsize=16,
+                        fontsize=18,
                         frameon=True)
                 #legend.get_title().set_fontweight('bold')
                 

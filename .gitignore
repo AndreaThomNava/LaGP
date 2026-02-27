@@ -11,3 +11,4 @@ data/*
 !data/real_data_mm/
 
 notebooks/
+!notebooks/paper/**

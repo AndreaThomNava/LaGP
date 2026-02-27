@@ -74,7 +74,7 @@ all_models : ["gpboost_cc", "gpboost_fisher", "bayesqr", "brms", "lqmm"]
 models_with_hyperparams: ["gpboost_cc", "gpboost_fisher", "brms", "lqmm"] 
 
             
-name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "TKC", "gpboost_cc_freq": "CC corr",
+name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "TKC", "gpboost_cc_freq": "TKC-SW",
            "brms": "BRMS", "lqmm":"LQMM", "gpboost_normal": "gpbN", "gpboost_fisher": "Fisher", 
            "gpboost_lls_v2": "LLSV2", "gpboost_lls_freq": "LLSsand",
            "gpboost_cc_f":"CCf","gpboost_cc_fc":"CCfc","gpboost_lls_f":"LLSf",

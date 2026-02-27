@@ -10,4 +10,6 @@ results/
 **/*.ipynb
 !notebooks/paper/**/*.ipynb
 data/
+!data/real_data
+!data/real_data/**
 R/stan

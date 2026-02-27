@@ -34,6 +34,9 @@ This branch contains the mixed-model experiments and mixed-model method implemen
 - **`configs/`**  
   Experiment configuration files (e.g., YAML) defining simulation settings, hyperparameters,and run grids.
 
+- **`notebooks/`**  
+  Notebooks used to reproduce selected plots/figures for the paper.
+
 - **`data/real_data/`**  
   Real dataset(s) used in the empirical experiments (tracked).  
   See the folder contents for file-level details.

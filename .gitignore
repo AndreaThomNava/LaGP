@@ -3,13 +3,11 @@ __pycache__/
 
 *.egg-info/
 
-R/tests.R
 
 results/
 #notebooks/
 **/*.ipynb
 !notebooks/paper/**/*.ipynb
-data/
+data/*
 !data/real_data
-!data/real_data/**
-R/stan
+#!data/real_data/**

@@ -1,6 +1,0 @@
-locally:
-
-! open VS x64 as administrator, close python, activat env
---> make sure cmake of VS22 is first when doing where cmake
- -> use setpath to make it appear on top -> set PATH=C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;%PATH%
-	-> error still points to msbuild or vstools!

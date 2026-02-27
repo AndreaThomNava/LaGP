@@ -48,6 +48,8 @@ This branch contains the GP experiments and (where relevant) the notebooks used 
 2. Run the appropriate entry script(s) from `scripts/` to generate data and fit models.
 3. Use the analysis/aggregation scripts in `scripts/` to merge outputs (Python + R) and produce tables/figures.
 
+**Environment.** The experiments were run with **Python 3.13.2** and R 4.4.0.
+
 ### Notes on outputs
 
 Intermediate outputs and large result artifacts are typically written to `results/` (often not tracked in Git to keep the repository lightweight).

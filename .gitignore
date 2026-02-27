@@ -5,8 +5,7 @@ __pycache__/
 
 
 results/
-#notebooks/
-**/*.ipynb
+notebooks/**
 !notebooks/paper/**/*.ipynb
 data/*
 !data/real_data

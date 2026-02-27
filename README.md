@@ -34,9 +34,9 @@ This branch contains the GP experiments and (where relevant) the notebooks used 
 - **`configs/`**  
   Experiment configuration files (e.g., YAML) defining simulation settings, hyperparameters and run grids.
 
-- **`notebooks/`** (GP branch only)  
+- **`notebooks/`** 
   Notebooks used to reproduce selected plots/figures for the paper.  
-  Only notebooks required for the paper are tracked (typically under `notebooks/paper/`).
+  
 
 - **`data/real_data/`**  
   Real dataset(s) used in the empirical experiments (tracked).  

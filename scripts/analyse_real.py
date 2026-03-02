@@ -21,7 +21,7 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH, version):
         configs = yaml.safe_load(f) 
 
     metrics = [
-        ("quantile_loss_mean", "quantile_loss_std", "Quantile Score"),  # 3rd element is the name/label
+        #("quantile_loss_mean", "quantile_loss_std", "Quantile Score"),  # 3rd element is the name/label
         ("time_mean", "time_std", "Time"),
     ]
     # Define metrics and optimality
@@ -33,7 +33,7 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH, version):
 
     # make and save plots
     metrics_for_plotting = ["quantile_loss", "time"] #  "empirical_quantile", "time"]
-    make_plots_real(df = df, metrics = metrics_for_plotting, version = version, configs=configs)
+    #make_plots_real(df = df, metrics = metrics_for_plotting, version = version, configs=configs)
    
     return latex_table
 

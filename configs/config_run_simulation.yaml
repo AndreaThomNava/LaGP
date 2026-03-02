@@ -47,7 +47,7 @@ train_split: 0.75
 # for python
 models: ["gpboost_cc", "gpboost_fisher", "gpytorch", "VIVA"] #[
 # hyper-params --> useful for producing later results
-models_with_hyperparams:  ["gpboost_cc", "gpboost_fisher", "gpytorch",  "VIVA", "qgam", "qgam_interactions"] 
+models_with_hyperparams:  ["gpboost_cc", "gpboost_fisher", "gpytorch",  "VIVA"] 
 
 gpb_approxs: {"gpboost_fisher": "asymmetric_laplace_fisher_mode_finding", # use continue as well, second order helps if not local!
            "gpboost_lls": "asymmetric_laplace_lls_laplace_fisher_mode_finding",
@@ -66,7 +66,7 @@ n_epochs : 200
 lr: 0.01
 
 # model dictionary for latex tables
-name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpboost_cc_cv": "CC_cv" ,"gpytorch": "VI", "qgam":"QGAM", "gpboost_normal": "gpbN",
+name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "TKC", "gpboost_cc_cv": "CC_cv" ,"gpytorch": "VI", "qgam":"QGAM", "gpboost_normal": "gpbN",
             "gpboost_cc_var_corr": "CC corr", "vecchia_mcmc": "BSGP", "VIVA":"VIVA",
              "gpboost_fisher":"FL", "gpboost_lls_v2": "LLSV2", "gpboost_groups": "Groups",
              "gpboost_fisher_twostage": "FL-2stage", "qgam_interactions":"QGAMInt", 

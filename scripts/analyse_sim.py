@@ -41,7 +41,9 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH, version):
         ("time_mean", "time_std", "Time"),
     ]
 
-    metrics = [("time_mean", "time_std", "Time")]
+    metrics = [("time_mean", "time_std", "Time"), 
+            #("rmse_mean", "rmse_std", "RMSE")
+            ]
 
     # Define metrics and optimality
     metric_criteria = {
@@ -75,6 +77,7 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH, version):
         "quantile_loss",
         "coverage",
         "time",
+        "rmse",
     ]  # "true_pinball_loss", "rmse", "empirical_quantile", "interval_loss", "coverage", "train_coverage", "bias", "width", "time"] # df.columns[5:]
     make_plots(df = df, metrics = metrics_for_plotting, configs=configs, version=version)
     make_plots_hypers(df = df, configs=configs, metrics=["signal_variance", "lengthscale"], version = version)

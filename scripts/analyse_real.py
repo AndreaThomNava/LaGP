@@ -21,7 +21,7 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH, version):
         configs = yaml.safe_load(f) 
 
     metrics = [
-        #("quantile_loss_mean", "quantile_loss_std", "Quantile Score"),  # 3rd element is the name/label
+        ("quantile_loss_mean", "quantile_loss_std", "Quantile Score"),  # 3rd element is the name/label
         ("time_mean", "time_std", "Time"),
     ]
     # Define metrics and optimality

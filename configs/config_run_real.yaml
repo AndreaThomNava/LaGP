@@ -13,7 +13,7 @@ n_splits: 5
 
 # datasets and models
 datasets: ["laegern", "modis", "heaton", "house"] 
-models: ["VIVA", "gpboost_fisher", "gpytorch"]
+models: ["gpboost_cc"] #["gpboost_fisher", "gpytorch", "VIVA"]
 gpb_approxs: {"gpboost_lls": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
             "gpboost_cc": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
             "gpboost_fisher": "asymmetric_laplace_fisher_mode_finding"}
@@ -23,6 +23,6 @@ n_epochs : 200
 lr: 0.01
 
 # for later, plotting
-all_models: ["gpboost_fisher",  "gpytorch",  "VIVA",  "qgam", "qgam_interactions"] 
+all_models: ["gpboost_cc"] #["gpboost_fisher",  "gpytorch",  "VIVA",  "qgam", "qgam_interactions"] 
 name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "TKC", "gpytorch": "VI", "qgam":"QGAM","qgam_interactions":"QGAM int",
   "gpboost_fisher":"FL", "boosting": "Boosting", "VIVA": "VIVA"}

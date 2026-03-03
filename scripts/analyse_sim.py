@@ -30,8 +30,9 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH, OUTPUT_DIR):
         # ("quantile_loss_mean", "quantile_loss_std", "Quantile Loss"),  # 3rd element is the name/label
         # ("interval_loss_mean", "interval_loss_std", "Interval Score"),
         # ("coverage_mean", "coverage_std", "Coverage"),
-        #("time_mean", "time_std", "Time"),
-        ("rmse_mean", "rmse_std", "RMSE")
+        ("rmse_mean", "rmse_std", "RMSE"),
+        ("time_mean", "time_std", "Time"),
+
     ]
     # Define metrics and optimality
     metric_criteria = {
@@ -71,13 +72,13 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH, OUTPUT_DIR):
         col for col in df.columns if col.startswith("re_var_")
     ]
     metric_for_plotting_hypers.append("noise_variance")
-    make_plots_hypers(
-        df=df,
-        configs=configs,
-        metrics=metric_for_plotting_hypers,
-        pars=pars,
-        OUTPUT_DIR=OUTPUT_DIR,
-    )  # , "lengthscale"
+    # make_plots_hypers(
+    #     df=df,
+    #     configs=configs,
+    #     metrics=metric_for_plotting_hypers,
+    #     pars=pars,
+    #     OUTPUT_DIR=OUTPUT_DIR,
+    # )  # , "lengthscale"
 
     return latex_table, hyper_latex_table
 

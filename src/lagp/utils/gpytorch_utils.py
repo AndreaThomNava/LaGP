@@ -67,9 +67,9 @@ class GPRegressionModel(gpy.models.ApproximateGP):
         
         self.mean_module = gpy.means.ConstantMean() # gpy.means.ZeroMean()
         self.covar_module = gpy.kernels.ScaleKernel(
-            gpy.kernels.MaternKernel(nu = 1.5, ard_num_dims=num_features) # ard
+            gpy.kernels.MaternKernel(nu = 1.5) # ard -> ard_num_dims=num_features
         )
-        self.covar_module.jitter = 1e-4 # default is 1e-6
+        self.covar_module.jitter = 1e-6 # default is 1e-6
 
     def forward(self, x):
         mean = self.mean_module(x)

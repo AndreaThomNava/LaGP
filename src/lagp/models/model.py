@@ -107,7 +107,7 @@ def model_gpboost(
     start_time = time.time()
     gpq = gpb.GPModel(
         gp_coords=train_X,
-        cov_function="matern_ard",
+        cov_function="matern",
         cov_fct_shape=1.5,
         gp_approx="vecchia" if vecchia else "none",
         num_neighbors=20,
@@ -534,7 +534,7 @@ def model_viva_gp(
 
     # Define kernel
     d = X_full.shape[1]
-    K = ScaleKernel(MaternKernel(ard_num_dims=d, nu=nu))
+    K = ScaleKernel(MaternKernel(nu=nu)) #ard_num_dims=d
     K.base_kernel.lengthscale = lengthscale_init
     K.outputscale = outputscale_init
 

@@ -41,7 +41,7 @@ replicate: 10
 n_groups: [100] # [200,  1000]
 group_size: [10, 100, 500] # , 1000] #[100, 1000, 2000] #, 1000]
 likelihood:  ["ald", "gaussian"]  #, "ald"] #, "gaussian"]
-randeff: "Two_completely_crossed_random_effects" #"Two_completely_crossed_random_effects" #"One_random_effect"
+randeff: "One_random_effect" #"Two_completely_crossed_random_effects" #"One_random_effect"
 estimate_hyper: True
 
 delta_logl: 0.1

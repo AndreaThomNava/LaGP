@@ -121,15 +121,15 @@ def model_gpboost(
     params = {
         "estimate_aux_pars": True,
         "init_aux_pars": np.array([np.std(train_y)]),
-        "trace": True,
+        "trace": False,
     }
     gpq.set_optim_params(
         {
-            "optimizer_cov": "gradient_descent",
-            "cg_preconditioner_type": "vadu", # not used i think
-            "delta_rel_conv": 1e-6,
-            "cg_max_num_it": 1000,
-            "cg_max_num_it_tridiag": 1000,
+           # "optimizer_cov": "gradient_descent",
+           # "cg_preconditioner_type": "vadu", # not used i think
+           # "delta_rel_conv": 1e-6,
+           # "cg_max_num_it": 1000,
+           # "cg_max_num_it_tridiag": 1000,
         }
     )
     # fit

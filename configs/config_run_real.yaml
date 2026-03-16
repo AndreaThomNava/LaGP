@@ -1,5 +1,5 @@
 ## TARGET QUANTILE
-target_quantile: 0.95
+target_quantile: 0.8
 
 threshold_approximation: 1001
 inducing_points:  1000
@@ -13,7 +13,7 @@ n_splits: 5
 
 # datasets and models
 datasets: ["laegern", "modis", "heaton", "house"] 
-models: ["gpboost_cc"] #["gpboost_fisher", "gpytorch", "VIVA"]
+models: ["gpboost_cc", "gpboost_fisher", "gpytorch", "VIVA"]
 gpb_approxs: {"gpboost_lls": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
             "gpboost_cc": "asymmetric_laplace_constant_curvature_fisher_mode_finding",
             "gpboost_fisher": "asymmetric_laplace_fisher_mode_finding"}

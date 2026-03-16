@@ -9,8 +9,7 @@ import numpy as np
 import yaml
 from scipy.stats import norm
 
-from lagp.models.model import (model_gpboost, model_gpboost_cv,
-                               model_gpboost_twostage, model_gpytorch,
+from lagp.models.model import (model_gpboost, model_gpboost_cv, model_gpytorch,
                                model_viva_gp)
 from lagp.utils.generate_data import (compute_dict_pars, load_data,
                                       load_scale_gp, obtain_quantile)

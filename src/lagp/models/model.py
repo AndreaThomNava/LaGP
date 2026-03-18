@@ -113,7 +113,7 @@ def model_gpboost(
         gp_coords=train_X,
         cov_function="matern",
         cov_fct_shape=1.5,
-        gp_approx="vecchia" if vecchia else "none",
+        gp_approx= "vecchia" if vecchia else "none",
         num_neighbors=20,
         matrix_inversion_method= "cholesky", #("iterative" if (vecchia and approx != "gaussian") else "cholesky"),
         likelihood=approx,
@@ -138,13 +138,13 @@ def model_gpboost(
     )
     # fit
     if approx != "gaussian":
-        gpq.fit(X=X_fe_train, y=train_y, params=params) # np.ones(N)
+        gpq.fit(X=np.ones(N), y=train_y, params=params) # 
     else:
         gpq.fit(X=np.ones(N), y=train_y)
 
     # predict
     pred = gpq.predict(
-        X_pred=X_fe_test, #np.ones(len(test_X)),
+        X_pred=np.ones(len(test_X)),
         gp_coords_pred=test_X,
         predict_response=False,  # get the latent data
         predict_var=True,

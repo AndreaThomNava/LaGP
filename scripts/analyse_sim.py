@@ -42,7 +42,7 @@ def run_analysis(RESULT_PATH, CONFIGS_PATH, version):
     ]
 
     metrics = [("time_mean", "time_std", "Time"), 
-            #("rmse_mean", "rmse_std", "RMSE")
+            ("rmse_mean", "rmse_std", "RMSE")
             ]
 
     # Define metrics and optimality

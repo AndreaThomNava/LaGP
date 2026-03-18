@@ -23,6 +23,6 @@ n_epochs : 200
 lr: 0.01
 
 # for later, plotting
-all_models: ["gpboost_cc"] #["gpboost_fisher",  "gpytorch",  "VIVA",  "qgam", "qgam_interactions"] 
+all_models: ["gpboost_cc", "gpboost_fisher",  "gpytorch",  "VIVA",  "qgam", "qgam_interactions"] 
 name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "TKC", "gpytorch": "VI", "qgam":"QGAM","qgam_interactions":"QGAM int",
   "gpboost_fisher":"FL", "boosting": "Boosting", "VIVA": "VIVA"}

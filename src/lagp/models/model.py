@@ -104,6 +104,10 @@ def model_gpboost(
     N = len(train_X)
     vecchia = N > n_vecchia
 
+    # fixed-effects design matrices
+    X_fe_train = np.column_stack([np.ones((N, 1)), train_X])
+    X_fe_test = np.column_stack([np.ones((len(test_X), 1)), test_X])
+
     start_time = time.time()
     gpq = gpb.GPModel(
         gp_coords=train_X,
@@ -134,13 +138,13 @@ def model_gpboost(
     )
     # fit
     if approx != "gaussian":
-        gpq.fit(X=np.ones(N), y=train_y, params=params)
+        gpq.fit(X=X_fe_train, y=train_y, params=params) # np.ones(N)
     else:
         gpq.fit(X=np.ones(N), y=train_y)
 
     # predict
     pred = gpq.predict(
-        X_pred=np.ones(len(test_X)),
+        X_pred=X_fe_test, #np.ones(len(test_X)),
         gp_coords_pred=test_X,
         predict_response=False,  # get the latent data
         predict_var=True,

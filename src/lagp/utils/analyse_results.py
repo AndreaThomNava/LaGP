@@ -18,7 +18,7 @@ def replace_missing_with_nan(obj):
         return obj
 
 
-def make_flattened_df(results: pd.DataFrame) -> pd.DataFrame:
+def make_flattened_df(results: pd.DataFrame, verbose =  True) -> pd.DataFrame:
     """
     Make a flattened dataframe out of the pickled results.
 
@@ -32,6 +32,18 @@ def make_flattened_df(results: pd.DataFrame) -> pd.DataFrame:
     config = results["config"]
     results = results["results"]
 
+    skipped = [
+        (cfg, replicate, rep_result)
+        for cfg, reps in results.items()
+        for replicate, rep_result in reps.items()
+        if isinstance(rep_result, str)
+    ]
+
+    if verbose and skipped:
+        print(f"Skipped {len(skipped)} failed replicates")
+        for cfg, replicate, _ in skipped:
+            print(f"  - {cfg}, replicate {replicate}")
+
     df = pd.DataFrame([
         {
             "model": model,
@@ -43,6 +55,7 @@ def make_flattened_df(results: pd.DataFrame) -> pd.DataFrame:
         }
         for cfg, reps in results.items()
         for replicate, rep_result in reps.items()
+        if not isinstance(rep_result, str)
         for model, metrics in rep_result.items()
         ])
     

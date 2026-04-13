@@ -12,10 +12,10 @@ gpb_approxs: {"gpboost_fisher": "asymmetric_laplace",
             "gpboost_cc_var_corr": "asymmetric_laplace_constant_curvature_fisher_mode_finding_var_cor_pred",
             "gpboost_normal": "gaussian"}
 
-datasets: ["labor", "Orthodont"] #"Orthodont", "labor"] #, "cars"] #Orthodont", "labor"] #, "labor", "cars"] # ["Orthodont", "labor"] cars_crossed
+datasets: ["cars_crossed", "ratings"] #"Orthodont", "labor"] #, "cars"] #Orthodont", "labor"] #, "labor", "cars"] # ["Orthodont", "labor"] cars_crossed
 n_splits: 5
 
 #### ANALYSIS ###
 all_models: ["gpboost_cc", "gpboost_fisher", "bayesqr", "lqmm", "brms"] 
-name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "CC", "gpboost_cc_var_corr": "CC corr", "brms": "BRMS", "lqmm":"LQMM", "gpboost_normal": "gpbN", 
+name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "TKC", "gpboost_cc_var_corr": "CC corr", "brms": "BRMS", "lqmm":"LQMM", "gpboost_normal": "gpbN", 
               "gpboost_fisher": "Fisher", "bayesqr": "BayesQR", "gpboost_lls_v2": "LLSV2"} 

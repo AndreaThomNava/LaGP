@@ -203,7 +203,49 @@ def df_mse_hyper(flat_df, configs):
 
     return grouped_df, pars
 
+def fmt_num(x, metric, digits=2):
+    """
+    Format numbers for tables.
 
+    Rules implemented:
+    - RMSE: 2 significant digits; use scientific notation for very small values
+      (e.g. 7.0e-04, 2.9e-04).
+    - runtime: avoid scientific notation unless values are extremely large;
+      prefer readable plain numbers (e.g. 480, 3200, 120).
+
+    Parameters
+    ----------
+    x : float
+    metric : str
+        "rmse" or "runtime"
+    digits : int
+        Number of significant digits, default 2.
+    """
+    if pd.isna(x):
+        return "---"
+
+    x = float(x)
+    ax = abs(x)
+
+    if x == 0:
+        return "0"
+   
+    if metric == "Time":
+        # Keep runtime easy to scan; avoid scientific notation in normal ranges
+        if ax >= 100:
+            return f"{round(x):.0f}"              # e.g. 480, 3200, 120
+        elif ax >= 10:
+            return f"{x:.1f}".rstrip("0").rstrip(".")
+        else:
+            return format(x, f".{digits}g")       # e.g. 0.19, 0.043, 7.2
+        
+    else:
+        # Scientific notation for tiny values, plain significant-digit format otherwise
+        if ax < 1e-3:
+            return format(x, f".{digits - 1}e")   # 2 sig digits -> .1e, e.g. 7.0e-04
+        return format(x, f".{digits}g")           # e.g. 0.028, 0.12, 0.0037
+
+    return format(x, f".{digits}g")
 
 def make_latex_table(config, summary_df, metrics, metric_criteria):
     """
@@ -293,9 +335,11 @@ def make_latex_table(config, summary_df, metrics, metric_criteria):
                     else:
                         best_value, best_std = best_metrics[label]
                         if abs(mean - best_value) <= 2 * best_std:
-                            row.append(f"\\textbf{{{mean:.2f}$_\\pm{{\\text{{\\tiny {std:.2f}}}}}$}}")
+                            #row.append(f"\\textbf{{{mean:.2f}$_\\pm{{\\text{{\\tiny {std:.2f}}}}}$}}")
+                            row.append(f"\\textbf{{{fmt_num(mean, label)}$_\\pm{{\\text{{\\tiny {fmt_num(std, label)}}}}}$}}")
                         else:
-                            row.append(f"{mean:.2f}$_\\pm{{\\text{{\\tiny {std:.2f}}}}}$")
+                            #row.append(f"{mean:.2f}$_\\pm{{\\text{{\\tiny {std:.2f}}}}}$")
+                            row.append(f"{fmt_num(mean, label)}$_\\pm{{\\text{{\\tiny {fmt_num(std, label)}}}}}$")
                 else:
                     row.append("---")
         
@@ -393,9 +437,9 @@ def make_latex_table_real(config, summary_df, metrics, metric_criteria):
                     else:
                         best_value, best_std = best_metrics[label]
                         if abs(mean - best_value) <= 2 * best_std:
-                            row.append(f"\\textbf{{{mean:.2f}$_\\pm{{\\text{{\\tiny {std:.2f}}}}}$}}")
+                            row.append(f"\\textbf{{{fmt_num(mean, label)}$_\\pm{{\\text{{\\tiny {fmt_num(std, label)}}}}}$}}")
                         else:
-                            row.append(f"{mean:.2f}$_\\pm{{\\text{{\\tiny {std:.2f}}}}}$")
+                            row.append(f"{fmt_num(mean, label)}$_\\pm{{\\text{{\\tiny {fmt_num(std, label)}}}}}$")
                 else:
                     row.append("---")
         
@@ -497,9 +541,10 @@ def make_latex_table_hyperparams(config, summary_df):
                     if pd.isna(mean):
                         row.append("---")  # Better than "nan"
                     elif np.isclose(mean, best_metrics[label], rtol=1e-6):
-                        row.append(f"\\textbf{{{mean:.4f}}}")
+                        #row.append(f"\\textbf{{{mean:.4f}}}")
+                        row.append(f"\\textbf{{{fmt_num(mean, label)}}}")
                     else:
-                        row.append(f"{mean:.4f}")
+                        row.append(f"{fmt_num(mean, label)}")
                 else:
                     row.append("---")  # Consistent missing value indicator
         

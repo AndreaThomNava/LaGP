@@ -16,6 +16,6 @@ datasets: ["cars_crossed", "ratings"] #"Orthodont", "labor"] #, "cars"] #Orthodo
 n_splits: 5
 
 #### ANALYSIS ###
-all_models: ["gpboost_cc", "gpboost_fisher", "bayesqr", "lqmm", "brms"] 
+all_models: ["gpboost_cc", "gpboost_fisher", "bayesqr", "brms"] #, "lqmm"] 
 name_dict : {"gpboost_lls": "LLS", "gpboost_cc": "TKC", "gpboost_cc_var_corr": "CC corr", "brms": "BRMS", "lqmm":"LQMM", "gpboost_normal": "gpbN", 
               "gpboost_fisher": "Fisher", "bayesqr": "BayesQR", "gpboost_lls_v2": "LLSV2"} 

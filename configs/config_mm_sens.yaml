@@ -1,0 +1,71 @@
+data_generation:
+  n_groups: [100]
+  group_size: [100, 500]
+  n_groups_2: 50
+  signal_variance: 1.0
+  signal_variance_2: 2.0
+
+  fixed_snr: True
+  snr: 5.0
+  quantile: 0.8
+  likelihood: ["ald", "gaussian"]
+  pars: {
+    "gaussian": {"scale": 0.31},
+    "ald": {"q": 0.8, "scale": 0.1},
+    "t": {"df": 3, "scale": 0.1},
+    "chi": {"df": 2, "scale": 0.1}
+  }
+  replicate: 10
+  test_size: 0.25
+  randeff: "One_random_effect"
+  output_folder: "simulated_data_mm"
+  random_state: 123
+  extrapolate: False
+
+  num_covariates: 5
+  has_F: False
+  factor_m2: 1.0
+
+  sigma2: 0.25
+  sigma2_1: 0.25
+  sigma2_2: 0.25
+  sigma2_3: 0.25
+
+models: ["gpboost_cc"]
+replicate: 10
+n_groups: [100]
+group_size: [10, 100, 500] # 10 for single level
+likelihood: ["ald", "gaussian" , "t"]
+randeff: "One_random_effect" #Two_completely_crossed_random_effects" #"One_random_effect"
+estimate_hyper: True
+
+delta_logl_values: [0.01, 0.03, 0.1, 0.3, 1.0, 10.0, 100.0, 1000.0, 10000.0, 100000]
+
+alpha: 0.9
+target_quantile: 0.95
+
+gpb_approxs:
+  gpboost_cc: "asymmetric_laplace_constant_curvature_fisher_mode_finding_continue"
+
+all_models: [
+  "gpboost_cc_dll_0.01",
+  "gpboost_cc_dll_0.03",
+  "gpboost_cc_dll_0.1",
+  "gpboost_cc_dll_0.3",
+  "gpboost_cc_dll_1.0",
+  "gpboost_cc_dll_10.0",
+  "gpboost_cc_dll_100.0",
+ # "gpboost_cc_dll_300.0",
+  "gpboost_cc_dll_1000.0",
+  "gpboost_cc_dll_5000.0",
+  "gpboost_cc_dll_10000.0",
+  "gpboost_cc_dll_100000.0"
+]
+
+
+likelihood_dict:
+  gaussian: "N"
+  ald: "ALD"
+  t: "t"
+  chi: "chi"
+  ald_heteroscedastic: "HetALD"

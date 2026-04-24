@@ -1,0 +1,88 @@
+simulation:
+  seed: 43
+  grid_lims: [0, 1]
+  sample_sizes: [1000, 10000]
+  dimensions: [2, 5]
+  likelihoods:
+    - gaussian
+    - t
+    - gaussian_heteroscedastic
+
+  snr: 5.0
+  fixed_snr: True
+  pars: {
+    "gaussian": {"scale": 0.31},
+    "ald": {"q": 0.8, "scale": 0.1},
+    "t": {"df": 3, "scale": 0.1},
+    "chi": {"df": 2, "scale": 0.1}
+  }
+  replicates: 10
+
+gp_parameters:
+  kernel:
+    type: matern
+    nu: 1.5
+    lengthscale: 0.25
+    signal_variance: 1.0
+
+target_quantile: 0.80
+
+delta_logl_values: [0.01, 0.03, 0.1, 0.3, 1.0, 10.0, 100.0, 1000.0, 10000.0, 100000.0]
+
+threshold_approximation: 1001
+inducing_points: 1000
+target_coverage: 0.9
+train_split: 0.75
+
+models: ["gpboost_cc"]
+models_with_hyperparams: [
+  "gpboost_cc_dll_0.01",
+  "gpboost_cc_dll_0.03",
+  "gpboost_cc_dll_0.1",
+  "gpboost_cc_dll_0.3",
+  "gpboost_cc_dll_1.0",
+  "gpboost_cc_dll_10.0",
+  "gpboost_cc_dll_100.0",
+  "gpboost_cc_dll_1000.0",
+  "gpboost_cc_dll_10000.0",
+  "gpboost_cc_dll_100000.0"
+]
+
+gpb_approxs:
+  gpboost_cc: "asymmetric_laplace_constant_curvature_fisher_mode_finding"
+
+n_epochs: 200
+lr: 0.01
+
+name_dict:
+  gpboost_cc_dll_0.01: "TKC-1e-02"
+  gpboost_cc_dll_0.03: "TKC-3e-02"
+  gpboost_cc_dll_0.1: "TKC-1e-01"
+  gpboost_cc_dll_0.3: "TKC-3e-01"
+  gpboost_cc_dll_1.0: "TKC-1e+00"
+  gpboost_cc_dll_10.0: "TKC-1e+01"
+  gpboost_cc_dll_100.0: "TKC-1e+02"
+  gpboost_cc_dll_1000.0: "TKC-1e+03"
+  gpboost_cc_dll_10000.0: "TKC-1e+04"
+  gpboost_cc_dll_100000.0: "TKC-1e+05"
+
+likelihood_dict:
+  gaussian: "N"
+  ald: "ALD"
+  t: "t"
+  chi: "chi"
+  ald_heteroscedastic: "HetALD"
+  gaussian_heteroscedastic: "HetN"
+
+all_models: [
+  "gpboost_cc_dll_0.01",
+  "gpboost_cc_dll_0.03",
+  "gpboost_cc_dll_0.1",
+  "gpboost_cc_dll_0.3",
+  "gpboost_cc_dll_1.0",
+  "gpboost_cc_dll_10.0",
+  "gpboost_cc_dll_100.0",
+  "gpboost_cc_dll_1000.0",
+  "gpboost_cc_dll_10000.0",
+  "gpboost_cc_dll_100000.0"
+]

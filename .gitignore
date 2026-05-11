@@ -6,7 +6,7 @@ __pycache__/
 results/
 
 data/*
-!data/real_data_mm/
+!data/real_data_mm/*.npz
 
 notebooks/*
 

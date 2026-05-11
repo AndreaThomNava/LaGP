@@ -9,8 +9,17 @@ setup(
         "numpy",
         "scipy",
         "matplotlib",
+        "seaborn",
         "scikit-learn",
         "gpytorch",
+        "pandas",
+        "gpboost",
+        "torch",
+        "gpytorch",
+        "lightgbm",
+        "json",
+        "scipy",
+        "pymc"
         # Add other dependencies you are using
     ],
     python_requires=">=3.6",  # Adjust to your Python version
